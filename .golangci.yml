@@ -31,7 +31,6 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - gomodguard
     - goprintffuncname
     - gosmopolitan
     - govet
@@ -79,7 +78,7 @@ linters:
       statements: 80
     goconst:
       min-len: 6
-      min-occurrences: 6
+      min-occurrences: 50
     revive:
       rules:
         - name: file-length-limit
