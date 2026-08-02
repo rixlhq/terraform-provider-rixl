@@ -7,7 +7,11 @@ OUT="provider_code_spec.json"
 cd "$(dirname "$0")"
 
 echo "Downloading OpenAPI spec..."
-curl -sSL -o openapi.yaml "$SPEC"
+CURL_OPTS=(-sSL)
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  CURL_OPTS+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+fi
+curl "${CURL_OPTS[@]}" -o openapi.yaml "$SPEC"
 
 echo "Generating provider code spec..."
 tfplugingen-openapi generate --config generator_config.yml --output "$OUT" openapi.yaml

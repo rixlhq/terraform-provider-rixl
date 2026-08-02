@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.BUILD_GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - uses: actions/setup-go@v5
         with:
@@ -23,8 +24,8 @@ jobs:
 
       - name: Install generators
         run: |
-          go install github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@latest
-          go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework@latest
+          go install github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@v0.3.0
+          go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework@v0.4.1
 
       - name: Regenerate provider code
         run: ./gen.sh
