@@ -68,9 +68,7 @@ func (p *RixlProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 	data = applyEnvOverrides(data)
 
-	hasAuth := !data.APIKey.IsNull() && !data.APIKey.IsUnknown() && data.APIKey.ValueString() != "" ||
-		!data.BearerToken.IsNull() && !data.BearerToken.IsUnknown() && data.BearerToken.ValueString() != ""
-	if !hasAuth {
+	if !isConfigured(data) {
 		resp.Diagnostics.AddError(
 			"Missing Credentials",
 			"Either api_key or bearer_token must be configured.",
@@ -78,15 +76,10 @@ func (p *RixlProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 		return
 	}
 
-	baseURL := ""
-	if !data.BaseURL.IsNull() && !data.BaseURL.IsUnknown() {
-		baseURL = data.BaseURL.ValueString()
-	}
-
 	c, err := rixlclient.New(
 		envStringValue(data.APIKey),
 		envStringValue(data.BearerToken),
-		baseURL,
+		envStringValue(data.BaseURL),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Configuration Error", err.Error())
@@ -103,6 +96,14 @@ func applyEnvOverrides(data RixlProviderModel) RixlProviderModel {
 	data.BearerToken = envOrString(data.BearerToken, "RIXL_BEARER_TOKEN")
 	data.BaseURL = envOrString(data.BaseURL, "RIXL_BASE_URL")
 	return data
+}
+
+func isConfigured(data RixlProviderModel) bool {
+	return isSet(data.APIKey) || isSet(data.BearerToken)
+}
+
+func isSet(s types.String) bool {
+	return !s.IsNull() && !s.IsUnknown() && s.ValueString() != ""
 }
 
 func envOrString(v types.String, env string) types.String {
