@@ -3,9 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/rixlhq/terraform-provider-rixl/internal/providerdata"
 	"github.com/rixlhq/terraform-provider-rixl/internal/rixlclient"
@@ -17,6 +19,7 @@ type rixlDataSourceSpec struct {
 	readPath     string
 	paramAliases map[string]string
 	responseRoot string
+	queryParams  map[string]string
 	schemaFn     func(context.Context) schema.Schema
 }
 
@@ -64,7 +67,13 @@ func (d *rixlDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	respBody, err := d.client.Get(ctx, path, nil)
+	query, err := d.queryValues(ctx, req.Config.Raw)
+	if err != nil {
+		resp.Diagnostics.AddError("Query Parameter Error", err.Error())
+		return
+	}
+
+	respBody, err := d.client.Get(ctx, path, query)
 	if err != nil {
 		resp.Diagnostics.AddError("Rixl API Error", err.Error())
 		return
@@ -87,6 +96,31 @@ func newRixlDataSource(spec rixlDataSourceSpec) datasource.DataSource {
 	}
 }
 
+func (d *rixlDataSource) queryValues(_ context.Context, config tftypes.Value) (url.Values, error) {
+	if len(d.spec.queryParams) == 0 {
+		return nil, nil
+	}
+
+	obj, err := asObject(config)
+	if err != nil {
+		return nil, err
+	}
+
+	q := make(url.Values)
+	for attr, paramName := range d.spec.queryParams {
+		v, ok := obj[attr]
+		if !ok {
+			continue
+		}
+		s, err := rixlcommon.ValueAsString(v)
+		if err != nil || s == "" {
+			continue
+		}
+		q.Set(paramName, s)
+	}
+	return q, nil
+}
+
 // NewFeedDataSource returns the feed data source.
 func NewFeedDataSource() datasource.DataSource {
 	return newRixlDataSource(rixlDataSourceSpec{
@@ -102,6 +136,10 @@ func NewFeedsDataSource() datasource.DataSource {
 	return newRixlDataSource(rixlDataSourceSpec{
 		typeName: "feeds",
 		readPath: "/feeds/v1/projects/{project_id}/feeds",
+		queryParams: map[string]string{
+			"paginationlimit":  "pagination.limit",
+			"paginationoffset": "pagination.offset",
+		},
 		schemaFn: FeedsDataSourceSchema,
 	})
 }
@@ -121,6 +159,12 @@ func NewImagesDataSource() datasource.DataSource {
 	return newRixlDataSource(rixlDataSourceSpec{
 		typeName: "images",
 		readPath: "/media/v1/projects/{project_id}/images",
+		queryParams: map[string]string{
+			"paginationlimit":  "pagination.limit",
+			"paginationoffset": "pagination.offset",
+			"sort_field":       "sort_field",
+			"sort_direction":   "sort_direction",
+		},
 		schemaFn: ImagesDataSourceSchema,
 	})
 }
@@ -140,6 +184,12 @@ func NewVideosDataSource() datasource.DataSource {
 	return newRixlDataSource(rixlDataSourceSpec{
 		typeName: "videos",
 		readPath: "/media/v1/projects/{project_id}/videos",
+		queryParams: map[string]string{
+			"paginationlimit":  "pagination.limit",
+			"paginationoffset": "pagination.offset",
+			"sort_field":       "sort_field",
+			"sort_direction":   "sort_direction",
+		},
 		schemaFn: VideosDataSourceSchema,
 	})
 }
@@ -168,6 +218,10 @@ func NewAPIKeysDataSource() datasource.DataSource {
 	return newRixlDataSource(rixlDataSourceSpec{
 		typeName: "api_keys",
 		readPath: "/organizations/{org_id}/api-keys/v1",
+		queryParams: map[string]string{
+			"paginationlimit":  "pagination.limit",
+			"paginationoffset": "pagination.offset",
+		},
 		schemaFn: ApiKeysDataSourceSchema,
 	})
 }
