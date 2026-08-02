@@ -30,10 +30,10 @@ jobs:
       - name: Regenerate provider code
         run: ./gen.sh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BUILD_GITHUB_TOKEN }}
 
       - name: Commit generated changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "feat(provider): regenerate from latest OpenAPI spec"
-          file_pattern: 'internal/provider/*_gen.go generator_config.yml go.mod go.sum'
+          file_pattern: 'internal/provider/*_gen.go internal/provider/data_source_specs.go generator_config.yml go.mod go.sum'
