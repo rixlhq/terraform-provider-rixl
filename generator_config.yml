@@ -18,32 +18,556 @@ resources:
       attributes:
         aliases:
           feed_id: id
+        overrides:
+          project_id:
+            computed_optional_required: required
+          id:
+            computed_optional_required: required
 data_sources:
+  analytics_dashboard:
+    read:
+      path: "/analytics/v1/dashboard"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          interval:
+            computed_optional_required: optional
+          time_end:
+            computed_optional_required: optional
+          time_start:
+            computed_optional_required: optional
+  analytics_feed_stats:
+    read:
+      path: "/analytics/v1/feeds/{feed_id}/stats"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          range.end: range_end
+          range.start: range_start
+        overrides:
+          feed_id:
+            computed_optional_required: required
+          range_end:
+            computed_optional_required: optional
+          range_start:
+            computed_optional_required: optional
+  analytics_realtime:
+    read:
+      path: "/analytics/v1/realtime"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+  analytics_top_feeds:
+    read:
+      path: "/analytics/v1/top/feeds"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          range.end: range_end
+          range.start: range_start
+        overrides:
+          limit:
+            computed_optional_required: optional
+          range_end:
+            computed_optional_required: optional
+          range_start:
+            computed_optional_required: optional
+  analytics_top_posts:
+    read:
+      path: "/analytics/v1/top/posts"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          range.end: range_end
+          range.start: range_start
+        overrides:
+          feed_id:
+            computed_optional_required: optional
+          limit:
+            computed_optional_required: optional
+          range_end:
+            computed_optional_required: optional
+          range_start:
+            computed_optional_required: optional
+  analytics_top_videos:
+    read:
+      path: "/analytics/v1/top/videos"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          range.end: range_end
+          range.start: range_start
+        overrides:
+          limit:
+            computed_optional_required: optional
+          range_end:
+            computed_optional_required: optional
+          range_start:
+            computed_optional_required: optional
+  analytics_video_heatmap:
+    read:
+      path: "/analytics/v1/videos/{video_id}/heatmap"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          range.end: range_end
+          range.start: range_start
+        overrides:
+          buckets:
+            computed_optional_required: optional
+          range_end:
+            computed_optional_required: optional
+          range_start:
+            computed_optional_required: optional
+          video_id:
+            computed_optional_required: required
+  analytics_video_hot_segments:
+    read:
+      path: "/analytics/v1/videos/{video_id}/hot-segments"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          range.end: range_end
+          range.start: range_start
+        overrides:
+          range_end:
+            computed_optional_required: optional
+          range_start:
+            computed_optional_required: optional
+          video_id:
+            computed_optional_required: required
+  analytics_video_stats:
+    read:
+      path: "/analytics/v1/videos/{video_id}/stats"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          range.end: range_end
+          range.start: range_start
+        overrides:
+          range_end:
+            computed_optional_required: optional
+          range_start:
+            computed_optional_required: optional
+          video_id:
+            computed_optional_required: required
+  auth_blog_subscription:
+    read:
+      path: "/auth/v1/blog/subscription"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          user_id:
+            computed_optional_required: optional
+  auth_membership_applications:
+    read:
+      path: "/auth/v1/membership-applications"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          user.user_id: user_user_id
+        overrides:
+          limit:
+            computed_optional_required: optional
+          offset:
+            computed_optional_required: optional
+          state:
+            computed_optional_required: optional
+          user_user_id:
+            computed_optional_required: optional
+  auth_memberships:
+    read:
+      path: "/auth/v1/memberships"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          user.user_id: user_user_id
+        overrides:
+          limit:
+            computed_optional_required: optional
+          offset:
+            computed_optional_required: optional
+          state:
+            computed_optional_required: optional
+          user_user_id:
+            computed_optional_required: optional
+  auth_memberships_org_id_check:
+    read:
+      path: "/auth/v1/memberships/{org_id}/check"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          org_id:
+            computed_optional_required: required
+          user_id:
+            computed_optional_required: optional
+  auth_memberships_org_id_domain:
+    read:
+      path: "/auth/v1/memberships/{org_id}/domain"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          org_id:
+            computed_optional_required: required
+          user_id:
+            computed_optional_required: optional
+  auth_memberships_org_id_domain_auto_join:
+    read:
+      path: "/auth/v1/memberships/{org_id}/domain/auto-join"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          org_id:
+            computed_optional_required: required
+          user_id:
+            computed_optional_required: optional
+  auth_memberships_org_id_info:
+    read:
+      path: "/auth/v1/memberships/{org_id}/info"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          org_id:
+            computed_optional_required: required
+          user_id:
+            computed_optional_required: optional
+  auth_memberships_org_id_policies:
+    read:
+      path: "/auth/v1/memberships/{org_id}/policies"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          org_id:
+            computed_optional_required: required
+          user_id:
+            computed_optional_required: optional
+  auth_memberships_user_org_id_members:
+    read:
+      path: "/auth/v1/memberships/{user.org_id}/members"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          user.org_id: org_id
+          user.user_id: user_user_id
+        overrides:
+          limit:
+            computed_optional_required: optional
+          offset:
+            computed_optional_required: optional
+          org_id:
+            computed_optional_required: required
+          user_user_id:
+            computed_optional_required: optional
+  auth_memberships_user_org_id_member_policies:
+    read:
+      path: "/auth/v1/memberships/{user.org_id}/members/{member_id}/policies"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          user.org_id: org_id
+          user.user_id: user_user_id
+        overrides:
+          member_id:
+            computed_optional_required: required
+          org_id:
+            computed_optional_required: required
+          user_user_id:
+            computed_optional_required: optional
+  auth_memberships_user_org_id_policy:
+    read:
+      path: "/auth/v1/memberships/{user.org_id}/policies/{policy_id}"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          user.org_id: org_id
+          user.user_id: user_user_id
+        overrides:
+          org_id:
+            computed_optional_required: required
+          policy_id:
+            computed_optional_required: required
+          user_user_id:
+            computed_optional_required: optional
+  auth_memberships_user_org_id_policy_attachments:
+    read:
+      path: "/auth/v1/memberships/{user.org_id}/policies/{policy_id}/attachments"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          user.org_id: org_id
+          user.user_id: user_user_id
+        overrides:
+          org_id:
+            computed_optional_required: required
+          policy_id:
+            computed_optional_required: required
+          user_user_id:
+            computed_optional_required: optional
+  auth_policies_permissions:
+    read:
+      path: "/auth/v1/policies/permissions"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+  auth_providers:
+    read:
+      path: "/auth/v1/providers"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          user_id:
+            computed_optional_required: optional
+  auth_userinfo:
+    read:
+      path: "/auth/v1/userinfo"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          user_id:
+            computed_optional_required: optional
+  auth_users_current:
+    read:
+      path: "/auth/v1/users/current"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          user_id: query_user_id
+        overrides:
+          query_user_id:
+            computed_optional_required: optional
+  auth_users_current_emails_status:
+    read:
+      path: "/auth/v1/users/current/emails/status"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          user_id:
+            computed_optional_required: optional
+  auth_users_current_passkeys:
+    read:
+      path: "/auth/v1/users/current/passkeys"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          user_id:
+            computed_optional_required: optional
+  auth_users_current_totp_status:
+    read:
+      path: "/auth/v1/users/current/totp/status"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          user_id:
+            computed_optional_required: optional
+  billing_address:
+    read:
+      path: "/billing/v1/address"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          org_id:
+            computed_optional_required: optional
+  billing_bandwidth_usage:
+    read:
+      path: "/billing/v1/bandwidth-usage"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          org_id: query_org_id
+        overrides:
+          query_org_id:
+            computed_optional_required: optional
+  billing_bandwidth_usage_history:
+    read:
+      path: "/billing/v1/bandwidth-usage/history"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          days:
+            computed_optional_required: optional
+          org_id:
+            computed_optional_required: optional
+  billing_invoices:
+    read:
+      path: "/billing/v1/invoices"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          pagination.limit: pagination_limit
+          pagination.offset: pagination_offset
+        overrides:
+          org_id:
+            computed_optional_required: optional
+          pagination_limit:
+            computed_optional_required: optional
+          pagination_offset:
+            computed_optional_required: optional
+  billing_payment_methods:
+    read:
+      path: "/billing/v1/payment-methods"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          org_id:
+            computed_optional_required: optional
+          refresh:
+            computed_optional_required: optional
+  billing_payment_methods_from_payment_intent:
+    read:
+      path: "/billing/v1/payment-methods/from-payment-intent"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          payment_intent_id:
+            computed_optional_required: optional
+  billing_payment_methods_from_setup_intent:
+    read:
+      path: "/billing/v1/payment-methods/from-setup-intent"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          setup_intent_id:
+            computed_optional_required: optional
+  billing_plans:
+    read:
+      path: "/billing/v1/plans"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          currency:
+            computed_optional_required: optional
+          free:
+            computed_optional_required: optional
+          interval:
+            computed_optional_required: optional
+  billing_plan:
+    read:
+      path: "/billing/v1/plans/{plan_id}"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          plan_id: id
+        overrides:
+          id:
+            computed_optional_required: required
+  billing_storage_usage:
+    read:
+      path: "/billing/v1/storage-usage"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          org_id: query_org_id
+        overrides:
+          query_org_id:
+            computed_optional_required: optional
+  billing_storage_usage_history:
+    read:
+      path: "/billing/v1/storage-usage/history"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          days:
+            computed_optional_required: optional
+          org_id:
+            computed_optional_required: optional
+  billing_subscription:
+    read:
+      path: "/billing/v1/subscription"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          org_id: query_org_id
+        overrides:
+          query_org_id:
+            computed_optional_required: optional
+  billing_subscription_history:
+    read:
+      path: "/billing/v1/subscription/history"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          pagination.limit: pagination_limit
+          pagination.offset: pagination_offset
+        overrides:
+          org_id:
+            computed_optional_required: optional
+          pagination_limit:
+            computed_optional_required: optional
+          pagination_offset:
+            computed_optional_required: optional
+  feeds:
+    read:
+      path: "/feeds/v1/projects/{project_id}/feeds"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          pagination.limit: pagination_limit
+          pagination.offset: pagination_offset
+        overrides:
+          pagination_limit:
+            computed_optional_required: optional
+          pagination_offset:
+            computed_optional_required: optional
+          project_id:
+            computed_optional_required: required
   feed:
     read:
-      path: /feeds/v1/projects/{project_id}/feeds/{feed_id}
+      path: "/feeds/v1/projects/{project_id}/feeds/{feed_id}"
       method: GET
     schema:
       attributes:
         aliases:
           feed_id: id
         overrides:
-          project_id:
-            computed_optional_required: required
           id:
             computed_optional_required: required
-  feeds:
-    read:
-      path: /feeds/v1/projects/{project_id}/feeds
-      method: GET
-    schema:
-      attributes:
-        overrides:
           project_id:
             computed_optional_required: required
   image:
     read:
-      path: /media/v1/images/{image_id}
+      path: "/media/v1/images/{image_id}"
       method: GET
     schema:
       attributes:
@@ -52,18 +576,67 @@ data_sources:
         overrides:
           id:
             computed_optional_required: required
+  languages:
+    read:
+      path: "/media/v1/languages"
+      method: GET
+    schema:
+      attributes:
+        overrides:
   images:
     read:
-      path: /media/v1/projects/{project_id}/images
+      path: "/media/v1/projects/{project_id}/images"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          pagination.limit: pagination_limit
+          pagination.offset: pagination_offset
+        overrides:
+          pagination_limit:
+            computed_optional_required: optional
+          pagination_offset:
+            computed_optional_required: optional
+          project_id:
+            computed_optional_required: required
+          sort_direction:
+            computed_optional_required: optional
+          sort_field:
+            computed_optional_required: optional
+  videos:
+    read:
+      path: "/media/v1/projects/{project_id}/videos"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          pagination.limit: pagination_limit
+          pagination.offset: pagination_offset
+        overrides:
+          pagination_limit:
+            computed_optional_required: optional
+          pagination_offset:
+            computed_optional_required: optional
+          project_id:
+            computed_optional_required: required
+          sort_direction:
+            computed_optional_required: optional
+          sort_field:
+            computed_optional_required: optional
+  media_project_video_chapters:
+    read:
+      path: "/media/v1/projects/{project_id}/videos/{video_id}/chapters"
       method: GET
     schema:
       attributes:
         overrides:
           project_id:
             computed_optional_required: required
+          video_id:
+            computed_optional_required: required
   video:
     read:
-      path: /media/v1/videos/{video_id}
+      path: "/media/v1/videos/{video_id}"
       method: GET
     schema:
       attributes:
@@ -72,43 +645,73 @@ data_sources:
         overrides:
           id:
             computed_optional_required: required
-  videos:
+  media_video_audio_tracks:
     read:
-      path: /media/v1/projects/{project_id}/videos
+      path: "/media/v1/videos/{video_id}/audio-tracks"
       method: GET
     schema:
       attributes:
         overrides:
-          project_id:
+          video_id:
             computed_optional_required: required
-  project:
+  media_video_subtitles:
     read:
-      path: /organizations/{org_id}/projects/v1/{project_id}
+      path: "/media/v1/videos/{video_id}/subtitles"
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          video_id:
+            computed_optional_required: required
+  api_keys:
+    read:
+      path: "/organizations/{org_id}/api-keys/v1"
       method: GET
     schema:
       attributes:
         aliases:
-          project_id: id
+          pagination.limit: pagination_limit
+          pagination.offset: pagination_offset
         overrides:
           org_id:
             computed_optional_required: required
-          id:
-            computed_optional_required: required
+          pagination_limit:
+            computed_optional_required: optional
+          pagination_offset:
+            computed_optional_required: optional
   projects:
     read:
-      path: /organizations/{org_id}/projects/v1
+      path: "/organizations/{org_id}/projects/v1"
       method: GET
     schema:
       attributes:
         overrides:
           org_id:
             computed_optional_required: required
-  api_keys:
+  project:
     read:
-      path: /organizations/{org_id}/api-keys/v1
+      path: "/organizations/{org_id}/projects/v1/{project_id}"
       method: GET
     schema:
       attributes:
         overrides:
           org_id:
             computed_optional_required: required
+          project_id:
+            computed_optional_required: required
+  platform_clientauth_credentials:
+    read:
+      path: "/platform/clientauth/v1/credentials"
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          pagination.limit: pagination_limit
+          pagination.offset: pagination_offset
+        overrides:
+          org_id:
+            computed_optional_required: optional
+          pagination_limit:
+            computed_optional_required: optional
+          pagination_offset:
+            computed_optional_required: optional

@@ -20,20 +20,20 @@ import (
 func VideosDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"paginationlimit": schema.Int64Attribute{
+			"pagination_limit": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "Maximum number of items to return.",
-				MarkdownDescription: "Maximum number of items to return.",
+				Description:         "",
+				MarkdownDescription: "",
 				Validators: []validator.Int64{
 					int64validator.Between(1, 100),
 				},
 			},
-			"paginationoffset": schema.Int64Attribute{
+			"pagination_offset": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "Number of items to skip before collecting the result set.",
-				MarkdownDescription: "Number of items to skip before collecting the result set.",
+				Description:         "",
+				MarkdownDescription: "",
 			},
 			"project_id": schema.StringAttribute{
 				Required:            true,
@@ -41,12 +41,16 @@ func VideosDataSourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "",
 			},
 			"sort_direction": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "",
+				MarkdownDescription: "",
 			},
 			"sort_field": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "",
+				MarkdownDescription: "",
 			},
 			"videos": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
@@ -83,9 +87,9 @@ func VideosDataSourceSchema(ctx context.Context) schema.Schema {
 							Computed: true,
 						},
 					},
-					CustomType: VideosType{
+					CustomType: VideosVideosType{
 						ObjectType: types.ObjectType{
-							AttrTypes: VideosValue{}.AttributeTypes(ctx),
+							AttrTypes: VideosVideosValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
@@ -96,22 +100,22 @@ func VideosDataSourceSchema(ctx context.Context) schema.Schema {
 }
 
 type VideosModel struct {
-	Paginationlimit  types.Int64  `tfsdk:"paginationlimit"`
-	Paginationoffset types.Int64  `tfsdk:"paginationoffset"`
+	PaginationLimit  types.Int64  `tfsdk:"pagination_limit"`
+	PaginationOffset types.Int64  `tfsdk:"pagination_offset"`
 	ProjectId        types.String `tfsdk:"project_id"`
 	SortDirection    types.String `tfsdk:"sort_direction"`
 	SortField        types.String `tfsdk:"sort_field"`
 	Videos           types.List   `tfsdk:"videos"`
 }
 
-var _ basetypes.ObjectTypable = VideosType{}
+var _ basetypes.ObjectTypable = VideosVideosType{}
 
-type VideosType struct {
+type VideosVideosType struct {
 	basetypes.ObjectType
 }
 
-func (t VideosType) Equal(o attr.Type) bool {
-	other, ok := o.(VideosType)
+func (t VideosVideosType) Equal(o attr.Type) bool {
+	other, ok := o.(VideosVideosType)
 
 	if !ok {
 		return false
@@ -120,11 +124,11 @@ func (t VideosType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t VideosType) String() string {
-	return "VideosType"
+func (t VideosVideosType) String() string {
+	return "VideosVideosType"
 }
 
-func (t VideosType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t VideosVideosType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -295,7 +299,7 @@ func (t VideosType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 		return nil, diags
 	}
 
-	return VideosValue{
+	return VideosVideosValue{
 		Codec:      codecVal,
 		CreatedAt:  createdAtVal,
 		Duration:   durationVal,
@@ -309,19 +313,19 @@ func (t VideosType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 	}, diags
 }
 
-func NewVideosValueNull() VideosValue {
-	return VideosValue{
+func VideosNewVideosValueNull() VideosVideosValue {
+	return VideosVideosValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewVideosValueUnknown() VideosValue {
-	return VideosValue{
+func VideosNewVideosValueUnknown() VideosVideosValue {
+	return VideosVideosValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (VideosValue, diag.Diagnostics) {
+func VideosNewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (VideosVideosValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -332,11 +336,11 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 
 		if !ok {
 			diags.AddError(
-				"Missing VideosValue Attribute Value",
-				"While creating a VideosValue value, a missing attribute value was detected. "+
-					"A VideosValue must contain values for all attributes, even if null or unknown. "+
+				"Missing VideosVideosValue Attribute Value",
+				"While creating a VideosVideosValue value, a missing attribute value was detected. "+
+					"A VideosVideosValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("VideosValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("VideosVideosValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -344,12 +348,12 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid VideosValue Attribute Type",
-				"While creating a VideosValue value, an invalid attribute value was detected. "+
-					"A VideosValue must use a matching attribute type for the value. "+
+				"Invalid VideosVideosValue Attribute Type",
+				"While creating a VideosVideosValue value, an invalid attribute value was detected. "+
+					"A VideosVideosValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("VideosValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("VideosValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("VideosVideosValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("VideosVideosValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -359,17 +363,17 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 
 		if !ok {
 			diags.AddError(
-				"Extra VideosValue Attribute Value",
-				"While creating a VideosValue value, an extra attribute value was detected. "+
-					"A VideosValue must not contain values beyond the expected attribute types. "+
+				"Extra VideosVideosValue Attribute Value",
+				"While creating a VideosVideosValue value, an extra attribute value was detected. "+
+					"A VideosVideosValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra VideosValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra VideosVideosValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	codecAttribute, ok := attributes["codec"]
@@ -379,7 +383,7 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`codec is missing from object`)
 
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	codecVal, ok := codecAttribute.(basetypes.StringValue)
@@ -397,7 +401,7 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`created_at is missing from object`)
 
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
@@ -415,7 +419,7 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`duration is missing from object`)
 
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	durationVal, ok := durationAttribute.(basetypes.StringValue)
@@ -433,7 +437,7 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`height is missing from object`)
 
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	heightVal, ok := heightAttribute.(basetypes.Int64Value)
@@ -451,7 +455,7 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`id is missing from object`)
 
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	idVal, ok := idAttribute.(basetypes.StringValue)
@@ -469,7 +473,7 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`name is missing from object`)
 
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	nameVal, ok := nameAttribute.(basetypes.StringValue)
@@ -487,7 +491,7 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`size is missing from object`)
 
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	sizeVal, ok := sizeAttribute.(basetypes.StringValue)
@@ -505,7 +509,7 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`visibility is missing from object`)
 
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	visibilityVal, ok := visibilityAttribute.(basetypes.StringValue)
@@ -523,7 +527,7 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`width is missing from object`)
 
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
 	widthVal, ok := widthAttribute.(basetypes.Int64Value)
@@ -535,10 +539,10 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 	}
 
 	if diags.HasError() {
-		return NewVideosValueUnknown(), diags
+		return VideosNewVideosValueUnknown(), diags
 	}
 
-	return VideosValue{
+	return VideosVideosValue{
 		Codec:      codecVal,
 		CreatedAt:  createdAtVal,
 		Duration:   durationVal,
@@ -552,8 +556,8 @@ func NewVideosValue(attributeTypes map[string]attr.Type, attributes map[string]a
 	}, diags
 }
 
-func NewVideosValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) VideosValue {
-	object, diags := NewVideosValue(attributeTypes, attributes)
+func VideosNewVideosValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) VideosVideosValue {
+	object, diags := VideosNewVideosValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -567,15 +571,15 @@ func NewVideosValueMust(attributeTypes map[string]attr.Type, attributes map[stri
 				diagnostic.Detail()))
 		}
 
-		panic("NewVideosValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("VideosNewVideosValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t VideosType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t VideosVideosType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewVideosValueNull(), nil
+		return VideosNewVideosValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -583,11 +587,11 @@ func (t VideosType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (a
 	}
 
 	if !in.IsKnown() {
-		return NewVideosValueUnknown(), nil
+		return VideosNewVideosValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewVideosValueNull(), nil
+		return VideosNewVideosValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -610,16 +614,16 @@ func (t VideosType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (a
 		attributes[k] = a
 	}
 
-	return NewVideosValueMust(VideosValue{}.AttributeTypes(ctx), attributes), nil
+	return VideosNewVideosValueMust(VideosVideosValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t VideosType) ValueType(ctx context.Context) attr.Value {
-	return VideosValue{}
+func (t VideosVideosType) ValueType(ctx context.Context) attr.Value {
+	return VideosVideosValue{}
 }
 
-var _ basetypes.ObjectValuable = VideosValue{}
+var _ basetypes.ObjectValuable = VideosVideosValue{}
 
-type VideosValue struct {
+type VideosVideosValue struct {
 	Codec      basetypes.StringValue `tfsdk:"codec"`
 	CreatedAt  basetypes.StringValue `tfsdk:"created_at"`
 	Duration   basetypes.StringValue `tfsdk:"duration"`
@@ -632,7 +636,7 @@ type VideosValue struct {
 	state      attr.ValueState
 }
 
-func (v VideosValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v VideosVideosValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 9)
 
 	var val tftypes.Value
@@ -740,19 +744,19 @@ func (v VideosValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error
 	}
 }
 
-func (v VideosValue) IsNull() bool {
+func (v VideosVideosValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v VideosValue) IsUnknown() bool {
+func (v VideosVideosValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v VideosValue) String() string {
-	return "VideosValue"
+func (v VideosVideosValue) String() string {
+	return "VideosVideosValue"
 }
 
-func (v VideosValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v VideosVideosValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributeTypes := map[string]attr.Type{
@@ -792,8 +796,8 @@ func (v VideosValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, 
 	return objVal, diags
 }
 
-func (v VideosValue) Equal(o attr.Value) bool {
-	other, ok := o.(VideosValue)
+func (v VideosVideosValue) Equal(o attr.Value) bool {
+	other, ok := o.(VideosVideosValue)
 
 	if !ok {
 		return false
@@ -846,15 +850,15 @@ func (v VideosValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v VideosValue) Type(ctx context.Context) attr.Type {
-	return VideosType{
+func (v VideosVideosValue) Type(ctx context.Context) attr.Type {
+	return VideosVideosType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v VideosValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v VideosVideosValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"codec":      basetypes.StringType{},
 		"created_at": basetypes.StringType{},

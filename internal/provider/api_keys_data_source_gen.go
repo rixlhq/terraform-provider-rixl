@@ -54,14 +54,12 @@ func ApiKeysDataSourceSchema(ctx context.Context) schema.Schema {
 							Computed: true,
 						},
 						"secret": schema.StringAttribute{
-							Computed:            true,
-							Description:         "",
-							MarkdownDescription: "",
+							Computed: true,
 						},
 					},
-					CustomType: ApiKeysType{
+					CustomType: ApiKeysApiKeysType{
 						ObjectType: types.ObjectType{
-							AttrTypes: ApiKeysValue{}.AttributeTypes(ctx),
+							AttrTypes: ApiKeysApiKeysValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
@@ -72,20 +70,20 @@ func ApiKeysDataSourceSchema(ctx context.Context) schema.Schema {
 				Description:         "",
 				MarkdownDescription: "",
 			},
-			"paginationlimit": schema.Int64Attribute{
+			"pagination_limit": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "Maximum number of items to return.",
-				MarkdownDescription: "Maximum number of items to return.",
+				Description:         "",
+				MarkdownDescription: "",
 				Validators: []validator.Int64{
 					int64validator.Between(1, 100),
 				},
 			},
-			"paginationoffset": schema.Int64Attribute{
+			"pagination_offset": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "Number of items to skip before collecting the result set.",
-				MarkdownDescription: "Number of items to skip before collecting the result set.",
+				Description:         "",
+				MarkdownDescription: "",
 			},
 			"total": schema.StringAttribute{
 				Computed: true,
@@ -97,19 +95,19 @@ func ApiKeysDataSourceSchema(ctx context.Context) schema.Schema {
 type ApiKeysModel struct {
 	ApiKeys          types.List   `tfsdk:"api_keys"`
 	OrgId            types.String `tfsdk:"org_id"`
-	Paginationlimit  types.Int64  `tfsdk:"paginationlimit"`
-	Paginationoffset types.Int64  `tfsdk:"paginationoffset"`
+	PaginationLimit  types.Int64  `tfsdk:"pagination_limit"`
+	PaginationOffset types.Int64  `tfsdk:"pagination_offset"`
 	Total            types.String `tfsdk:"total"`
 }
 
-var _ basetypes.ObjectTypable = ApiKeysType{}
+var _ basetypes.ObjectTypable = ApiKeysApiKeysType{}
 
-type ApiKeysType struct {
+type ApiKeysApiKeysType struct {
 	basetypes.ObjectType
 }
 
-func (t ApiKeysType) Equal(o attr.Type) bool {
-	other, ok := o.(ApiKeysType)
+func (t ApiKeysApiKeysType) Equal(o attr.Type) bool {
+	other, ok := o.(ApiKeysApiKeysType)
 
 	if !ok {
 		return false
@@ -118,11 +116,11 @@ func (t ApiKeysType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ApiKeysType) String() string {
-	return "ApiKeysType"
+func (t ApiKeysApiKeysType) String() string {
+	return "ApiKeysApiKeysType"
 }
 
-func (t ApiKeysType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t ApiKeysApiKeysType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -293,7 +291,7 @@ func (t ApiKeysType) ValueFromObject(ctx context.Context, in basetypes.ObjectVal
 		return nil, diags
 	}
 
-	return ApiKeysValue{
+	return ApiKeysApiKeysValue{
 		CreatedAt:   createdAtVal,
 		ExpiringAt:  expiringAtVal,
 		Id:          idVal,
@@ -307,19 +305,19 @@ func (t ApiKeysType) ValueFromObject(ctx context.Context, in basetypes.ObjectVal
 	}, diags
 }
 
-func NewApiKeysValueNull() ApiKeysValue {
-	return ApiKeysValue{
+func ApiKeysNewApiKeysValueNull() ApiKeysApiKeysValue {
+	return ApiKeysApiKeysValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewApiKeysValueUnknown() ApiKeysValue {
-	return ApiKeysValue{
+func ApiKeysNewApiKeysValueUnknown() ApiKeysApiKeysValue {
+	return ApiKeysApiKeysValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ApiKeysValue, diag.Diagnostics) {
+func ApiKeysNewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ApiKeysApiKeysValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -330,11 +328,11 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 
 		if !ok {
 			diags.AddError(
-				"Missing ApiKeysValue Attribute Value",
-				"While creating a ApiKeysValue value, a missing attribute value was detected. "+
-					"A ApiKeysValue must contain values for all attributes, even if null or unknown. "+
+				"Missing ApiKeysApiKeysValue Attribute Value",
+				"While creating a ApiKeysApiKeysValue value, a missing attribute value was detected. "+
+					"A ApiKeysApiKeysValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ApiKeysValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("ApiKeysApiKeysValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -342,12 +340,12 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid ApiKeysValue Attribute Type",
-				"While creating a ApiKeysValue value, an invalid attribute value was detected. "+
-					"A ApiKeysValue must use a matching attribute type for the value. "+
+				"Invalid ApiKeysApiKeysValue Attribute Type",
+				"While creating a ApiKeysApiKeysValue value, an invalid attribute value was detected. "+
+					"A ApiKeysApiKeysValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ApiKeysValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("ApiKeysValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("ApiKeysApiKeysValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("ApiKeysApiKeysValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -357,17 +355,17 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 
 		if !ok {
 			diags.AddError(
-				"Extra ApiKeysValue Attribute Value",
-				"While creating a ApiKeysValue value, an extra attribute value was detected. "+
-					"A ApiKeysValue must not contain values beyond the expected attribute types. "+
+				"Extra ApiKeysApiKeysValue Attribute Value",
+				"While creating a ApiKeysApiKeysValue value, an extra attribute value was detected. "+
+					"A ApiKeysApiKeysValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra ApiKeysValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra ApiKeysApiKeysValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	createdAtAttribute, ok := attributes["created_at"]
@@ -377,7 +375,7 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 			"Attribute Missing",
 			`created_at is missing from object`)
 
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
@@ -395,7 +393,7 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 			"Attribute Missing",
 			`expiring_at is missing from object`)
 
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	expiringAtVal, ok := expiringAtAttribute.(basetypes.StringValue)
@@ -413,7 +411,7 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 			"Attribute Missing",
 			`id is missing from object`)
 
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	idVal, ok := idAttribute.(basetypes.StringValue)
@@ -431,7 +429,7 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 			"Attribute Missing",
 			`last_used is missing from object`)
 
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	lastUsedVal, ok := lastUsedAttribute.(basetypes.StringValue)
@@ -449,7 +447,7 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 			"Attribute Missing",
 			`name is missing from object`)
 
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	nameVal, ok := nameAttribute.(basetypes.StringValue)
@@ -467,7 +465,7 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 			"Attribute Missing",
 			`org_id is missing from object`)
 
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	orgIdVal, ok := orgIdAttribute.(basetypes.StringValue)
@@ -485,7 +483,7 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 			"Attribute Missing",
 			`project_id is missing from object`)
 
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	projectIdVal, ok := projectIdAttribute.(basetypes.StringValue)
@@ -503,7 +501,7 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 			"Attribute Missing",
 			`project_name is missing from object`)
 
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	projectNameVal, ok := projectNameAttribute.(basetypes.StringValue)
@@ -521,7 +519,7 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 			"Attribute Missing",
 			`secret is missing from object`)
 
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
 	secretVal, ok := secretAttribute.(basetypes.StringValue)
@@ -533,10 +531,10 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 	}
 
 	if diags.HasError() {
-		return NewApiKeysValueUnknown(), diags
+		return ApiKeysNewApiKeysValueUnknown(), diags
 	}
 
-	return ApiKeysValue{
+	return ApiKeysApiKeysValue{
 		CreatedAt:   createdAtVal,
 		ExpiringAt:  expiringAtVal,
 		Id:          idVal,
@@ -550,8 +548,8 @@ func NewApiKeysValue(attributeTypes map[string]attr.Type, attributes map[string]
 	}, diags
 }
 
-func NewApiKeysValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ApiKeysValue {
-	object, diags := NewApiKeysValue(attributeTypes, attributes)
+func ApiKeysNewApiKeysValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ApiKeysApiKeysValue {
+	object, diags := ApiKeysNewApiKeysValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -565,15 +563,15 @@ func NewApiKeysValueMust(attributeTypes map[string]attr.Type, attributes map[str
 				diagnostic.Detail()))
 		}
 
-		panic("NewApiKeysValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("ApiKeysNewApiKeysValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t ApiKeysType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t ApiKeysApiKeysType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewApiKeysValueNull(), nil
+		return ApiKeysNewApiKeysValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -581,11 +579,11 @@ func (t ApiKeysType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (
 	}
 
 	if !in.IsKnown() {
-		return NewApiKeysValueUnknown(), nil
+		return ApiKeysNewApiKeysValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewApiKeysValueNull(), nil
+		return ApiKeysNewApiKeysValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -608,16 +606,16 @@ func (t ApiKeysType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (
 		attributes[k] = a
 	}
 
-	return NewApiKeysValueMust(ApiKeysValue{}.AttributeTypes(ctx), attributes), nil
+	return ApiKeysNewApiKeysValueMust(ApiKeysApiKeysValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ApiKeysType) ValueType(ctx context.Context) attr.Value {
-	return ApiKeysValue{}
+func (t ApiKeysApiKeysType) ValueType(ctx context.Context) attr.Value {
+	return ApiKeysApiKeysValue{}
 }
 
-var _ basetypes.ObjectValuable = ApiKeysValue{}
+var _ basetypes.ObjectValuable = ApiKeysApiKeysValue{}
 
-type ApiKeysValue struct {
+type ApiKeysApiKeysValue struct {
 	CreatedAt   basetypes.StringValue `tfsdk:"created_at"`
 	ExpiringAt  basetypes.StringValue `tfsdk:"expiring_at"`
 	Id          basetypes.StringValue `tfsdk:"id"`
@@ -630,7 +628,7 @@ type ApiKeysValue struct {
 	state       attr.ValueState
 }
 
-func (v ApiKeysValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v ApiKeysApiKeysValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 9)
 
 	var val tftypes.Value
@@ -738,19 +736,19 @@ func (v ApiKeysValue) ToTerraformValue(ctx context.Context) (tftypes.Value, erro
 	}
 }
 
-func (v ApiKeysValue) IsNull() bool {
+func (v ApiKeysApiKeysValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v ApiKeysValue) IsUnknown() bool {
+func (v ApiKeysApiKeysValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v ApiKeysValue) String() string {
-	return "ApiKeysValue"
+func (v ApiKeysApiKeysValue) String() string {
+	return "ApiKeysApiKeysValue"
 }
 
-func (v ApiKeysValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v ApiKeysApiKeysValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributeTypes := map[string]attr.Type{
@@ -790,8 +788,8 @@ func (v ApiKeysValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue,
 	return objVal, diags
 }
 
-func (v ApiKeysValue) Equal(o attr.Value) bool {
-	other, ok := o.(ApiKeysValue)
+func (v ApiKeysApiKeysValue) Equal(o attr.Value) bool {
+	other, ok := o.(ApiKeysApiKeysValue)
 
 	if !ok {
 		return false
@@ -844,15 +842,15 @@ func (v ApiKeysValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v ApiKeysValue) Type(ctx context.Context) attr.Type {
-	return ApiKeysType{
+func (v ApiKeysApiKeysValue) Type(ctx context.Context) attr.Type {
+	return ApiKeysApiKeysType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v ApiKeysValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v ApiKeysApiKeysValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"created_at":   basetypes.StringType{},
 		"expiring_at":  basetypes.StringType{},

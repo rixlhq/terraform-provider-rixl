@@ -21,14 +21,17 @@ func ProjectDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"id": schema.StringAttribute{
-				Required:            true,
-				Description:         "",
-				MarkdownDescription: "",
+				Computed: true,
 			},
 			"name": schema.StringAttribute{
 				Computed: true,
 			},
 			"org_id": schema.StringAttribute{
+				Required:            true,
+				Description:         "",
+				MarkdownDescription: "",
+			},
+			"project_id": schema.StringAttribute{
 				Required:            true,
 				Description:         "",
 				MarkdownDescription: "",
@@ -55,6 +58,7 @@ type ProjectModel struct {
 	Id           types.String `tfsdk:"id"`
 	Name         types.String `tfsdk:"name"`
 	OrgId        types.String `tfsdk:"org_id"`
+	ProjectId    types.String `tfsdk:"project_id"`
 	Regions      types.List   `tfsdk:"regions"`
 	UpdatedAt    types.String `tfsdk:"updated_at"`
 	VideoQuality types.String `tfsdk:"video_quality"`

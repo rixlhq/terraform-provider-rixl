@@ -45,9 +45,9 @@ func ImageDataSourceSchema(ctx context.Context) schema.Schema {
 						Computed: true,
 					},
 				},
-				CustomType: FileType{
+				CustomType: ImageFileType{
 					ObjectType: types.ObjectType{
-						AttrTypes: FileValue{}.AttributeTypes(ctx),
+						AttrTypes: ImageFileValue{}.AttributeTypes(ctx),
 					},
 				},
 				Computed: true,
@@ -74,23 +74,23 @@ func ImageDataSourceSchema(ctx context.Context) schema.Schema {
 }
 
 type ImageModel struct {
-	AttachedToVideo types.Bool   `tfsdk:"attached_to_video"`
-	File            FileValue    `tfsdk:"file"`
-	Height          types.Int64  `tfsdk:"height"`
-	Id              types.String `tfsdk:"id"`
-	Thumbhash       types.String `tfsdk:"thumbhash"`
-	Visibility      types.String `tfsdk:"visibility"`
-	Width           types.Int64  `tfsdk:"width"`
+	AttachedToVideo types.Bool     `tfsdk:"attached_to_video"`
+	File            ImageFileValue `tfsdk:"file"`
+	Height          types.Int64    `tfsdk:"height"`
+	Id              types.String   `tfsdk:"id"`
+	Thumbhash       types.String   `tfsdk:"thumbhash"`
+	Visibility      types.String   `tfsdk:"visibility"`
+	Width           types.Int64    `tfsdk:"width"`
 }
 
-var _ basetypes.ObjectTypable = FileType{}
+var _ basetypes.ObjectTypable = ImageFileType{}
 
-type FileType struct {
+type ImageFileType struct {
 	basetypes.ObjectType
 }
 
-func (t FileType) Equal(o attr.Type) bool {
-	other, ok := o.(FileType)
+func (t ImageFileType) Equal(o attr.Type) bool {
+	other, ok := o.(ImageFileType)
 
 	if !ok {
 		return false
@@ -99,11 +99,11 @@ func (t FileType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t FileType) String() string {
-	return "FileType"
+func (t ImageFileType) String() string {
+	return "ImageFileType"
 }
 
-func (t FileType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t ImageFileType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -238,7 +238,7 @@ func (t FileType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue)
 		return nil, diags
 	}
 
-	return FileValue{
+	return ImageFileValue{
 		Format:    formatVal,
 		Id:        idVal,
 		Name:      nameVal,
@@ -250,19 +250,19 @@ func (t FileType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue)
 	}, diags
 }
 
-func NewFileValueNull() FileValue {
-	return FileValue{
+func ImageNewFileValueNull() ImageFileValue {
+	return ImageFileValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewFileValueUnknown() FileValue {
-	return FileValue{
+func ImageNewFileValueUnknown() ImageFileValue {
+	return ImageFileValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (FileValue, diag.Diagnostics) {
+func ImageNewFileValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ImageFileValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -273,11 +273,11 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 
 		if !ok {
 			diags.AddError(
-				"Missing FileValue Attribute Value",
-				"While creating a FileValue value, a missing attribute value was detected. "+
-					"A FileValue must contain values for all attributes, even if null or unknown. "+
+				"Missing ImageFileValue Attribute Value",
+				"While creating a ImageFileValue value, a missing attribute value was detected. "+
+					"A ImageFileValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("FileValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("ImageFileValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -285,12 +285,12 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid FileValue Attribute Type",
-				"While creating a FileValue value, an invalid attribute value was detected. "+
-					"A FileValue must use a matching attribute type for the value. "+
+				"Invalid ImageFileValue Attribute Type",
+				"While creating a ImageFileValue value, an invalid attribute value was detected. "+
+					"A ImageFileValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("FileValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("FileValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("ImageFileValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("ImageFileValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -300,17 +300,17 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 
 		if !ok {
 			diags.AddError(
-				"Extra FileValue Attribute Value",
-				"While creating a FileValue value, an extra attribute value was detected. "+
-					"A FileValue must not contain values beyond the expected attribute types. "+
+				"Extra ImageFileValue Attribute Value",
+				"While creating a ImageFileValue value, an extra attribute value was detected. "+
+					"A ImageFileValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra FileValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra ImageFileValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewFileValueUnknown(), diags
+		return ImageNewFileValueUnknown(), diags
 	}
 
 	formatAttribute, ok := attributes["format"]
@@ -320,7 +320,7 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 			"Attribute Missing",
 			`format is missing from object`)
 
-		return NewFileValueUnknown(), diags
+		return ImageNewFileValueUnknown(), diags
 	}
 
 	formatVal, ok := formatAttribute.(basetypes.StringValue)
@@ -338,7 +338,7 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 			"Attribute Missing",
 			`id is missing from object`)
 
-		return NewFileValueUnknown(), diags
+		return ImageNewFileValueUnknown(), diags
 	}
 
 	idVal, ok := idAttribute.(basetypes.StringValue)
@@ -356,7 +356,7 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 			"Attribute Missing",
 			`name is missing from object`)
 
-		return NewFileValueUnknown(), diags
+		return ImageNewFileValueUnknown(), diags
 	}
 
 	nameVal, ok := nameAttribute.(basetypes.StringValue)
@@ -374,7 +374,7 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 			"Attribute Missing",
 			`project_id is missing from object`)
 
-		return NewFileValueUnknown(), diags
+		return ImageNewFileValueUnknown(), diags
 	}
 
 	projectIdVal, ok := projectIdAttribute.(basetypes.StringValue)
@@ -392,7 +392,7 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 			"Attribute Missing",
 			`size is missing from object`)
 
-		return NewFileValueUnknown(), diags
+		return ImageNewFileValueUnknown(), diags
 	}
 
 	sizeVal, ok := sizeAttribute.(basetypes.StringValue)
@@ -410,7 +410,7 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 			"Attribute Missing",
 			`status is missing from object`)
 
-		return NewFileValueUnknown(), diags
+		return ImageNewFileValueUnknown(), diags
 	}
 
 	statusVal, ok := statusAttribute.(basetypes.StringValue)
@@ -428,7 +428,7 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 			"Attribute Missing",
 			`url is missing from object`)
 
-		return NewFileValueUnknown(), diags
+		return ImageNewFileValueUnknown(), diags
 	}
 
 	urlVal, ok := urlAttribute.(basetypes.StringValue)
@@ -440,10 +440,10 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 	}
 
 	if diags.HasError() {
-		return NewFileValueUnknown(), diags
+		return ImageNewFileValueUnknown(), diags
 	}
 
-	return FileValue{
+	return ImageFileValue{
 		Format:    formatVal,
 		Id:        idVal,
 		Name:      nameVal,
@@ -455,8 +455,8 @@ func NewFileValue(attributeTypes map[string]attr.Type, attributes map[string]att
 	}, diags
 }
 
-func NewFileValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) FileValue {
-	object, diags := NewFileValue(attributeTypes, attributes)
+func ImageNewFileValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ImageFileValue {
+	object, diags := ImageNewFileValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -470,15 +470,15 @@ func NewFileValueMust(attributeTypes map[string]attr.Type, attributes map[string
 				diagnostic.Detail()))
 		}
 
-		panic("NewFileValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("ImageNewFileValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t FileType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t ImageFileType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewFileValueNull(), nil
+		return ImageNewFileValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -486,11 +486,11 @@ func (t FileType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (att
 	}
 
 	if !in.IsKnown() {
-		return NewFileValueUnknown(), nil
+		return ImageNewFileValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewFileValueNull(), nil
+		return ImageNewFileValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -513,16 +513,16 @@ func (t FileType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (att
 		attributes[k] = a
 	}
 
-	return NewFileValueMust(FileValue{}.AttributeTypes(ctx), attributes), nil
+	return ImageNewFileValueMust(ImageFileValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t FileType) ValueType(ctx context.Context) attr.Value {
-	return FileValue{}
+func (t ImageFileType) ValueType(ctx context.Context) attr.Value {
+	return ImageFileValue{}
 }
 
-var _ basetypes.ObjectValuable = FileValue{}
+var _ basetypes.ObjectValuable = ImageFileValue{}
 
-type FileValue struct {
+type ImageFileValue struct {
 	Format    basetypes.StringValue `tfsdk:"format"`
 	Id        basetypes.StringValue `tfsdk:"id"`
 	Name      basetypes.StringValue `tfsdk:"name"`
@@ -533,7 +533,7 @@ type FileValue struct {
 	state     attr.ValueState
 }
 
-func (v FileValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v ImageFileValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 7)
 
 	var val tftypes.Value
@@ -623,19 +623,19 @@ func (v FileValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) 
 	}
 }
 
-func (v FileValue) IsNull() bool {
+func (v ImageFileValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v FileValue) IsUnknown() bool {
+func (v ImageFileValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v FileValue) String() string {
-	return "FileValue"
+func (v ImageFileValue) String() string {
+	return "ImageFileValue"
 }
 
-func (v FileValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v ImageFileValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributeTypes := map[string]attr.Type{
@@ -671,8 +671,8 @@ func (v FileValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, di
 	return objVal, diags
 }
 
-func (v FileValue) Equal(o attr.Value) bool {
-	other, ok := o.(FileValue)
+func (v ImageFileValue) Equal(o attr.Value) bool {
+	other, ok := o.(ImageFileValue)
 
 	if !ok {
 		return false
@@ -717,15 +717,15 @@ func (v FileValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v FileValue) Type(ctx context.Context) attr.Type {
-	return FileType{
+func (v ImageFileValue) Type(ctx context.Context) attr.Type {
+	return ImageFileType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v FileValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v ImageFileValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"format":     basetypes.StringType{},
 		"id":         basetypes.StringType{},

@@ -5,6 +5,7 @@ terraform-provider-rixl
 *.exe
 
 # Generation artifacts
+openapi.json
 openapi.yaml
 provider_code_spec.json
 

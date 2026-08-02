@@ -27,8 +27,8 @@ data "rixl_videos" "all" {
 
 ### Optional
 
-- `paginationlimit` (Number) Maximum number of items to return.
-- `paginationoffset` (Number) Number of items to skip before collecting the result set.
+- `pagination_limit` (Number)
+- `pagination_offset` (Number)
 - `sort_direction` (String)
 - `sort_field` (String)
 

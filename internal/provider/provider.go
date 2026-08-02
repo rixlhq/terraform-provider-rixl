@@ -5,7 +5,6 @@ import (
 	"context"
 	"os"
 
-	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -127,21 +126,6 @@ func envStringValue(v types.String) string {
 func (p *RixlProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewFeedResource,
-	}
-}
-
-// DataSources returns the data sources supported by this provider.
-func (p *RixlProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewFeedDataSource,
-		NewFeedsDataSource,
-		NewImageDataSource,
-		NewImagesDataSource,
-		NewVideoDataSource,
-		NewVideosDataSource,
-		NewProjectDataSource,
-		NewProjectsDataSource,
-		NewAPIKeysDataSource,
 	}
 }
 

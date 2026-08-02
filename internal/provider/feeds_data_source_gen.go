@@ -61,28 +61,28 @@ func FeedsDataSourceSchema(ctx context.Context) schema.Schema {
 							MarkdownDescription: "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
 						},
 					},
-					CustomType: FeedsType{
+					CustomType: FeedsFeedsType{
 						ObjectType: types.ObjectType{
-							AttrTypes: FeedsValue{}.AttributeTypes(ctx),
+							AttrTypes: FeedsFeedsValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
 				Computed: true,
 			},
-			"paginationlimit": schema.Int64Attribute{
+			"pagination_limit": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "Maximum number of items to return.",
-				MarkdownDescription: "Maximum number of items to return.",
+				Description:         "",
+				MarkdownDescription: "",
 				Validators: []validator.Int64{
 					int64validator.Between(1, 100),
 				},
 			},
-			"paginationoffset": schema.Int64Attribute{
+			"pagination_offset": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "Number of items to skip before collecting the result set.",
-				MarkdownDescription: "Number of items to skip before collecting the result set.",
+				Description:         "",
+				MarkdownDescription: "",
 			},
 			"project_id": schema.StringAttribute{
 				Required:            true,
@@ -98,20 +98,20 @@ func FeedsDataSourceSchema(ctx context.Context) schema.Schema {
 
 type FeedsModel struct {
 	Feeds            types.List   `tfsdk:"feeds"`
-	Paginationlimit  types.Int64  `tfsdk:"paginationlimit"`
-	Paginationoffset types.Int64  `tfsdk:"paginationoffset"`
+	PaginationLimit  types.Int64  `tfsdk:"pagination_limit"`
+	PaginationOffset types.Int64  `tfsdk:"pagination_offset"`
 	ProjectId        types.String `tfsdk:"project_id"`
 	Total            types.String `tfsdk:"total"`
 }
 
-var _ basetypes.ObjectTypable = FeedsType{}
+var _ basetypes.ObjectTypable = FeedsFeedsType{}
 
-type FeedsType struct {
+type FeedsFeedsType struct {
 	basetypes.ObjectType
 }
 
-func (t FeedsType) Equal(o attr.Type) bool {
-	other, ok := o.(FeedsType)
+func (t FeedsFeedsType) Equal(o attr.Type) bool {
+	other, ok := o.(FeedsFeedsType)
 
 	if !ok {
 		return false
@@ -120,11 +120,11 @@ func (t FeedsType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t FeedsType) String() string {
-	return "FeedsType"
+func (t FeedsFeedsType) String() string {
+	return "FeedsFeedsType"
 }
 
-func (t FeedsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t FeedsFeedsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -331,7 +331,7 @@ func (t FeedsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue
 		return nil, diags
 	}
 
-	return FeedsValue{
+	return FeedsFeedsValue{
 		AllowImages: allowImagesVal,
 		AllowVideos: allowVideosVal,
 		CreatedAt:   createdAtVal,
@@ -347,19 +347,19 @@ func (t FeedsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue
 	}, diags
 }
 
-func NewFeedsValueNull() FeedsValue {
-	return FeedsValue{
+func FeedsNewFeedsValueNull() FeedsFeedsValue {
+	return FeedsFeedsValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewFeedsValueUnknown() FeedsValue {
-	return FeedsValue{
+func FeedsNewFeedsValueUnknown() FeedsFeedsValue {
+	return FeedsFeedsValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (FeedsValue, diag.Diagnostics) {
+func FeedsNewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (FeedsFeedsValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -370,11 +370,11 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 
 		if !ok {
 			diags.AddError(
-				"Missing FeedsValue Attribute Value",
-				"While creating a FeedsValue value, a missing attribute value was detected. "+
-					"A FeedsValue must contain values for all attributes, even if null or unknown. "+
+				"Missing FeedsFeedsValue Attribute Value",
+				"While creating a FeedsFeedsValue value, a missing attribute value was detected. "+
+					"A FeedsFeedsValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("FeedsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("FeedsFeedsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -382,12 +382,12 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid FeedsValue Attribute Type",
-				"While creating a FeedsValue value, an invalid attribute value was detected. "+
-					"A FeedsValue must use a matching attribute type for the value. "+
+				"Invalid FeedsFeedsValue Attribute Type",
+				"While creating a FeedsFeedsValue value, an invalid attribute value was detected. "+
+					"A FeedsFeedsValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("FeedsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("FeedsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("FeedsFeedsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("FeedsFeedsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -397,17 +397,17 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 
 		if !ok {
 			diags.AddError(
-				"Extra FeedsValue Attribute Value",
-				"While creating a FeedsValue value, an extra attribute value was detected. "+
-					"A FeedsValue must not contain values beyond the expected attribute types. "+
+				"Extra FeedsFeedsValue Attribute Value",
+				"While creating a FeedsFeedsValue value, an extra attribute value was detected. "+
+					"A FeedsFeedsValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra FeedsValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra FeedsFeedsValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	allowImagesAttribute, ok := attributes["allow_images"]
@@ -417,7 +417,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`allow_images is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	allowImagesVal, ok := allowImagesAttribute.(basetypes.BoolValue)
@@ -435,7 +435,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`allow_videos is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	allowVideosVal, ok := allowVideosAttribute.(basetypes.BoolValue)
@@ -453,7 +453,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`created_at is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
@@ -471,7 +471,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`description is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	descriptionVal, ok := descriptionAttribute.(basetypes.StringValue)
@@ -489,7 +489,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`has_comments is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	hasCommentsVal, ok := hasCommentsAttribute.(basetypes.BoolValue)
@@ -507,7 +507,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`has_likes is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	hasLikesVal, ok := hasLikesAttribute.(basetypes.BoolValue)
@@ -525,7 +525,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`has_shares is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	hasSharesVal, ok := hasSharesAttribute.(basetypes.BoolValue)
@@ -543,7 +543,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`id is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	idVal, ok := idAttribute.(basetypes.StringValue)
@@ -561,7 +561,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`name is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	nameVal, ok := nameAttribute.(basetypes.StringValue)
@@ -579,7 +579,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`project_id is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	projectIdVal, ok := projectIdAttribute.(basetypes.StringValue)
@@ -597,7 +597,7 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 			"Attribute Missing",
 			`updated_at is missing from object`)
 
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
 	updatedAtVal, ok := updatedAtAttribute.(basetypes.StringValue)
@@ -609,10 +609,10 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 	}
 
 	if diags.HasError() {
-		return NewFeedsValueUnknown(), diags
+		return FeedsNewFeedsValueUnknown(), diags
 	}
 
-	return FeedsValue{
+	return FeedsFeedsValue{
 		AllowImages: allowImagesVal,
 		AllowVideos: allowVideosVal,
 		CreatedAt:   createdAtVal,
@@ -628,8 +628,8 @@ func NewFeedsValue(attributeTypes map[string]attr.Type, attributes map[string]at
 	}, diags
 }
 
-func NewFeedsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) FeedsValue {
-	object, diags := NewFeedsValue(attributeTypes, attributes)
+func FeedsNewFeedsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) FeedsFeedsValue {
+	object, diags := FeedsNewFeedsValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -643,15 +643,15 @@ func NewFeedsValueMust(attributeTypes map[string]attr.Type, attributes map[strin
 				diagnostic.Detail()))
 		}
 
-		panic("NewFeedsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("FeedsNewFeedsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t FeedsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t FeedsFeedsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewFeedsValueNull(), nil
+		return FeedsNewFeedsValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -659,11 +659,11 @@ func (t FeedsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (at
 	}
 
 	if !in.IsKnown() {
-		return NewFeedsValueUnknown(), nil
+		return FeedsNewFeedsValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewFeedsValueNull(), nil
+		return FeedsNewFeedsValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -686,16 +686,16 @@ func (t FeedsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (at
 		attributes[k] = a
 	}
 
-	return NewFeedsValueMust(FeedsValue{}.AttributeTypes(ctx), attributes), nil
+	return FeedsNewFeedsValueMust(FeedsFeedsValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t FeedsType) ValueType(ctx context.Context) attr.Value {
-	return FeedsValue{}
+func (t FeedsFeedsType) ValueType(ctx context.Context) attr.Value {
+	return FeedsFeedsValue{}
 }
 
-var _ basetypes.ObjectValuable = FeedsValue{}
+var _ basetypes.ObjectValuable = FeedsFeedsValue{}
 
-type FeedsValue struct {
+type FeedsFeedsValue struct {
 	AllowImages basetypes.BoolValue   `tfsdk:"allow_images"`
 	AllowVideos basetypes.BoolValue   `tfsdk:"allow_videos"`
 	CreatedAt   basetypes.StringValue `tfsdk:"created_at"`
@@ -710,7 +710,7 @@ type FeedsValue struct {
 	state       attr.ValueState
 }
 
-func (v FeedsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v FeedsFeedsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 11)
 
 	var val tftypes.Value
@@ -836,19 +836,19 @@ func (v FeedsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error)
 	}
 }
 
-func (v FeedsValue) IsNull() bool {
+func (v FeedsFeedsValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v FeedsValue) IsUnknown() bool {
+func (v FeedsFeedsValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v FeedsValue) String() string {
-	return "FeedsValue"
+func (v FeedsFeedsValue) String() string {
+	return "FeedsFeedsValue"
 }
 
-func (v FeedsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v FeedsFeedsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributeTypes := map[string]attr.Type{
@@ -892,8 +892,8 @@ func (v FeedsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, d
 	return objVal, diags
 }
 
-func (v FeedsValue) Equal(o attr.Value) bool {
-	other, ok := o.(FeedsValue)
+func (v FeedsFeedsValue) Equal(o attr.Value) bool {
+	other, ok := o.(FeedsFeedsValue)
 
 	if !ok {
 		return false
@@ -954,15 +954,15 @@ func (v FeedsValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v FeedsValue) Type(ctx context.Context) attr.Type {
-	return FeedsType{
+func (v FeedsFeedsValue) Type(ctx context.Context) attr.Type {
+	return FeedsFeedsType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v FeedsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v FeedsFeedsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"allow_images": basetypes.BoolType{},
 		"allow_videos": basetypes.BoolType{},

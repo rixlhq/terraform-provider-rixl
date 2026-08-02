@@ -42,15 +42,19 @@ func FeedResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"id": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "",
+				MarkdownDescription: "",
 			},
 			"name": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
 			},
 			"project_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "",
+				MarkdownDescription: "",
 			},
 			"updated_at": schema.StringAttribute{
 				Computed:            true,
