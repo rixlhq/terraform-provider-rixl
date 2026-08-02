@@ -86,9 +86,9 @@ linters:
             - max: 300
               skip-comments: true
               skip-blank-lines: true
+  exclusions:
+    paths:
+      - ".*_gen\\.go$"
 formatters:
   enable:
     - gofmt
-issues:
-  exclude-files:
-    - ".*_gen\\.go$"
