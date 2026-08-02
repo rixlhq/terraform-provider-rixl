@@ -1,0 +1,114 @@
+provider:
+  name: rixl
+resources:
+  feed:
+    create:
+      path: /feeds/v1/projects/{project_id}/feeds
+      method: POST
+    read:
+      path: /feeds/v1/projects/{project_id}/feeds/{feed_id}
+      method: GET
+    update:
+      path: /feeds/v1/projects/{project_id}/feeds/{feed_id}
+      method: PUT
+    delete:
+      path: /feeds/v1/projects/{project_id}/feeds/{feed_id}
+      method: DELETE
+    schema:
+      attributes:
+        aliases:
+          feed_id: id
+data_sources:
+  feed:
+    read:
+      path: /feeds/v1/projects/{project_id}/feeds/{feed_id}
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          feed_id: id
+        overrides:
+          project_id:
+            computed_optional_required: required
+          id:
+            computed_optional_required: required
+  feeds:
+    read:
+      path: /feeds/v1/projects/{project_id}/feeds
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          project_id:
+            computed_optional_required: required
+  image:
+    read:
+      path: /media/v1/images/{image_id}
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          image_id: id
+        overrides:
+          id:
+            computed_optional_required: required
+  images:
+    read:
+      path: /media/v1/projects/{project_id}/images
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          project_id:
+            computed_optional_required: required
+  video:
+    read:
+      path: /media/v1/videos/{video_id}
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          video_id: id
+        overrides:
+          id:
+            computed_optional_required: required
+  videos:
+    read:
+      path: /media/v1/projects/{project_id}/videos
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          project_id:
+            computed_optional_required: required
+  project:
+    read:
+      path: /organizations/{org_id}/projects/v1/{project_id}
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          project_id: id
+        overrides:
+          org_id:
+            computed_optional_required: required
+          id:
+            computed_optional_required: required
+  projects:
+    read:
+      path: /organizations/{org_id}/projects/v1
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          org_id:
+            computed_optional_required: required
+  api_keys:
+    read:
+      path: /organizations/{org_id}/api-keys/v1
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          org_id:
+            computed_optional_required: required
