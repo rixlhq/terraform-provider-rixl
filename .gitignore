@@ -33,6 +33,9 @@ vendor/
 *.swo
 *~
 
+# Devin
+.agents/
+
 # OS
 .DS_Store
 Thumbs.db
