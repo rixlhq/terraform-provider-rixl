@@ -1,0 +1,39 @@
+name: Regenerate Provider
+
+on:
+  repository_dispatch:
+    types:
+      - regenerate-sdk
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.BUILD_GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Install generators
+        run: |
+          go install github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@v0.3.0
+          go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework@v0.4.1
+
+      - name: Regenerate provider code
+        run: ./gen.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.BUILD_GITHUB_TOKEN }}
+
+      - name: Commit generated changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "feat(provider): regenerate from latest OpenAPI spec"
+          file_pattern: 'internal/provider/*_gen.go internal/provider/data_source_specs.go generator_config.yml go.mod go.sum'
