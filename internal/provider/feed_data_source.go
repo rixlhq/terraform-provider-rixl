@@ -3,14 +3,9 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
-	"github.com/rixlhq/rixl-go/sdk/feeds"
-	"github.com/rixlhq/rixl-go/sdk/models"
 )
 
 var _ datasource.DataSource = (*feedDataSource)(nil)
@@ -56,23 +51,9 @@ func (d *feedDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	mapFeedDataSourceToModel(feed, &data)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, &data, FeedDataSourceSchema(ctx).Attributes)...)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func mapFeedDataSourceToModel(feed models.FeedsV1Feed, data *FeedDataSourceModel) {
-	data.Id = types.StringPointerValue(feed.ID)
-	data.ProjectId = types.StringPointerValue(feed.ProjectID)
-	data.Name = types.StringPointerValue(feed.Name)
-	data.Description = types.StringPointerValue(feed.Description)
-	data.AllowImages = types.BoolPointerValue(feed.AllowImages)
-	data.AllowVideos = types.BoolPointerValue(feed.AllowVideos)
-	data.HasComments = types.BoolPointerValue(feed.HasComments)
-	data.HasLikes = types.BoolPointerValue(feed.HasLikes)
-	data.HasShares = types.BoolPointerValue(feed.HasShares)
-	data.CreatedAt = timestampToString(feed.CreatedAt)
-	data.UpdatedAt = timestampToString(feed.UpdatedAt)
 }
 
 var _ datasource.DataSource = (*feedsDataSource)(nil)
@@ -112,52 +93,13 @@ func (d *feedsDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	params := &feeds.ListFeedsParams{}
-	if !data.Paginationlimit.IsNull() && !data.Paginationlimit.IsUnknown() {
-		limit := int32(data.Paginationlimit.ValueInt64())
-		params.PaginationLimit = &limit
-	}
-	if !data.Paginationoffset.IsNull() && !data.Paginationoffset.IsUnknown() {
-		offset := int32(data.Paginationoffset.ValueInt64())
-		params.PaginationOffset = &offset
-	}
-
-	list, err := d.client.Feeds.ListFeeds(ctx, data.ProjectId.ValueString(), params)
+	list, err := d.client.Feeds.ListFeeds(ctx, data.ProjectId.ValueString(), nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to list feeds", err.Error())
 		return
 	}
 
-	if list.Total != nil {
-		data.Total = types.StringValue(strconv.FormatInt(*list.Total, 10))
-	} else {
-		data.Total = types.StringNull()
-	}
-
-	attrTypes := FeedsValue{}.AttributeTypes(ctx)
-	elementType := FeedsType{ObjectType: types.ObjectType{AttrTypes: attrTypes}}
-	elements := make([]attr.Value, 0, len(list.Feeds))
-	for _, f := range list.Feeds {
-		elements = append(elements, newFeedsValue(ctx, attrTypes, f))
-	}
-	data.Feeds, _ = types.ListValue(elementType, elements)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, list, &data, FeedsDataSourceSchema(ctx).Attributes)...)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func newFeedsValue(_ context.Context, attrTypes map[string]attr.Type, f models.FeedsV1Feed) FeedsValue {
-	attributes := map[string]attr.Value{
-		"allow_images": types.BoolPointerValue(f.AllowImages),
-		"allow_videos": types.BoolPointerValue(f.AllowVideos),
-		"created_at":   timestampToString(f.CreatedAt),
-		"description":  types.StringPointerValue(f.Description),
-		"has_comments": types.BoolPointerValue(f.HasComments),
-		"has_likes":    types.BoolPointerValue(f.HasLikes),
-		"has_shares":   types.BoolPointerValue(f.HasShares),
-		"id":           types.StringPointerValue(f.ID),
-		"name":         types.StringPointerValue(f.Name),
-		"project_id":   types.StringPointerValue(f.ProjectID),
-		"updated_at":   timestampToString(f.UpdatedAt),
-	}
-	return NewFeedsValueMust(attrTypes, attributes)
 }
