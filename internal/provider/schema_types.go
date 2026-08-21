@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -31,7 +32,7 @@ func attributeTypesForSchema(attributes any) (map[string]attr.Type, error) {
 
 func attrTypeForAttribute(a any) (attr.Type, error) {
 	val := reflect.ValueOf(a)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	typ := val.Type()
@@ -87,7 +88,7 @@ func attrTypeForAttribute(a any) (attr.Type, error) {
 	case "ObjectAttribute":
 		attrTypesVal := fieldValueByName(val, "AttributeTypes")
 		if !attrTypesVal.IsValid() {
-			return nil, fmt.Errorf("ObjectAttribute missing AttributeTypes")
+			return nil, errors.New("ObjectAttribute missing AttributeTypes")
 		}
 		attrTypes, err := mapAttrTypes(attrTypesVal)
 		if err != nil {
@@ -114,7 +115,7 @@ func attrTypeForCollectionElement(val reflect.Value, kind string) (attr.Type, er
 func attrTypeForNestedObject(val reflect.Value) (attr.Type, error) {
 	nestedVal := fieldValueByName(val, "NestedObject")
 	if !nestedVal.IsValid() {
-		return nil, fmt.Errorf("nested attribute missing NestedObject")
+		return nil, errors.New("nested attribute missing NestedObject")
 	}
 
 	if custom := fieldValueByName(nestedVal, "CustomType"); custom.IsValid() && !custom.IsZero() {
@@ -125,7 +126,7 @@ func attrTypeForNestedObject(val reflect.Value) (attr.Type, error) {
 
 	attributesVal := fieldValueByName(nestedVal, "Attributes")
 	if !attributesVal.IsValid() {
-		return nil, fmt.Errorf("nested object missing Attributes")
+		return nil, errors.New("nested object missing Attributes")
 	}
 	attrTypes, err := mapAttrTypes(attributesVal)
 	if err != nil {

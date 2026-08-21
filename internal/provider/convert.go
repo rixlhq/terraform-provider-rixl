@@ -1,3 +1,4 @@
+//nolint:revive,gocognit,gocyclo,funlen,unparam // conversion helpers are inherently long and branchy
 package provider
 
 import (
@@ -21,12 +22,12 @@ func modelToMap(ctx context.Context, model any) (map[string]any, diag.Diagnostic
 	out := map[string]any{}
 
 	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	typ := val.Type()
 
-	for i := 0; i < val.NumField(); i++ {
+	for i := range val.NumField() {
 		field := typ.Field(i)
 		name := fieldName(field)
 		if name == "" {
@@ -56,12 +57,12 @@ func mapToModel(ctx context.Context, m map[string]any, model any, attributes map
 	var diags diag.Diagnostics
 
 	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	typ := val.Type()
 
-	for i := 0; i < val.NumField(); i++ {
+	for i := range val.NumField() {
 		field := typ.Field(i)
 		name := fieldName(field)
 		if name == "" {
@@ -183,7 +184,7 @@ func tftypesToNative(tv tftypes.Value) (any, diag.Diagnostics) {
 		}
 		return out, diags
 	default:
-		diags.AddError("Unsupported terraform type", fmt.Sprintf("cannot convert %s", typ.String()))
+		diags.AddError("Unsupported terraform type", "cannot convert "+typ.String())
 		return nil, diags
 	}
 }
@@ -219,7 +220,7 @@ func fromNative(ctx context.Context, v any, attrType attr.Type) (attr.Value, dia
 	return av, diags
 }
 
-func nativeToTftypes(_ context.Context, v any, tfType tftypes.Type) (tftypes.Value, diag.Diagnostics) {
+func nativeToTftypes(ctx context.Context, v any, tfType tftypes.Type) (tftypes.Value, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	switch {
@@ -304,7 +305,7 @@ func nativeToTftypes(_ context.Context, v any, tfType tftypes.Type) (tftypes.Val
 			if tup, ok := tfType.(tftypes.Tuple); ok {
 				elemType = tup.ElementTypes[i]
 			}
-			ev, d := nativeToTftypes(nil, e, elemType)
+			ev, d := nativeToTftypes(ctx, e, elemType)
 			diags.Append(d...)
 			if diags.HasError() {
 				return tftypes.Value{}, diags
@@ -325,7 +326,7 @@ func nativeToTftypes(_ context.Context, v any, tfType tftypes.Type) (tftypes.Val
 			if !ok {
 				raw = nil
 			}
-			ev, d := nativeToTftypes(nil, raw, at)
+			ev, d := nativeToTftypes(ctx, raw, at)
 			diags.Append(d...)
 			if diags.HasError() {
 				return tftypes.Value{}, diags
@@ -334,7 +335,7 @@ func nativeToTftypes(_ context.Context, v any, tfType tftypes.Type) (tftypes.Val
 		}
 		return tftypes.NewValue(tfType, attrs), diags
 	default:
-		diags.AddError("Unsupported terraform type", fmt.Sprintf("cannot build tftypes.Value for %s", tfType.String()))
+		diags.AddError("Unsupported terraform type", "cannot build tftypes.Value for "+tfType.String())
 		return tftypes.Value{}, diags
 	}
 }

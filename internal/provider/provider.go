@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -106,6 +107,7 @@ func (p *rixlProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewFeedResource,
+		NewProjectResource,
 	}
 }
 
@@ -113,6 +115,13 @@ func (p *rixlProvider) DataSources(_ context.Context) []func() datasource.DataSo
 	return []func() datasource.DataSource{
 		NewFeedDataSource,
 		NewFeedsDataSource,
+		NewImageDataSource,
+		NewImagesDataSource,
+		NewVideoDataSource,
+		NewVideosDataSource,
+		NewProjectDataSource,
+		NewProjectsDataSource,
+		NewApiKeysDataSource,
 	}
 }
 
@@ -129,7 +138,7 @@ func newHTTPClient(base string) (*http.Client, error) {
 		return nil, fmt.Errorf("parse base_url: %w", err)
 	}
 	if baseURL.Scheme == "" || baseURL.Host == "" {
-		return nil, fmt.Errorf("base_url must include scheme and host")
+		return nil, errors.New("base_url must include scheme and host")
 	}
 	return &http.Client{
 		Transport: &baseURLTransport{base: baseURL, inner: http.DefaultTransport},
