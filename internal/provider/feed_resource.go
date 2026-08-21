@@ -2,10 +2,14 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
+	"github.com/rixlhq/rixl-go/sdk/feeds"
 )
 
 var _ resource.Resource = (*feedResource)(nil)
@@ -45,6 +49,8 @@ func (r *feedResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	projectID := data.ProjectId.ValueString()
+
 	body, d := modelToMap(ctx, &data)
 	resp.Diagnostics.Append(d...)
 	if resp.Diagnostics.HasError() {
@@ -52,8 +58,10 @@ func (r *feedResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 	delete(body, "id")
 	delete(body, "project_id")
+	delete(body, "created_at")
+	delete(body, "updated_at")
 
-	feed, err := r.client.Feeds.CreateFeed(ctx, data.ProjectId.ValueString(), body)
+	feed, err := r.client.Feeds.CreateFeed(ctx, projectID, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create feed", err.Error())
 		return
@@ -62,6 +70,10 @@ func (r *feedResource) Create(ctx context.Context, req resource.CreateRequest, r
 	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, &data, FeedResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	if data.ProjectId.IsNull() || data.ProjectId.IsUnknown() {
+		data.ProjectId = types.StringValue(projectID)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -74,8 +86,16 @@ func (r *feedResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	feed, err := r.client.Feeds.GetFeed(ctx, data.ProjectId.ValueString(), data.Id.ValueString())
+	projectID := data.ProjectId.ValueString()
+	feedID := data.Id.ValueString()
+
+	feed, err := r.client.Feeds.GetFeed(ctx, projectID, feedID)
 	if err != nil {
+		var httpErr *feeds.ClientHttpError[struct{}]
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to read feed", err.Error())
 		return
 	}
@@ -85,12 +105,18 @@ func (r *feedResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
+	if data.ProjectId.IsNull() || data.ProjectId.IsUnknown() {
+		data.ProjectId = types.StringValue(projectID)
+	}
+	if data.Id.IsNull() || data.Id.IsUnknown() {
+		data.Id = types.StringValue(feedID)
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *feedResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var state FeedModel
-	var plan FeedModel
+	var state, plan FeedModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -103,20 +129,36 @@ func (r *feedResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 	delete(body, "id")
-	delete(body, "project_id")
+	delete(body, "created_at")
+	delete(body, "updated_at")
+	// The API body identifies the resource by feed_id rather than id.
+	body["feed_id"] = state.Id.ValueString()
+	body["project_id"] = state.ProjectId.ValueString()
 
 	feed, err := r.client.Feeds.UpdateFeed(ctx, state.ProjectId.ValueString(), state.Id.ValueString(), body)
 	if err != nil {
+		var httpErr *feeds.ClientHttpError[struct{}]
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to update feed", err.Error())
 		return
 	}
 
-	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, &state, FeedResourceSchema(ctx).Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, &plan, FeedResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	if plan.ProjectId.IsNull() || plan.ProjectId.IsUnknown() {
+		plan.ProjectId = state.ProjectId
+	}
+	if plan.Id.IsNull() || plan.Id.IsUnknown() {
+		plan.Id = state.Id
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *feedResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -127,6 +169,11 @@ func (r *feedResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	}
 
 	if _, err := r.client.Feeds.DeleteFeed(ctx, data.ProjectId.ValueString(), data.Id.ValueString()); err != nil {
+		var httpErr *feeds.ClientHttpError[struct{}]
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to delete feed", err.Error())
 	}
 }

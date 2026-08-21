@@ -87,13 +87,25 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	project, err := r.client.Projects.GetProject(ctx, data.OrgId.ValueString(), data.Id.ValueString())
+	orgID := data.OrgId
+	projectID := data.Id
+
+	project, err := r.client.Projects.GetProject(ctx, orgID.ValueString(), projectID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read project", err.Error())
 		return
 	}
 
 	resp.Diagnostics.Append(mapResponseToModel(ctx, project, &data, ProjectResourceSchema(ctx).Attributes)...)
+
+	// Preserve path parameters when the read response omits them.
+	if data.OrgId.IsNull() || data.OrgId.IsUnknown() {
+		data.OrgId = orgID
+	}
+	if data.Id.IsNull() || data.Id.IsUnknown() {
+		data.Id = projectID
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -144,6 +156,15 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Preserve path parameters that may not be echoed by the read endpoint.
+	if data.OrgId.IsNull() || data.OrgId.IsUnknown() {
+		data.OrgId = plan.OrgId
+	}
+	if data.Id.IsNull() || data.Id.IsUnknown() {
+		data.Id = state.Id
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 

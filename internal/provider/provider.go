@@ -106,6 +106,7 @@ func (p *rixlProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
+		NewDashboardResource,
 		NewFeedResource,
 		NewProjectResource,
 	}

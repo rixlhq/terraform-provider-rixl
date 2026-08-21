@@ -166,6 +166,8 @@ func mapResponsePagination(_ context.Context, m map[string]any, data any) diag.D
 	for src, targets := range map[string][]string{
 		"limit":          {"limit", "paginationlimit"},
 		"offset":         {"offset", "paginationoffset"},
+		"page":           {"page"},
+		"page_size":      {"page_size"},
 		"total":          {"total"},
 		"sort_field":     {"sort_field"},
 		"sort_direction": {"sort_direction"},

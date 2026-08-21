@@ -90,7 +90,7 @@ linters:
     paths:
       - ".*_gen\\.go$"
     rules:
-      - path: "internal/provider/(image_data_sources|video_data_source|videos_data_source|media_helpers|media_schemas|project_resource|registry)\\.go"
+      - path: "internal/provider/(image_data_sources|video_data_source|videos_data_source|media_helpers|media_schemas|project_resource|dashboard_resource|registry)\\.go"
         linters: [goconst]
 formatters:
   enable:
