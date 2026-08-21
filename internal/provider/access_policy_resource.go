@@ -52,6 +52,8 @@ func (r *accessPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+	orgID := data.OrgId.ValueString()
+
 	body, d := modelToMap(ctx, &data)
 	resp.Diagnostics.Append(d...)
 	if resp.Diagnostics.HasError() {
@@ -63,7 +65,7 @@ func (r *accessPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	delete(body, "created_at")
 	delete(body, "updated_at")
 
-	policy, err := r.client.AccessPolicies.CreatePolicy(ctx, data.OrgId.ValueString(), body)
+	policy, err := r.client.AccessPolicies.CreatePolicy(ctx, orgID, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create access policy", err.Error())
 		return
@@ -75,7 +77,7 @@ func (r *accessPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	if data.OrgId.IsNull() || data.OrgId.IsUnknown() {
-		data.OrgId = types.StringValue(data.OrgId.ValueString())
+		data.OrgId = types.StringValue(orgID)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -88,7 +90,10 @@ func (r *accessPolicyResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	policy, err := r.client.AccessPolicies.GetPolicy(ctx, data.OrgId.ValueString(), data.Id.ValueString(), nil)
+	orgID := data.OrgId.ValueString()
+	policyID := data.Id.ValueString()
+
+	policy, err := r.client.AccessPolicies.GetPolicy(ctx, orgID, policyID, nil)
 	if err != nil {
 		var httpErr *accesspolicies.ClientHttpError[struct{}]
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
@@ -105,10 +110,10 @@ func (r *accessPolicyResource) Read(ctx context.Context, req resource.ReadReques
 	}
 
 	if data.OrgId.IsNull() || data.OrgId.IsUnknown() {
-		data.OrgId = types.StringValue(data.OrgId.ValueString())
+		data.OrgId = types.StringValue(orgID)
 	}
 	if data.Id.IsNull() || data.Id.IsUnknown() {
-		data.Id = types.StringValue(data.Id.ValueString())
+		data.Id = types.StringValue(policyID)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

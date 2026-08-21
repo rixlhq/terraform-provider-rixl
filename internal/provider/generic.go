@@ -103,7 +103,11 @@ func (d *managedDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			return
 		}
 
-		m := mustResponseToMap(response.Interface())
+		m, err := responseToMap(response.Interface())
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to convert response", err.Error())
+			return
+		}
 		resp.Diagnostics.Append(mapToModel(ctx, m, data, attrs)...)
 		if resp.Diagnostics.HasError() {
 			return
@@ -182,7 +186,8 @@ func mapResponsePagination(_ context.Context, m map[string]any, data any) diag.D
 				continue
 			}
 			field := val.Field(f.idx)
-			switch f.match {
+			base := strings.TrimSuffix(f.match, "Value")
+			switch base {
 			case "Int64":
 				v, d := anyToInt64(raw)
 				if d.HasError() {
@@ -192,12 +197,8 @@ func mapResponsePagination(_ context.Context, m map[string]any, data any) diag.D
 				field.Set(reflect.ValueOf(types.Int64Value(v)))
 			case "String":
 				s := fmt.Sprint(raw)
-				if f, ok := raw.(float64); ok {
-					if f == math.Trunc(f) && f >= math.MinInt64 && f <= math.MaxInt64 {
-						s = strconv.FormatInt(int64(f), 10)
-					} else {
-						s = strconv.FormatFloat(f, 'f', -1, 64)
-					}
+				if n, ok := raw.(json.Number); ok {
+					s = n.String()
 				}
 				field.Set(reflect.ValueOf(types.StringValue(s)))
 			}
@@ -248,29 +249,28 @@ func newModel(model any) any {
 	return reflect.New(reflect.TypeOf(model).Elem()).Interface()
 }
 
-func mustResponseToMap(v any) map[string]any {
-	m, err := responseToMap(v)
-	if err != nil {
-		panic(err)
-	}
-	return m
-}
-
 func invokeSDKMethod(ctx context.Context, method reflect.Value, data any, pathParams []string) (reflect.Value, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
+	response, err := invokeSDKMethodErr(ctx, method, data, pathParams)
+	if err != nil {
+		diags.AddError("SDK request failed", err.Error())
+		return reflect.Value{}, diags
+	}
+	return response, diags
+}
+
+func invokeSDKMethodErr(ctx context.Context, method reflect.Value, data any, pathParams []string) (reflect.Value, error) {
 	mtype := method.Type()
 	if mtype.NumIn() == 0 || mtype.In(0) != reflect.TypeOf((*context.Context)(nil)).Elem() {
-		diags.AddError("SDK method signature invalid", "first argument must be context.Context")
-		return reflect.Value{}, diags
+		return reflect.Value{}, fmt.Errorf("SDK method signature invalid: first argument must be context.Context")
 	}
 
 	args := []reflect.Value{reflect.ValueOf(ctx)}
 
-	modelMap, d := modelToMap(ctx, data)
-	diags.Append(d...)
+	modelMap, diags := modelToMap(ctx, data)
 	if diags.HasError() {
-		return reflect.Value{}, diags
+		return reflect.Value{}, fmt.Errorf("%s", diags)
 	}
 
 	pathIdx := 0
@@ -298,13 +298,11 @@ func invokeSDKMethod(ctx context.Context, method reflect.Value, data any, pathPa
 
 		if inType.Kind() == reflect.String {
 			if pathIdx >= len(pathParams) {
-				diags.AddError("SDK path params mismatch", fmt.Sprintf("missing path param for arg %d", i))
-				return reflect.Value{}, diags
+				return reflect.Value{}, fmt.Errorf("SDK path params mismatch: missing path param for arg %d", i)
 			}
 			v, d := modelFieldString(data, pathParams[pathIdx])
-			diags.Append(d...)
-			if diags.HasError() {
-				return reflect.Value{}, diags
+			if d.HasError() {
+				return reflect.Value{}, fmt.Errorf("%s", d)
 			}
 			args = append(args, reflect.ValueOf(v))
 			pathIdx++
@@ -315,8 +313,7 @@ func invokeSDKMethod(ctx context.Context, method reflect.Value, data any, pathPa
 		if inType.Kind() == reflect.Pointer && inType.Elem().Kind() == reflect.Struct {
 			paramsPtr := reflect.New(inType.Elem())
 			if err := buildStructFromModel(modelMap, paramsPtr.Elem()); err != nil {
-				diags.AddError("Failed to build request params", err.Error())
-				return reflect.Value{}, diags
+				return reflect.Value{}, fmt.Errorf("failed to build request params: %w", err)
 			}
 			args = append(args, paramsPtr)
 			continue
@@ -324,26 +321,23 @@ func invokeSDKMethod(ctx context.Context, method reflect.Value, data any, pathPa
 
 		// Body argument: any, map[string]any, or a typed struct.
 		bodyVal, d := buildBodyValue(bodyMap, inType)
-		diags.Append(d...)
-		if diags.HasError() {
-			return reflect.Value{}, diags
+		if d.HasError() {
+			return reflect.Value{}, fmt.Errorf("%s", d)
 		}
 		args = append(args, bodyVal)
 	}
 
 	rets := method.Call(args)
 	if len(rets) < 2 {
-		diags.AddError("SDK method return mismatch", "expected (response, error)")
-		return reflect.Value{}, diags
+		return reflect.Value{}, fmt.Errorf("SDK method return mismatch: expected (response, error)")
 	}
 
 	errVal := rets[len(rets)-1]
 	if !errVal.IsNil() {
-		diags.AddError("SDK request failed", errVal.Interface().(error).Error())
-		return reflect.Value{}, diags
+		return reflect.Value{}, errVal.Interface().(error)
 	}
 
-	return rets[0], diags
+	return rets[0], nil
 }
 
 func modelFieldString(data any, tfsdk string) (string, diag.Diagnostics) {

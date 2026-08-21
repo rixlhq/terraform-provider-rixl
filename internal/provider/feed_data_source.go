@@ -112,5 +112,12 @@ func (d *feedsDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 
 	resp.Diagnostics.Append(mapResponseToModel(ctx, list, &data, FeedsDataSourceSchema(ctx).Attributes)...)
 
+	m, err := responseToMap(list)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to convert list response", err.Error())
+		return
+	}
+	resp.Diagnostics.Append(mapResponsePagination(ctx, m, &data)...)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

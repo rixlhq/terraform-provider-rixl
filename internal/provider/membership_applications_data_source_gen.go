@@ -92,7 +92,7 @@ func MembershipApplicationsDataSourceSchema(ctx context.Context) schema.Schema {
 					),
 				},
 			},
-			"useruser_id": schema.StringAttribute{
+			"user_id": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
 			},
@@ -105,7 +105,7 @@ type MembershipApplicationsDataSourceModel struct {
 	Limit        types.Int64  `tfsdk:"limit"`
 	Offset       types.Int64  `tfsdk:"offset"`
 	State        types.String `tfsdk:"state"`
-	UseruserId   types.String `tfsdk:"useruser_id"`
+	UserId       types.String `tfsdk:"user_id"`
 }
 
 var _ basetypes.ObjectTypable = MembershipApplicationsDataSourceApplicationsType{}

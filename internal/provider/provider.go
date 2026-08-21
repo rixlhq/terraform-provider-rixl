@@ -108,12 +108,12 @@ func (p *rixlProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 }
 
 func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{
+	return append([]func() resource.Resource{
 		NewAccessPolicyResource,
 		NewDashboardResource,
 		NewFeedResource,
 		NewProjectResource,
-	}
+	}, genericResourceConstructors()...)
 }
 
 func (p *rixlProvider) DataSources(_ context.Context) []func() datasource.DataSource {
@@ -125,32 +125,56 @@ func (p *rixlProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		NewBillingAddressDataSource,
 		NewBlogSubscriptionDataSource,
 		NewChaptersDataSource,
+		NewCheckMembershipDataSource,
 		NewClientCredentialsDataSource,
 		NewDashboardDataSource,
+		NewDashboardDatasetsDataSource,
+		NewDashboardStatsDataSource,
 		NewDashboardsDataSource,
+		NewDomainAutoJoinDataSource,
 		NewFeedDataSource,
+		NewFeedStatsDataSource,
 		NewFeedsDataSource,
 		NewImageDataSource,
+		NewImageStatsDataSource,
 		NewImagesDataSource,
+		NewInternalMembershipInfoDataSource,
 		NewInvoicesDataSource,
 		NewLanguagesDataSource,
 		NewMembershipApplicationsDataSource,
 		NewMembershipsDataSource,
+		NewOrganizationMembersDataSource,
 		NewPasskeysDataSource,
+		NewPaymentMethodFromPaymentIntentDataSource,
+		NewPaymentMethodFromSetupIntentDataSource,
 		NewPaymentMethodsDataSource,
+		NewPermissionRegistriesDataSource,
 		NewPlanDataSource,
 		NewPlansDataSource,
+		NewPoliciesDataSource,
+		NewPolicyDataSource,
+		NewPolicyAttachmentsDataSource,
+		NewPostStatsDataSource,
 		NewProjectDataSource,
 		NewProjectsDataSource,
 		NewProvidersDataSource,
+		NewRealtimeStatsDataSource,
 		NewStorageUsageDataSource,
 		NewStorageUsageHistoryDataSource,
 		NewSubscriptionDataSource,
 		NewSubscriptionHistoryDataSource,
 		NewSubtitlesDataSource,
+		NewTopFeedsDataSource,
+		NewTopImagesDataSource,
+		NewTopPostsDataSource,
+		NewTopVideosDataSource,
 		NewUserDataSource,
 		NewUserInfoDataSource,
+		NewUserPoliciesDataSource,
 		NewVideoDataSource,
+		NewVideoHeatmapDataSource,
+		NewVideoHotSegmentsDataSource,
+		NewVideoStatsDataSource,
 		NewVideosDataSource,
 	}
 }
