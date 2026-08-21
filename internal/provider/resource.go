@@ -39,7 +39,18 @@ type ResourceDescriptor struct {
 
 	// PathParams are the tfsdk field names, in order, that correspond to the
 	// string path parameters of the SDK create/read/update/delete methods.
+	// They are used for any method that does not set the method-specific
+	// variant below.
 	PathParams []string
+
+	// CreatePathParams, ReadPathParams, UpdatePathParams and DeletePathParams
+	// override PathParams for a specific operation. This is needed when an
+	// SDK method has different path arguments than the others (e.g. create
+	// needs a feed_id, but delete needs the post_id).
+	CreatePathParams []string
+	ReadPathParams   []string
+	UpdatePathParams []string
+	DeletePathParams []string
 
 	// CreateKeepPathKeys lists tfsdk path params that should still be sent in
 	// the create request body.
@@ -68,6 +79,14 @@ type ResourceDescriptor struct {
 	// become top-level attributes. Nested object fields are added only when the
 	// top-level key does not already exist.
 	CreateFlattenField string
+
+	// ReadResponseField unwraps a nested response object returned by ReadMethod.
+	// Use this when the read response has the shape { "post": { ... } }.
+	ReadResponseField string
+
+	// ReadFlattenField flattens a nested read response object into the top-level
+	// map. Similar to CreateFlattenField but applied to the read response.
+	ReadFlattenField string
 
 	// ReadListField is set when ReadMethod returns a list response and the
 	// resource must be selected from that list by id.
@@ -138,13 +157,13 @@ func (r *managedResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	response, d := r.invokeResourceMethod(ctx, method, plan, bodyMap)
+	response, d := r.invokeResourceMethod(ctx, method, plan, bodyMap, r.methodPathParams("create"))
 	resp.Diagnostics.Append(d...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	m, diags := r.responseToResourceMap(ctx, response, false, plan)
+	m, diags := r.responseToResourceMap(response)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -214,7 +233,7 @@ func (r *managedResource) doRead(ctx context.Context, state any) (map[string]any
 		return nil, diags
 	}
 
-	response, d := r.invokeResourceMethod(ctx, method, state, nil)
+	response, d := r.invokeResourceMethod(ctx, method, state, nil, r.methodPathParams("read"))
 	if d.HasError() {
 		if isNotFound(errFromDiags(d)) {
 			return nil, diags
@@ -223,7 +242,59 @@ func (r *managedResource) doRead(ctx context.Context, state any) (map[string]any
 		return nil, diags
 	}
 
-	return r.responseToResourceMap(ctx, response, true, state)
+	return r.responseToReadMap(ctx, response, state)
+}
+
+func (r *managedResource) responseToReadMap(ctx context.Context, response reflect.Value, model any) (map[string]any, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if !response.IsValid() || !response.CanInterface() {
+		return nil, diags
+	}
+
+	m, err := responseToMap(response.Interface())
+	if err != nil {
+		diags.AddError("Failed to convert read response", err.Error())
+		return nil, diags
+	}
+
+	if r.descriptor.ReadListField != "" {
+		return r.selectFromList(ctx, m, model)
+	}
+
+	if r.descriptor.ReadResponseField != "" {
+		raw, ok := m[r.descriptor.ReadResponseField]
+		if !ok || raw == nil {
+			diags.AddError("Read response missing field", r.descriptor.ReadResponseField)
+			return nil, diags
+		}
+		unwrapped, ok := raw.(map[string]any)
+		if !ok {
+			diags.AddError("Read response field is not an object", r.descriptor.ReadResponseField)
+			return nil, diags
+		}
+		m = unwrapped
+	}
+
+	if r.descriptor.ReadFlattenField != "" {
+		raw, ok := m[r.descriptor.ReadFlattenField]
+		if !ok || raw == nil {
+			diags.AddError("Read response missing flatten field", r.descriptor.ReadFlattenField)
+			return nil, diags
+		}
+		flat, ok := raw.(map[string]any)
+		if !ok {
+			diags.AddError("Read response flatten field is not an object", r.descriptor.ReadFlattenField)
+			return nil, diags
+		}
+		for k, v := range m {
+			if k != r.descriptor.ReadFlattenField {
+				flat[k] = v
+			}
+		}
+		m = flat
+	}
+
+	return m, diags
 }
 
 func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -271,7 +342,7 @@ func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	response, d := r.invokeResourceMethod(ctx, method, state, bodyMap)
+	response, d := r.invokeResourceMethod(ctx, method, state, bodyMap, r.methodPathParams("update"))
 	if d.HasError() {
 		if isNotFound(errFromDiags(d)) {
 			resp.State.RemoveResource(ctx)
@@ -281,7 +352,7 @@ func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	m, diags := r.responseToResourceMap(ctx, response, false, plan)
+	m, diags := r.responseToResourceMap(response)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -330,7 +401,7 @@ func (r *managedResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	_, d := r.invokeResourceMethod(ctx, method, state, nil)
+	_, d := r.invokeResourceMethod(ctx, method, state, nil, r.methodPathParams("delete"))
 	if d.HasError() {
 		if isNotFound(errFromDiags(d)) {
 			resp.State.RemoveResource(ctx)
@@ -370,8 +441,30 @@ func (r *managedResource) attrTypes(ctx context.Context) map[string]attr.Type {
 	return attrs
 }
 
+func (r *managedResource) methodPathParams(kind string) []string {
+	switch kind {
+	case "create":
+		if len(r.descriptor.CreatePathParams) > 0 {
+			return r.descriptor.CreatePathParams
+		}
+	case "read":
+		if len(r.descriptor.ReadPathParams) > 0 {
+			return r.descriptor.ReadPathParams
+		}
+	case "update":
+		if len(r.descriptor.UpdatePathParams) > 0 {
+			return r.descriptor.UpdatePathParams
+		}
+	case "delete":
+		if len(r.descriptor.DeletePathParams) > 0 {
+			return r.descriptor.DeletePathParams
+		}
+	}
+	return r.descriptor.PathParams
+}
+
 func (r *managedResource) buildCreateBody(ctx context.Context, plan any) (map[string]any, diag.Diagnostics) {
-	bodyMap, diags := r.buildBody(ctx, plan, r.descriptor.CreateKeepPathKeys)
+	bodyMap, diags := r.buildBody(ctx, plan, r.methodPathParams("create"), r.descriptor.CreateKeepPathKeys)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -381,7 +474,7 @@ func (r *managedResource) buildCreateBody(ctx context.Context, plan any) (map[st
 func (r *managedResource) buildUpdateBody(ctx context.Context, plan, state any) (map[string]any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	bodyMap, d := r.buildBody(ctx, plan, r.descriptor.UpdateKeepPathKeys)
+	bodyMap, d := r.buildBody(ctx, plan, r.methodPathParams("update"), r.descriptor.UpdateKeepPathKeys)
 	diags.Append(d...)
 	if diags.HasError() {
 		return nil, diags
@@ -408,7 +501,7 @@ func (r *managedResource) buildUpdateBody(ctx context.Context, plan, state any) 
 	return r.applyBodyRenames(bodyMap), diags
 }
 
-func (r *managedResource) buildBody(ctx context.Context, model any, keepKeys []string) (map[string]any, diag.Diagnostics) {
+func (r *managedResource) buildBody(ctx context.Context, model any, pathParams, keepKeys []string) (map[string]any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	bodyMap, d := modelToMap(ctx, model)
 	diags.Append(d...)
@@ -431,7 +524,7 @@ func (r *managedResource) buildBody(ctx context.Context, model any, keepKeys []s
 		}
 	}
 
-	for _, p := range r.descriptor.PathParams {
+	for _, p := range pathParams {
 		if !keep[p] {
 			delete(bodyMap, p)
 		}
@@ -455,7 +548,7 @@ func (r *managedResource) applyBodyRenames(bodyMap map[string]any) map[string]an
 	return bodyMap
 }
 
-func (r *managedResource) invokeResourceMethod(ctx context.Context, method reflect.Value, model any, bodyMap map[string]any) (reflect.Value, diag.Diagnostics) {
+func (r *managedResource) invokeResourceMethod(ctx context.Context, method reflect.Value, model any, bodyMap map[string]any, pathParams []string) (reflect.Value, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	mtype := method.Type()
@@ -473,7 +566,6 @@ func (r *managedResource) invokeResourceMethod(ctx context.Context, method refle
 	}
 
 	pathIdx := 0
-	pathParams := r.descriptor.PathParams
 
 	for i := 1; i < mtype.NumIn(); i++ {
 		inType := mtype.In(i)
@@ -540,7 +632,7 @@ func (r *managedResource) invokeResourceMethod(ctx context.Context, method refle
 	return rets[0], diags
 }
 
-func (r *managedResource) responseToResourceMap(ctx context.Context, response reflect.Value, fromList bool, model any) (map[string]any, diag.Diagnostics) {
+func (r *managedResource) responseToResourceMap(response reflect.Value) (map[string]any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if !response.IsValid() || !response.CanInterface() {
 		return nil, diags
@@ -552,28 +644,24 @@ func (r *managedResource) responseToResourceMap(ctx context.Context, response re
 		return nil, diags
 	}
 
-	m, d := r.unwrapCreateResponse(m, fromList)
+	m, d := r.unwrapCreateResponse(m)
 	diags.Append(d...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	m, d = r.flattenCreateResponse(m, fromList)
+	m, d = r.flattenCreateResponse(m)
 	diags.Append(d...)
 	if diags.HasError() {
 		return nil, diags
-	}
-
-	if fromList && r.descriptor.ReadListField != "" {
-		return r.selectFromList(ctx, m, model)
 	}
 
 	return m, diags
 }
 
-func (r *managedResource) unwrapCreateResponse(m map[string]any, fromList bool) (map[string]any, diag.Diagnostics) {
+func (r *managedResource) unwrapCreateResponse(m map[string]any) (map[string]any, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	if fromList || r.descriptor.CreateResponseField == "" {
+	if r.descriptor.CreateResponseField == "" {
 		return m, diags
 	}
 	raw, ok := m[r.descriptor.CreateResponseField]
@@ -589,9 +677,9 @@ func (r *managedResource) unwrapCreateResponse(m map[string]any, fromList bool) 
 	return unwrapped, diags
 }
 
-func (r *managedResource) flattenCreateResponse(m map[string]any, fromList bool) (map[string]any, diag.Diagnostics) {
+func (r *managedResource) flattenCreateResponse(m map[string]any) (map[string]any, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	if fromList || r.descriptor.CreateFlattenField == "" {
+	if r.descriptor.CreateFlattenField == "" {
 		return m, diags
 	}
 	raw, ok := m[r.descriptor.CreateFlattenField]

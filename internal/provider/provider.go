@@ -112,6 +112,7 @@ func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
 		NewAccessPolicyResource,
 		NewDashboardResource,
 		NewFeedResource,
+		NewPostResource,
 		NewProjectResource,
 	}, genericResourceConstructors()...)
 }
@@ -131,6 +132,7 @@ func (p *rixlProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		NewDashboardDatasetsDataSource,
 		NewDashboardStatsDataSource,
 		NewDashboardsDataSource,
+		NewDomainDataSource,
 		NewDomainAutoJoinDataSource,
 		NewFeedDataSource,
 		NewFeedStatsDataSource,
@@ -154,7 +156,9 @@ func (p *rixlProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		NewPoliciesDataSource,
 		NewPolicyDataSource,
 		NewPolicyAttachmentsDataSource,
+		NewPostDataSource,
 		NewPostStatsDataSource,
+		NewPostsDataSource,
 		NewProjectDataSource,
 		NewProjectsDataSource,
 		NewProvidersDataSource,

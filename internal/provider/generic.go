@@ -39,6 +39,10 @@ type DataSourceDescriptor struct {
 	// PathParams are the tfsdk field names, in order, that correspond to the
 	// string path parameters of the SDK read method.
 	PathParams []string
+
+	// ReadResponseField unwraps a nested read response object. Use this when
+	// the read response has the shape { "post": { ... } }.
+	ReadResponseField string
 }
 
 type managedDataSource struct {
@@ -108,6 +112,21 @@ func (d *managedDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			resp.Diagnostics.AddError("Failed to convert response", err.Error())
 			return
 		}
+
+		if d.descriptor.ReadResponseField != "" {
+			raw, ok := m[d.descriptor.ReadResponseField]
+			if !ok || raw == nil {
+				resp.Diagnostics.AddError("Read response missing field", d.descriptor.ReadResponseField)
+				return
+			}
+			unwrapped, ok := raw.(map[string]any)
+			if !ok {
+				resp.Diagnostics.AddError("Read response field is not an object", d.descriptor.ReadResponseField)
+				return
+			}
+			m = unwrapped
+		}
+
 		resp.Diagnostics.Append(mapToModel(ctx, m, data, attrs)...)
 		if resp.Diagnostics.HasError() {
 			return

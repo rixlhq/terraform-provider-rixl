@@ -16,13 +16,14 @@ OPENAPI = ROOT / "openapi.yaml"
 CONFIG = ROOT / "generator_config.yml"
 
 # Data sources with hand-written wrappers (not generic managed data sources).
-MANUAL_DS = {"image", "images", "video", "videos", "feed", "feeds"}
+MANUAL_DS = {"domain", "image", "images", "post", "posts", "video", "videos", "feed", "feeds"}
 
 # Hand-written resources that must always be registered.
 MANUAL_RESOURCES = [
     "NewAccessPolicyResource",
     "NewDashboardResource",
     "NewFeedResource",
+    "NewPostResource",
     "NewProjectResource",
 ]
 
@@ -33,7 +34,8 @@ RESOURCE_META: dict[str, dict] = {
         "create_method": "CreateApiKey",
         "read_method": "ListApiKeys",
         "delete_method": "DeleteApiKey",
-        "path_params": ["org_id", "id"],
+        "path_params": ["org_id"],
+        "delete_path_params": ["org_id", "id"],
         "create_keep_path_keys": [],
         "update_keep_path_keys": [],
         "body_renames": {},
@@ -46,7 +48,8 @@ RESOURCE_META: dict[str, dict] = {
         "create_method": "CreateClientCredential",
         "read_method": "ListClientCredentials",
         "delete_method": "RevokeClientCredential",
-        "path_params": ["id"],
+        "path_params": [],
+        "delete_path_params": ["id"],
         "create_keep_path_keys": [],
         "update_keep_path_keys": [],
         "body_renames": {},
@@ -79,8 +82,8 @@ RESOURCE_META: dict[str, dict] = {
         "update_method": "SetCustomDomain",
         "delete_method": "RemoveCustomDomain",
         "path_params": ["org_id", "project_id"],
-        "create_keep_path_keys": ["org_id", "project_id"],
-        "update_keep_path_keys": ["org_id", "project_id"],
+        "create_keep_path_keys": [],
+        "update_keep_path_keys": [],
         "body_renames": {},
         "computed_body_keys": ["id", "created_at", "updated_at"],
         "create_response_field": "",
@@ -298,6 +301,14 @@ def generate_resource_registry(resources: list[str], method_to_field: dict[str, 
             lines.append(f'\t\tUpdateMethod:        "{m["update_method"]}",')
         lines.append(f'\t\tDeleteMethod:        "{m["delete_method"]}",')
         lines.append(f"\t\tPathParams:          []string{{{go_string_list(m.get('path_params', []))}}},")
+        if m.get("create_path_params") is not None:
+            lines.append(f"\t\tCreatePathParams:    []string{{{go_string_list(m['create_path_params'])}}},")
+        if m.get("read_path_params") is not None:
+            lines.append(f"\t\tReadPathParams:      []string{{{go_string_list(m['read_path_params'])}}},")
+        if m.get("update_path_params") is not None:
+            lines.append(f"\t\tUpdatePathParams:    []string{{{go_string_list(m['update_path_params'])}}},")
+        if m.get("delete_path_params") is not None:
+            lines.append(f"\t\tDeletePathParams:    []string{{{go_string_list(m['delete_path_params'])}}},")
         lines.append(f"\t\tCreateKeepPathKeys:  []string{{{go_string_list(m.get('create_keep_path_keys', []))}}},")
         lines.append(f"\t\tUpdateKeepPathKeys:  []string{{{go_string_list(m.get('update_keep_path_keys', []))}}},")
         lines.append(f"\t\tBodyRenames:         {go_string_map(m.get('body_renames', {}))},")

@@ -68,45 +68,49 @@ func (d *videoDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
+func videoDataSourceAttributes() map[string]dschema.Attribute {
+	return map[string]dschema.Attribute{
+		"id": dschema.StringAttribute{
+			Computed: true,
+		},
+		"bitrate": dschema.Int64Attribute{
+			Computed: true,
+		},
+		"codec": dschema.StringAttribute{
+			Computed: true,
+		},
+		"duration": dschema.StringAttribute{
+			Computed: true,
+		},
+		"file": dschema.SingleNestedAttribute{
+			Computed:   true,
+			Attributes: fileDataSourceAttributes(),
+		},
+		"framerate": dschema.StringAttribute{
+			Computed: true,
+		},
+		"hdr": dschema.BoolAttribute{
+			Computed: true,
+		},
+		"height": dschema.Int64Attribute{
+			Computed: true,
+		},
+		"poster": dschema.SingleNestedAttribute{
+			Computed:   true,
+			Attributes: imageDataSourceAttributes(),
+		},
+		"visibility": dschema.StringAttribute{
+			Computed: true,
+		},
+		"width": dschema.Int64Attribute{
+			Computed: true,
+		},
+	}
+}
+
 func VideoDataSourceSchema(_ context.Context) dschema.Schema {
 	return dschema.Schema{
-		Attributes: map[string]dschema.Attribute{
-			"id": dschema.StringAttribute{
-				Required: true,
-			},
-			"bitrate": dschema.Int64Attribute{
-				Computed: true,
-			},
-			"codec": dschema.StringAttribute{
-				Computed: true,
-			},
-			"duration": dschema.StringAttribute{
-				Computed: true,
-			},
-			"file": dschema.SingleNestedAttribute{
-				Computed:   true,
-				Attributes: fileDataSourceAttributes(),
-			},
-			"framerate": dschema.StringAttribute{
-				Computed: true,
-			},
-			"hdr": dschema.BoolAttribute{
-				Computed: true,
-			},
-			"height": dschema.Int64Attribute{
-				Computed: true,
-			},
-			"poster": dschema.SingleNestedAttribute{
-				Computed:   true,
-				Attributes: imageDataSourceAttributes(),
-			},
-			"visibility": dschema.StringAttribute{
-				Computed: true,
-			},
-			"width": dschema.Int64Attribute{
-				Computed: true,
-			},
-		},
+		Attributes: videoDataSourceAttributes(),
 	}
 }
 

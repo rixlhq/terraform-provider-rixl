@@ -24,12 +24,25 @@ def save_spec(spec: dict) -> None:
     SPEC.write_text(json.dumps(spec, indent="\t") + "\n")
 
 
+def _child_attributes(attr: dict) -> list | None:
+    """Return the child attribute list for a nested attribute, if any."""
+    for kind in ("single_nested", "list_nested", "set_nested", "map_nested", "object"):
+        if kind not in attr:
+            continue
+        container = attr[kind]
+        if "attributes" in container:
+            return container["attributes"]
+        if "nested_object" in container and "attributes" in container["nested_object"]:
+            return container["nested_object"]["attributes"]
+    return None
+
+
 def walk_attributes(attributes: list, fn) -> None:
     for attr in attributes:
         fn(attr)
-        for kind in ("single_nested", "list_nested", "set_nested", "map_nested", "object"):
-            if kind in attr and "attributes" in attr[kind]:
-                walk_attributes(attr[kind]["attributes"], fn)
+        children = _child_attributes(attr)
+        if children is not None:
+            walk_attributes(children, fn)
 
 
 def rename_attributes(attributes: list, old: str, new: str) -> None:
@@ -49,9 +62,18 @@ def remove_secret(attributes: list) -> list:
         for a in attrs:
             if a.get("_delete"):
                 continue
-            for kind in ("single_nested", "list_nested", "set_nested", "map_nested", "object"):
-                if kind in a and "attributes" in a[kind]:
-                    a[kind]["attributes"] = filter_attrs(a[kind]["attributes"])
+            children = _child_attributes(a)
+            if children is not None:
+                if "single_nested" in a:
+                    a["single_nested"]["attributes"] = filter_attrs(children)
+                elif "object" in a:
+                    a["object"]["attributes"] = filter_attrs(children)
+                elif "list_nested" in a:
+                    a["list_nested"]["nested_object"]["attributes"] = filter_attrs(children)
+                elif "set_nested" in a:
+                    a["set_nested"]["nested_object"]["attributes"] = filter_attrs(children)
+                elif "map_nested" in a:
+                    a["map_nested"]["nested_object"]["attributes"] = filter_attrs(children)
         return [a for a in attrs if not a.get("_delete")]
 
     walk_attributes(attributes, fn)
