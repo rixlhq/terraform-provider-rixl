@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -81,5 +83,82 @@ func TestModelToMap(t *testing.T) {
 	}
 	if m["id"] != "id" {
 		t.Fatalf("id mismatch")
+	}
+}
+
+func TestNativeToString(t *testing.T) {
+	cases := []struct {
+		in   any
+		want string
+	}{
+		{"hello", "hello"},
+		{json.Number("12345678901234"), "12345678901234"},
+		{int64(12345678901234), "12345678901234"},
+		{float64(1000000), "1000000"},
+		{float64(12345678901234), "12345678901234"},
+		{true, "true"},
+	}
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%T_%v", c.in, c.in), func(t *testing.T) {
+			got := nativeToString(c.in)
+			if got != c.want {
+				t.Fatalf("nativeToString(%#v) = %q, want %q", c.in, got, c.want)
+			}
+		})
+	}
+}
+
+func TestFromNativeNumberToString(t *testing.T) {
+	ctx := context.Background()
+
+	for _, c := range []struct {
+		in   any
+		want string
+	}{
+		{float64(1000000), "1000000"},
+		{int64(1000000), "1000000"},
+		{json.Number("1000000"), "1000000"},
+	} {
+		av, diags := fromNative(ctx, c.in, types.StringType)
+		if diags.HasError() {
+			t.Fatalf("fromNative diags: %v", diags)
+		}
+		sv, ok := av.(types.String)
+		if !ok {
+			t.Fatalf("expected types.String, got %T", av)
+		}
+		if sv.ValueString() != c.want {
+			t.Fatalf("fromNative(%#v) = %q, want %q", c.in, sv.ValueString(), c.want)
+		}
+	}
+}
+
+type paginationTotalModel struct {
+	Total types.String `tfsdk:"total"`
+}
+
+func TestMapResponsePaginationLargeTotal(t *testing.T) {
+	ctx := context.Background()
+
+	for _, c := range []struct {
+		name string
+		raw  any
+		want string
+	}{
+		{"float64", float64(1000000), "1000000"},
+		{"int64", int64(1000000), "1000000"},
+		{"json.Number", json.Number("1000000"), "1000000"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var m paginationTotalModel
+			diags := mapResponsePagination(ctx, map[string]any{"total": c.raw}, &m)
+			if diags.HasError() {
+				t.Fatalf("mapResponsePagination diags: %v", diags)
+			}
+			if m.Total.ValueString() != c.want {
+				t.Fatalf("total = %q, want %q", m.Total.ValueString(), c.want)
+			}
+		})
 	}
 }

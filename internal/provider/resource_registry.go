@@ -9,6 +9,8 @@ func genericResourceConstructors() []func() resource.Resource {
 	return []func() resource.Resource{
 		NewApiKeyResource,
 		NewClientCredentialResource,
+		NewPaymentMethodResource,
+		NewPolicyAttachmentResource,
 		NewProjectCustomDomainResource,
 		NewSubscriptionResource,
 	}
@@ -61,6 +63,53 @@ func NewClientCredentialResource() resource.Resource {
 	})
 }
 
+func NewPaymentMethodResource() resource.Resource {
+	return newManagedResource(ResourceDescriptor{
+		TypeName:            "payment_method",
+		SchemaFn:            PaymentMethodResourceSchema,
+		Model:               &PaymentMethodModel{},
+		ClientField:         "Payments",
+		CreateMethod:        "UpsertPaymentMethod",
+		ReadMethod:          "ListPaymentMethods",
+		UpdateMethod:        "UpsertPaymentMethod",
+		DeleteMethod:        "DeletePaymentMethod",
+		PathParams:          []string{},
+		DeletePathParams:    []string{"id"},
+		CreateKeepPathKeys:  []string{},
+		UpdateKeepPathKeys:  []string{},
+		BodyRenames:         map[string]string{},
+		ComputedBodyKeys:    []string{"id", "type", "provider", "details", "is_default", "created_at"},
+		CreateResponseField: "",
+		ReadListField:       "payment_methods",
+		ReadListIDField:     "id",
+		ReadAfterCreate:     true,
+		ReadAfterUpdate:     true,
+	})
+}
+
+func NewPolicyAttachmentResource() resource.Resource {
+	return newManagedResource(ResourceDescriptor{
+		TypeName:            "policy_attachment",
+		SchemaFn:            PolicyAttachmentResourceSchema,
+		Model:               &PolicyAttachmentModel{},
+		ClientField:         "AccessPolicies",
+		CreateMethod:        "AttachPolicy",
+		ReadMethod:          "ListPolicyAttachments",
+		DeleteMethod:        "DetachPolicy",
+		PathParams:          []string{"org_id", "policy_id"},
+		DeletePathParams:    []string{"org_id", "id"},
+		CreateKeepPathKeys:  []string{},
+		UpdateKeepPathKeys:  []string{},
+		BodyRenames:         map[string]string{},
+		ComputedBodyKeys:    []string{"id", "created_at"},
+		CreateResponseField: "",
+		ReadListField:       "attachments",
+		ReadListIDField:     "id",
+		ReadAfterCreate:     true,
+		ReadAfterUpdate:     false,
+	})
+}
+
 func NewProjectCustomDomainResource() resource.Resource {
 	return newManagedResource(ResourceDescriptor{
 		TypeName:            "project_custom_domain",
@@ -90,8 +139,10 @@ func NewSubscriptionResource() resource.Resource {
 		SchemaFn:            SubscriptionResourceSchema,
 		Model:               &SubscriptionModel{},
 		ClientField:         "Subscriptions",
+		UpdateClientField:   "Payments",
 		CreateMethod:        "CreateSubscription",
 		ReadMethod:          "GetSubscription",
+		UpdateMethod:        "UpgradeSubscription",
 		DeleteMethod:        "CancelSubscription",
 		PathParams:          []string{},
 		CreateKeepPathKeys:  []string{},
@@ -102,6 +153,6 @@ func NewSubscriptionResource() resource.Resource {
 		ReadListField:       "",
 		ReadListIDField:     "id",
 		ReadAfterCreate:     true,
-		ReadAfterUpdate:     false,
+		ReadAfterUpdate:     true,
 	})
 }

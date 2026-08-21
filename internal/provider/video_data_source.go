@@ -109,8 +109,10 @@ func videoDataSourceAttributes() map[string]dschema.Attribute {
 }
 
 func VideoDataSourceSchema(_ context.Context) dschema.Schema {
+	attrs := videoDataSourceAttributes()
+	attrs["id"] = dschema.StringAttribute{Required: true}
 	return dschema.Schema{
-		Attributes: videoDataSourceAttributes(),
+		Attributes: attrs,
 	}
 }
 

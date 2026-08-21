@@ -1,12 +1,16 @@
 package provider
 
 import (
+	"errors"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/rixlhq/rixl-go/sdk/images"
 	"github.com/rixlhq/rixl-go/sdk/models"
+	"github.com/rixlhq/rixl-go/sdk/videos"
 )
 
 func ptrString(s *string) types.String {
@@ -155,4 +159,26 @@ func videoV1ToObject(vid *models.VideosV1Video) (types.Object, diag.Diagnostics)
 		"visibility": ptrString((*string)(vid.Visibility)),
 		"width":      ptrInt32(vid.Width),
 	})
+}
+
+// isTransientWaitError reports whether an error from a media GET poll is
+// expected to resolve if we keep waiting. 404 means the upload has not been
+// registered yet; 5xx may be transient. Any other HTTP client error or
+// non-HTTP error should fail fast.
+func isTransientWaitError(err error) bool {
+	if err == nil {
+		return true
+	}
+
+	var imgErr *images.ClientHttpError[struct{}]
+	if errors.As(err, &imgErr) {
+		return imgErr.StatusCode == http.StatusNotFound || imgErr.StatusCode >= 500
+	}
+
+	var vidErr *videos.ClientHttpError[struct{}]
+	if errors.As(err, &vidErr) {
+		return vidErr.StatusCode == http.StatusNotFound || vidErr.StatusCode >= 500
+	}
+
+	return false
 }

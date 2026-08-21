@@ -215,11 +215,7 @@ func mapResponsePagination(_ context.Context, m map[string]any, data any) diag.D
 				}
 				field.Set(reflect.ValueOf(types.Int64Value(v)))
 			case "String":
-				s := fmt.Sprint(raw)
-				if n, ok := raw.(json.Number); ok {
-					s = n.String()
-				}
-				field.Set(reflect.ValueOf(types.StringValue(s)))
+				field.Set(reflect.ValueOf(types.StringValue(nativeToString(raw))))
 			}
 		}
 	}
@@ -323,7 +319,7 @@ func invokeSDKMethodErr(ctx context.Context, method reflect.Value, data any, pat
 			if d.HasError() {
 				return reflect.Value{}, fmt.Errorf("%s", d)
 			}
-			args = append(args, reflect.ValueOf(v))
+			args = append(args, reflect.ValueOf(v).Convert(inType))
 			pathIdx++
 			continue
 		}

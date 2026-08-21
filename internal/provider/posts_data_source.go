@@ -119,11 +119,6 @@ func postDataSourceAttributes() map[string]schema.Attribute {
 }
 
 func PostsDataSourceSchema(_ context.Context) schema.Schema {
-	attrTypes, err := attributeTypesForSchema(postDataSourceAttributes())
-	if err != nil {
-		panic(err)
-	}
-
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"project_id": schema.StringAttribute{
@@ -157,11 +152,6 @@ func PostsDataSourceSchema(_ context.Context) schema.Schema {
 				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: postDataSourceAttributes(),
-				},
-				CustomType: types.ListType{
-					ElemType: types.ObjectType{
-						AttrTypes: attrTypes,
-					},
 				},
 			},
 		},

@@ -30,6 +30,14 @@ type ResourceDescriptor struct {
 	// ClientField is the name of the typed client on *sdk.Client.
 	ClientField string
 
+	// CreateClientField, ReadClientField, UpdateClientField and DeleteClientField
+	// override ClientField for a specific operation. They default to ClientField
+	// when empty.
+	CreateClientField string
+	ReadClientField   string
+	UpdateClientField string
+	DeleteClientField string
+
 	// SDK methods for CRUD. Empty UpdateMethod means updates are not
 	// supported and the resource will be replaced instead.
 	CreateMethod string
@@ -139,7 +147,7 @@ func (r *managedResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	clientVal, diags := r.clientValue()
+	clientVal, diags := r.clientValueMaybeOverride(r.descriptor.CreateClientField)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -221,7 +229,7 @@ func (r *managedResource) Read(ctx context.Context, req resource.ReadRequest, re
 func (r *managedResource) doRead(ctx context.Context, state any) (map[string]any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	clientVal, d := r.clientValue()
+	clientVal, d := r.clientValueMaybeOverride(r.descriptor.ReadClientField)
 	if d.HasError() {
 		diags.Append(d...)
 		return nil, diags
@@ -324,7 +332,7 @@ func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	clientVal, diags := r.clientValue()
+	clientVal, diags := r.clientValueMaybeOverride(r.descriptor.UpdateClientField)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -389,7 +397,7 @@ func (r *managedResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	clientVal, diags := r.clientValue()
+	clientVal, diags := r.clientValueMaybeOverride(r.descriptor.DeleteClientField)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -412,15 +420,22 @@ func (r *managedResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 }
 
-func (r *managedResource) clientValue() (reflect.Value, diag.Diagnostics) {
+func (r *managedResource) clientValueMaybeOverride(override string) (reflect.Value, diag.Diagnostics) {
+	if override == "" {
+		return r.clientValueFor(r.descriptor.ClientField)
+	}
+	return r.clientValueFor(override)
+}
+
+func (r *managedResource) clientValueFor(field string) (reflect.Value, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	v := reflect.ValueOf(r.client).Elem().FieldByName(r.descriptor.ClientField)
+	v := reflect.ValueOf(r.client).Elem().FieldByName(field)
 	if !v.IsValid() {
-		diags.AddError("SDK client not found", r.descriptor.ClientField)
+		diags.AddError("SDK client not found", field)
 		return reflect.Value{}, diags
 	}
 	if v.Kind() == reflect.Pointer && v.IsNil() {
-		diags.AddError("SDK client is nil", r.descriptor.ClientField)
+		diags.AddError("SDK client is nil", field)
 		return reflect.Value{}, diags
 	}
 	return v, diags
@@ -586,7 +601,7 @@ func (r *managedResource) invokeResourceMethod(ctx context.Context, method refle
 				diags.Append(d...)
 				return reflect.Value{}, diags
 			}
-			args = append(args, reflect.ValueOf(v))
+			args = append(args, reflect.ValueOf(v).Convert(inType))
 			pathIdx++
 			continue
 		}
@@ -736,7 +751,11 @@ func (r *managedResource) modelID(_ context.Context, model any) any {
 	if model == nil {
 		return nil
 	}
-	v, _ := modelFieldValue(model, "id")
+	idField := r.descriptor.ReadListIDField
+	if idField == "" {
+		idField = "id"
+	}
+	v, _ := modelFieldValue(model, idField)
 	if v == nil || v.IsNull() || v.IsUnknown() {
 		return nil
 	}

@@ -110,10 +110,15 @@ func (p *rixlProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
 	return append([]func() resource.Resource{
 		NewAccessPolicyResource,
+		NewAudioTrackResource,
+		NewBillingAddressResource,
 		NewDashboardResource,
 		NewFeedResource,
+		NewImageResource,
 		NewPostResource,
 		NewProjectResource,
+		NewSubtitleResource,
+		NewVideoResource,
 	}, genericResourceConstructors()...)
 }
 

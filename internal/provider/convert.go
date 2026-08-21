@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"reflect"
 	"sort"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -24,12 +25,36 @@ func modelToMap(ctx context.Context, model any) (map[string]any, diag.Diagnostic
 
 	val := reflect.ValueOf(model)
 	if val.Kind() == reflect.Pointer {
+		if val.IsNil() {
+			return out, diags
+		}
 		val = val.Elem()
 	}
 	typ := val.Type()
 
 	for i := range val.NumField() {
 		field := typ.Field(i)
+
+		// Recurse into embedded (anonymous) struct fields so models can
+		// compose a base data-source model with additional resource fields.
+		if field.Anonymous {
+			fieldVal := val.Field(i)
+			if field.Type.Kind() == reflect.Pointer && fieldVal.IsNil() {
+				continue
+			}
+			if field.Type.Kind() == reflect.Pointer || field.Type.Kind() == reflect.Struct {
+				inner, d := modelToMap(ctx, fieldVal.Interface())
+				diags.Append(d...)
+				if diags.HasError() {
+					return nil, diags
+				}
+				for k, v := range inner {
+					out[k] = v
+				}
+				continue
+			}
+		}
+
 		name := fieldName(field)
 		if name == "" {
 			continue
@@ -59,12 +84,40 @@ func mapToModel(ctx context.Context, m map[string]any, model any, attributes map
 
 	val := reflect.ValueOf(model)
 	if val.Kind() == reflect.Pointer {
+		if val.IsNil() {
+			diags.AddError("Nil model", "cannot map into a nil model")
+			return diags
+		}
 		val = val.Elem()
 	}
 	typ := val.Type()
 
 	for i := range val.NumField() {
 		field := typ.Field(i)
+
+		// Recurse into embedded (anonymous) struct fields so models can
+		// compose a base data-source model with additional resource fields.
+		if field.Anonymous {
+			fieldVal := val.Field(i)
+			if field.Type.Kind() == reflect.Pointer {
+				if fieldVal.IsNil() {
+					fieldVal.Set(reflect.New(field.Type.Elem()))
+				}
+				diags.Append(mapToModel(ctx, m, fieldVal.Interface(), attributes)...)
+				if diags.HasError() {
+					return diags
+				}
+				continue
+			}
+			if field.Type.Kind() == reflect.Struct {
+				diags.Append(mapToModel(ctx, m, fieldVal.Addr().Interface(), attributes)...)
+				if diags.HasError() {
+					return diags
+				}
+				continue
+			}
+		}
+
 		name := fieldName(field)
 		if name == "" {
 			continue
@@ -224,12 +277,13 @@ func fromNative(ctx context.Context, v any, attrType attr.Type) (attr.Value, dia
 func nativeToTftypes(ctx context.Context, v any, tfType tftypes.Type) (tftypes.Value, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
+	if v == nil {
+		return tftypes.NewValue(tfType, nil), diags
+	}
+
 	switch {
 	case tfType.Is(tftypes.String):
-		s, ok := v.(string)
-		if !ok {
-			s = fmt.Sprint(v)
-		}
+		s := nativeToString(v)
 		return tftypes.NewValue(tfType, s), diags
 	case tfType.Is(tftypes.Bool):
 		b, err := toBool(v)
@@ -301,6 +355,51 @@ func nativeToTftypes(ctx context.Context, v any, tfType tftypes.Type) (tftypes.V
 		diags.AddError("Unsupported terraform type", "cannot build tftypes.Value for "+tfType.String())
 		return tftypes.Value{}, diags
 	}
+}
+
+// nativeToString formats a native Go value as a decimal string without using
+// scientific notation for numeric values. This avoids values like "1e+06" when
+// large numbers are coerced to Terraform string attributes.
+func nativeToString(v any) string {
+	switch t := v.(type) {
+	case string:
+		return t
+	case json.Number:
+		return t.String()
+	case int:
+		return strconv.FormatInt(int64(t), 10)
+	case int8:
+		return strconv.FormatInt(int64(t), 10)
+	case int16:
+		return strconv.FormatInt(int64(t), 10)
+	case int32:
+		return strconv.FormatInt(int64(t), 10)
+	case int64:
+		return strconv.FormatInt(t, 10)
+	case uint:
+		return strconv.FormatUint(uint64(t), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(t), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(t), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(t), 10)
+	case uint64:
+		return strconv.FormatUint(t, 10)
+	case float32:
+		return strconv.FormatFloat(float64(t), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(t, 'f', -1, 64)
+	case *big.Float:
+		if t != nil {
+			return t.Text('f', -1)
+		}
+	case *big.Rat:
+		if t != nil {
+			return t.FloatString(-1)
+		}
+	}
+	return fmt.Sprint(v)
 }
 
 func numberToBigFloat(v any) (*big.Float, diag.Diagnostics) {

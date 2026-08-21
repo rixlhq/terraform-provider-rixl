@@ -21,10 +21,15 @@ MANUAL_DS = {"domain", "image", "images", "post", "posts", "video", "videos", "f
 # Hand-written resources that must always be registered.
 MANUAL_RESOURCES = [
     "NewAccessPolicyResource",
+    "NewAudioTrackResource",
+    "NewBillingAddressResource",
     "NewDashboardResource",
     "NewFeedResource",
+    "NewImageResource",
     "NewPostResource",
     "NewProjectResource",
+    "NewSubtitleResource",
+    "NewVideoResource",
 ]
 
 # Resource-specific metadata for generic managed resources. Method names are
@@ -62,6 +67,8 @@ RESOURCE_META: dict[str, dict] = {
     "subscription": {
         "create_method": "CreateSubscription",
         "read_method": "GetSubscription",
+        "update_method": "UpgradeSubscription",
+        "update_client_field": "Payments",
         "delete_method": "CancelSubscription",
         "path_params": [],
         "create_keep_path_keys": [],
@@ -75,6 +82,7 @@ RESOURCE_META: dict[str, dict] = {
         "create_response_field": "",
         "read_list_field": "",
         "read_after_create": True,
+        "read_after_update": True,
     },
     "project_custom_domain": {
         "create_method": "SetCustomDomain",
@@ -89,6 +97,39 @@ RESOURCE_META: dict[str, dict] = {
         "create_response_field": "",
         "read_list_field": "",
         "read_after_create": False,
+    },
+    "payment_method": {
+        "create_method": "UpsertPaymentMethod",
+        "read_method": "ListPaymentMethods",
+        "update_method": "UpsertPaymentMethod",
+        "delete_method": "DeletePaymentMethod",
+        "path_params": [],
+        "delete_path_params": ["id"],
+        "create_keep_path_keys": [],
+        "update_keep_path_keys": [],
+        "body_renames": {},
+        "computed_body_keys": ["id", "type", "provider", "details", "is_default", "created_at"],
+        "create_response_field": "",
+        "read_list_field": "payment_methods",
+        "read_list_id_field": "id",
+        "read_after_create": True,
+        "read_after_update": True,
+    },
+    "policy_attachment": {
+        "create_method": "AttachPolicy",
+        "read_method": "ListPolicyAttachments",
+        "delete_method": "DetachPolicy",
+        "path_params": ["org_id", "policy_id"],
+        "delete_path_params": ["org_id", "id"],
+        "create_keep_path_keys": [],
+        "update_keep_path_keys": [],
+        "body_renames": {},
+        "computed_body_keys": ["id", "created_at"],
+        "create_response_field": "",
+        "read_list_field": "attachments",
+        "read_list_id_field": "id",
+        "read_after_create": True,
+        "read_after_update": False,
     },
 }
 
@@ -139,7 +180,9 @@ def to_pascal(snake: str) -> str:
     return "".join(p[:1].upper() + p[1:] for p in snake.split("_"))
 
 
-def load_openapi() -> dict:
+def load_openapi() -> dict | None:
+    if not OPENAPI.exists():
+        return None
     return yaml.safe_load(OPENAPI.read_text())
 
 
@@ -294,6 +337,14 @@ def generate_resource_registry(resources: list[str], method_to_field: dict[str, 
         lines.append(f"\t\tSchemaFn:            {pascal}ResourceSchema,")
         lines.append(f"\t\tModel:               &{pascal}Model{{}},")
         lines.append(f'\t\tClientField:         "{client_field}",')
+        if m.get("create_client_field"):
+            lines.append(f'\t\tCreateClientField:   "{m["create_client_field"]}",')
+        if m.get("read_client_field"):
+            lines.append(f'\t\tReadClientField:     "{m["read_client_field"]}",')
+        if m.get("update_client_field"):
+            lines.append(f'\t\tUpdateClientField:   "{m["update_client_field"]}",')
+        if m.get("delete_client_field"):
+            lines.append(f'\t\tDeleteClientField:   "{m["delete_client_field"]}",')
         lines.append(f'\t\tCreateMethod:        "{create}",')
         if m.get("read_method"):
             lines.append(f'\t\tReadMethod:          "{m["read_method"]}",')
@@ -364,26 +415,35 @@ def main() -> int:
     method_to_field = build_method_to_field(sdk, pkg_to_field)
 
     datasources = [ds["name"] for ds in spec.get("datasources", [])]
-    meta: dict[str, dict] = {}
-    for name in datasources:
-        if name in MANUAL_DS:
-            continue
-        try:
-            meta[name] = build_ds_meta(name, cfg, openapi, method_to_field)
-        except ValueError as e:
-            print(f"error: {e}", file=sys.stderr)
-            return 1
 
-    registry = generate_registry(datasources, meta)
-    (PROVIDER_DIR / "registry.go").write_text(registry)
+    if openapi is None:
+        print("warning: openapi.yaml not found; skipping data source registry generation", file=sys.stderr)
+    else:
+        meta: dict[str, dict] = {}
+        for name in datasources:
+            if name in MANUAL_DS:
+                continue
+            try:
+                meta[name] = build_ds_meta(name, cfg, openapi, method_to_field)
+            except ValueError as e:
+                print(f"error: {e}", file=sys.stderr)
+                return 1
 
-    resources = [r["name"] for r in spec.get("resources", [])]
+        registry = generate_registry(datasources, meta)
+        (PROVIDER_DIR / "registry.go").write_text(registry)
+
+    resources = sorted({r["name"] for r in spec.get("resources", [])} | set(RESOURCE_META.keys()))
     resource_registry = generate_resource_registry(resources, method_to_field)
     if not resource_registry:
         return 1
     (PROVIDER_DIR / "resource_registry.go").write_text(resource_registry)
 
     update_provider(datasources)
+
+    for go_file in ["registry.go", "resource_registry.go", "provider.go"]:
+        path = PROVIDER_DIR / go_file
+        subprocess.run(["gofmt", "-w", str(path)], check=False)
+
     return 0
 
 

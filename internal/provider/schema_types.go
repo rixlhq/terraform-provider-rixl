@@ -113,18 +113,24 @@ func attrTypeForCollectionElement(val reflect.Value, kind string) (attr.Type, er
 }
 
 func attrTypeForNestedObject(val reflect.Value) (attr.Type, error) {
+	// List/Set nested attributes store their object under NestedObject.
 	nestedVal := fieldValueByName(val, "NestedObject")
-	if !nestedVal.IsValid() {
-		return nil, errors.New("nested attribute missing NestedObject")
-	}
+	attributesVal := reflect.Value{}
 
-	if custom := fieldValueByName(nestedVal, "CustomType"); custom.IsValid() && !custom.IsZero() {
-		if at, ok := custom.Interface().(attr.Type); ok {
-			return at, nil
+	if nestedVal.IsValid() {
+		if custom := fieldValueByName(nestedVal, "CustomType"); custom.IsValid() && !custom.IsZero() {
+			if at, ok := custom.Interface().(attr.Type); ok {
+				return at, nil
+			}
 		}
+		attributesVal = fieldValueByName(nestedVal, "Attributes")
 	}
 
-	attributesVal := fieldValueByName(nestedVal, "Attributes")
+	// Single nested attributes store their attributes directly on the attribute.
+	if !attributesVal.IsValid() {
+		attributesVal = fieldValueByName(val, "Attributes")
+	}
+
 	if !attributesVal.IsValid() {
 		return nil, errors.New("nested object missing Attributes")
 	}
