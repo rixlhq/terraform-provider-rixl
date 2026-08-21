@@ -54,7 +54,8 @@ func ApiKeysDataSourceSchema(ctx context.Context) schema.Schema {
 							Computed: true,
 						},
 						"secret": schema.StringAttribute{
-							Computed: true,
+							Computed:  true,
+							Sensitive: true,
 						},
 					},
 					CustomType: ApiKeysDataSourceType{

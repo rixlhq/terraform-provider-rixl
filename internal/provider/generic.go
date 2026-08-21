@@ -1,11 +1,13 @@
-//nolint:exhaustive // generic SDK mapping handles known kinds
+//nolint:exhaustive,revive // generic SDK mapping handles known kinds; file is large due to shared mapping helpers
 package provider
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -100,10 +102,13 @@ func (d *managedDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			resp.Diagnostics.AddError("Failed to derive attribute types", err.Error())
 			return
 		}
-		resp.Diagnostics.Append(mapToModel(ctx, mustResponseToMap(response.Interface()), data, attrs)...)
+
+		m := mustResponseToMap(response.Interface())
+		resp.Diagnostics.Append(mapToModel(ctx, m, data, attrs)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
+		resp.Diagnostics.Append(mapResponsePagination(ctx, m, data)...)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
@@ -127,6 +132,105 @@ func (d *managedDataSource) dataSourceSchema(ctx context.Context) dschema.Schema
 	fnVal := reflect.ValueOf(d.descriptor.SchemaFn)
 	res := fnVal.Call([]reflect.Value{reflect.ValueOf(ctx)})
 	return res[0].Interface().(dschema.Schema)
+}
+
+// mapResponsePagination maps response pagination fields (limit/offset) to model
+// fields that may be named "limit"/"offset" or "paginationlimit"/"paginationoffset".
+//
+//nolint:gocognit // pagination mapping handles many field types
+func mapResponsePagination(_ context.Context, m map[string]any, data any) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	val := reflect.ValueOf(data)
+	if val.Kind() == reflect.Pointer {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return diags
+	}
+
+	type fieldRef struct {
+		idx   int
+		match string
+	}
+	fields := make(map[string]fieldRef)
+	typ := val.Type()
+	for i := range typ.NumField() {
+		name := typ.Field(i).Tag.Get("tfsdk")
+		if name == "" {
+			continue
+		}
+		fields[name] = fieldRef{idx: i, match: typ.Field(i).Type.Name()}
+	}
+
+	for src, targets := range map[string][]string{
+		"limit":          {"limit", "paginationlimit"},
+		"offset":         {"offset", "paginationoffset"},
+		"total":          {"total"},
+		"sort_field":     {"sort_field"},
+		"sort_direction": {"sort_direction"},
+	} {
+		raw, ok := m[src]
+		if !ok || raw == nil {
+			continue
+		}
+		for _, t := range targets {
+			f, ok := fields[t]
+			if !ok {
+				continue
+			}
+			field := val.Field(f.idx)
+			switch f.match {
+			case "Int64":
+				v, d := anyToInt64(raw)
+				if d.HasError() {
+					diags.Append(d...)
+					continue
+				}
+				field.Set(reflect.ValueOf(types.Int64Value(v)))
+			case "String":
+				s := fmt.Sprint(raw)
+				if f, ok := raw.(float64); ok {
+					if f == math.Trunc(f) && f >= math.MinInt64 && f <= math.MaxInt64 {
+						s = strconv.FormatInt(int64(f), 10)
+					} else {
+						s = strconv.FormatFloat(f, 'f', -1, 64)
+					}
+				}
+				field.Set(reflect.ValueOf(types.StringValue(s)))
+			}
+		}
+	}
+
+	return diags
+}
+
+func anyToInt64(v any) (int64, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	switch t := v.(type) {
+	case int64:
+		return t, diags
+	case int:
+		return int64(t), diags
+	case int32:
+		return int64(t), diags
+	case float64:
+		if t == math.Trunc(t) && t >= math.MinInt64 && t <= math.MaxInt64 {
+			return int64(t), diags
+		}
+		diags.AddError("Invalid integer", fmt.Sprintf("cannot convert %v to int64", v))
+		return 0, diags
+	case string:
+		i, err := strconv.ParseInt(t, 10, 64)
+		if err != nil {
+			diags.AddError("Invalid integer", fmt.Sprintf("cannot parse %q as int64: %s", t, err))
+			return 0, diags
+		}
+		return i, diags
+	default:
+		diags.AddError("Invalid integer", fmt.Sprintf("cannot convert %T to int64", v))
+		return 0, diags
+	}
 }
 
 // Shared helpers.

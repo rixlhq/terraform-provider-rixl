@@ -1,3 +1,4 @@
+//nolint:revive // registry file containing many generated constructors and descriptors
 package provider
 
 import "github.com/hashicorp/terraform-plugin-framework/datasource"

@@ -89,13 +89,15 @@ func (r *feedResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 }
 
 func (r *feedResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data FeedModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	var state FeedModel
+	var plan FeedModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	body, d := modelToMap(ctx, &data)
+	body, d := modelToMap(ctx, &plan)
 	resp.Diagnostics.Append(d...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -103,18 +105,18 @@ func (r *feedResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	delete(body, "id")
 	delete(body, "project_id")
 
-	feed, err := r.client.Feeds.UpdateFeed(ctx, data.ProjectId.ValueString(), data.Id.ValueString(), body)
+	feed, err := r.client.Feeds.UpdateFeed(ctx, state.ProjectId.ValueString(), state.Id.ValueString(), body)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update feed", err.Error())
 		return
 	}
 
-	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, &data, FeedResourceSchema(ctx).Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, &state, FeedResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *feedResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
