@@ -1,7 +1,8 @@
-//nolint:revive,gocognit,gocyclo,funlen,unparam // conversion helpers are inherently long and branchy
+//nolint:revive,gocognit,unparam // conversion helpers are inherently long and branchy
 package provider
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -238,47 +239,9 @@ func nativeToTftypes(ctx context.Context, v any, tfType tftypes.Type) (tftypes.V
 		}
 		return tftypes.NewValue(tfType, b), diags
 	case tfType.Is(tftypes.Number):
-		var n *big.Float
-		switch t := v.(type) {
-		case int:
-			n = big.NewFloat(float64(t))
-		case int8:
-			n = big.NewFloat(float64(t))
-		case int16:
-			n = big.NewFloat(float64(t))
-		case int32:
-			n = big.NewFloat(float64(t))
-		case int64:
-			n = big.NewFloat(float64(t))
-		case uint:
-			n = big.NewFloat(float64(t))
-		case uint8:
-			n = big.NewFloat(float64(t))
-		case uint16:
-			n = big.NewFloat(float64(t))
-		case uint32:
-			n = big.NewFloat(float64(t))
-		case uint64:
-			n = big.NewFloat(float64(t))
-		case float32:
-			n = big.NewFloat(float64(t))
-		case float64:
-			n = big.NewFloat(t)
-		case *big.Float:
-			n = t
-		case *big.Rat:
-			if t != nil {
-				n = new(big.Float).SetRat(t)
-			}
-		case string:
-			var ok bool
-			n, ok = new(big.Float).SetString(t)
-			if !ok {
-				diags.AddError("Invalid number", fmt.Sprintf("cannot parse %q as number", t))
-				return tftypes.Value{}, diags
-			}
-		default:
-			diags.AddError("Type mismatch", fmt.Sprintf("expected number, got %T", v))
+		n, d := numberToBigFloat(v)
+		diags.Append(d...)
+		if diags.HasError() {
 			return tftypes.Value{}, diags
 		}
 		return tftypes.NewValue(tfType, n), diags
@@ -340,6 +303,63 @@ func nativeToTftypes(ctx context.Context, v any, tfType tftypes.Type) (tftypes.V
 	}
 }
 
+func numberToBigFloat(v any) (*big.Float, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var n *big.Float
+
+	switch t := v.(type) {
+	case json.Number:
+		var ok bool
+		n, ok = new(big.Float).SetString(string(t))
+		if !ok {
+			diags.AddError("Invalid number", fmt.Sprintf("cannot parse %q as number", t))
+			return nil, diags
+		}
+	case int:
+		n = new(big.Float).SetInt64(int64(t))
+	case int8:
+		n = new(big.Float).SetInt64(int64(t))
+	case int16:
+		n = new(big.Float).SetInt64(int64(t))
+	case int32:
+		n = new(big.Float).SetInt64(int64(t))
+	case int64:
+		n = new(big.Float).SetInt64(t)
+	case uint:
+		n = new(big.Float).SetUint64(uint64(t))
+	case uint8:
+		n = new(big.Float).SetUint64(uint64(t))
+	case uint16:
+		n = new(big.Float).SetUint64(uint64(t))
+	case uint32:
+		n = new(big.Float).SetUint64(uint64(t))
+	case uint64:
+		n = new(big.Float).SetUint64(t)
+	case float32:
+		n = big.NewFloat(float64(t))
+	case float64:
+		n = big.NewFloat(t)
+	case *big.Float:
+		n = t
+	case *big.Rat:
+		if t != nil {
+			n = new(big.Float).SetRat(t)
+		}
+	case string:
+		var ok bool
+		n, ok = new(big.Float).SetString(t)
+		if !ok {
+			diags.AddError("Invalid number", fmt.Sprintf("cannot parse %q as number", t))
+			return nil, diags
+		}
+	default:
+		diags.AddError("Type mismatch", fmt.Sprintf("expected number, got %T", v))
+		return nil, diags
+	}
+
+	return n, diags
+}
+
 func toBool(v any) (bool, error) {
 	switch t := v.(type) {
 	case bool:
@@ -397,14 +417,17 @@ func mapResponseToModel(ctx context.Context, response any, model any, attributes
 
 // responseToMap converts a strongly-typed SDK response value into a native Go
 // map by serializing it as JSON. This produces the same shape that Terraform
-// configurations use.
+// configurations use. json.Decoder is configured with UseNumber so large
+// integers are not coerced to float64.
 func responseToMap(v any) (map[string]any, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
 	var m map[string]any
-	if err := json.Unmarshal(b, &m); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	if err := dec.Decode(&m); err != nil {
 		return nil, err
 	}
 	return m, nil

@@ -214,6 +214,13 @@ func anyToInt64(v any) (int64, diag.Diagnostics) {
 		return int64(t), diags
 	case int32:
 		return int64(t), diags
+	case json.Number:
+		i, err := strconv.ParseInt(string(t), 10, 64)
+		if err != nil {
+			diags.AddError("Invalid integer", fmt.Sprintf("cannot parse %q as int64: %s", t, err))
+			return 0, diags
+		}
+		return i, diags
 	case float64:
 		if t == math.Trunc(t) && t >= math.MinInt64 && t <= math.MaxInt64 {
 			return int64(t), diags
