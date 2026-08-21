@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/rixlhq/rixl-go/sdk"
+	"github.com/rixlhq/rixl-go/sdk/feeds"
 )
 
 var _ datasource.DataSource = (*feedDataSource)(nil)
@@ -87,13 +88,23 @@ func (d *feedsDataSource) Configure(_ context.Context, req datasource.ConfigureR
 }
 
 func (d *feedsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data FeedsModel
+	var data FeedsDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	list, err := d.client.Feeds.ListFeeds(ctx, data.ProjectId.ValueString(), nil)
+	params := &feeds.ListFeedsParams{}
+	if !data.Paginationlimit.IsNull() && !data.Paginationlimit.IsUnknown() {
+		i := int32(data.Paginationlimit.ValueInt64())
+		params.PaginationLimit = &i
+	}
+	if !data.Paginationoffset.IsNull() && !data.Paginationoffset.IsUnknown() {
+		i := int32(data.Paginationoffset.ValueInt64())
+		params.PaginationOffset = &i
+	}
+
+	list, err := d.client.Feeds.ListFeeds(ctx, data.ProjectId.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to list feeds", err.Error())
 		return

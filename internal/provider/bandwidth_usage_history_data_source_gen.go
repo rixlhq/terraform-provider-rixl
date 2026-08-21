@@ -15,15 +15,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
-func ProjectsDataSourceSchema(ctx context.Context) schema.Schema {
+func BandwidthUsageHistoryDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"org_id": schema.StringAttribute{
-				Required:            true,
-				Description:         "",
-				MarkdownDescription: "",
+			"days": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
 			},
-			"projects": schema.ListNestedAttribute{
+			"org_id": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+			},
+			"total": schema.Int64Attribute{
+				Computed: true,
+			},
+			"usages": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"created_at": schema.StringAttribute{
@@ -31,34 +37,45 @@ func ProjectsDataSourceSchema(ctx context.Context) schema.Schema {
 							Description:         "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
 							MarkdownDescription: "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
 						},
-						"custom_domain": schema.StringAttribute{
+						"data_source": schema.StringAttribute{
 							Computed: true,
 						},
-						"id": schema.StringAttribute{
+						"image_bandwidth_bytes": schema.StringAttribute{
 							Computed: true,
 						},
-						"name": schema.StringAttribute{
+						"image_requests": schema.StringAttribute{
 							Computed: true,
 						},
 						"org_id": schema.StringAttribute{
 							Computed: true,
 						},
-						"regions": schema.ListAttribute{
-							ElementType: types.StringType,
-							Computed:    true,
-						},
-						"updated_at": schema.StringAttribute{
+						"snapshot_date": schema.StringAttribute{
 							Computed:            true,
 							Description:         "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
 							MarkdownDescription: "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
 						},
-						"video_quality": schema.StringAttribute{
+						"snapshot_type": schema.StringAttribute{
+							Computed: true,
+						},
+						"total_bandwidth_bytes": schema.StringAttribute{
+							Computed: true,
+						},
+						"total_requests": schema.StringAttribute{
+							Computed: true,
+						},
+						"unique_visitors": schema.StringAttribute{
+							Computed: true,
+						},
+						"video_bandwidth_bytes": schema.StringAttribute{
+							Computed: true,
+						},
+						"video_requests": schema.StringAttribute{
 							Computed: true,
 						},
 					},
-					CustomType: ProjectsDataSourceType{
+					CustomType: BandwidthUsageHistoryDataSourceUsagesType{
 						ObjectType: types.ObjectType{
-							AttrTypes: ProjectsDataSourceValue{}.AttributeTypes(ctx),
+							AttrTypes: BandwidthUsageHistoryDataSourceUsagesValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
@@ -68,19 +85,21 @@ func ProjectsDataSourceSchema(ctx context.Context) schema.Schema {
 	}
 }
 
-type ProjectsDataSourceModel struct {
-	OrgId    types.String `tfsdk:"org_id"`
-	Projects types.List   `tfsdk:"projects"`
+type BandwidthUsageHistoryDataSourceModel struct {
+	Days   types.Int64  `tfsdk:"days"`
+	OrgId  types.String `tfsdk:"org_id"`
+	Total  types.Int64  `tfsdk:"total"`
+	Usages types.List   `tfsdk:"usages"`
 }
 
-var _ basetypes.ObjectTypable = ProjectsDataSourceType{}
+var _ basetypes.ObjectTypable = BandwidthUsageHistoryDataSourceUsagesType{}
 
-type ProjectsDataSourceType struct {
+type BandwidthUsageHistoryDataSourceUsagesType struct {
 	basetypes.ObjectType
 }
 
-func (t ProjectsDataSourceType) Equal(o attr.Type) bool {
-	other, ok := o.(ProjectsDataSourceType)
+func (t BandwidthUsageHistoryDataSourceUsagesType) Equal(o attr.Type) bool {
+	other, ok := o.(BandwidthUsageHistoryDataSourceUsagesType)
 
 	if !ok {
 		return false
@@ -89,11 +108,11 @@ func (t ProjectsDataSourceType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ProjectsDataSourceType) String() string {
-	return "ProjectsType"
+func (t BandwidthUsageHistoryDataSourceUsagesType) String() string {
+	return "UsagesType"
 }
 
-func (t ProjectsDataSourceType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t BandwidthUsageHistoryDataSourceUsagesType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -116,58 +135,58 @@ func (t ProjectsDataSourceType) ValueFromObject(ctx context.Context, in basetype
 			fmt.Sprintf(`created_at expected to be basetypes.StringValue, was: %T`, createdAtAttribute))
 	}
 
-	customDomainAttribute, ok := attributes["custom_domain"]
+	dataSourceAttribute, ok := attributes["data_source"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`custom_domain is missing from object`)
+			`data_source is missing from object`)
 
 		return nil, diags
 	}
 
-	customDomainVal, ok := customDomainAttribute.(basetypes.StringValue)
+	dataSourceVal, ok := dataSourceAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`custom_domain expected to be basetypes.StringValue, was: %T`, customDomainAttribute))
+			fmt.Sprintf(`data_source expected to be basetypes.StringValue, was: %T`, dataSourceAttribute))
 	}
 
-	idAttribute, ok := attributes["id"]
+	imageBandwidthBytesAttribute, ok := attributes["image_bandwidth_bytes"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`id is missing from object`)
+			`image_bandwidth_bytes is missing from object`)
 
 		return nil, diags
 	}
 
-	idVal, ok := idAttribute.(basetypes.StringValue)
+	imageBandwidthBytesVal, ok := imageBandwidthBytesAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`id expected to be basetypes.StringValue, was: %T`, idAttribute))
+			fmt.Sprintf(`image_bandwidth_bytes expected to be basetypes.StringValue, was: %T`, imageBandwidthBytesAttribute))
 	}
 
-	nameAttribute, ok := attributes["name"]
+	imageRequestsAttribute, ok := attributes["image_requests"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`name is missing from object`)
+			`image_requests is missing from object`)
 
 		return nil, diags
 	}
 
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
+	imageRequestsVal, ok := imageRequestsAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`image_requests expected to be basetypes.StringValue, was: %T`, imageRequestsAttribute))
 	}
 
 	orgIdAttribute, ok := attributes["org_id"]
@@ -188,90 +207,166 @@ func (t ProjectsDataSourceType) ValueFromObject(ctx context.Context, in basetype
 			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
 	}
 
-	regionsAttribute, ok := attributes["regions"]
+	snapshotDateAttribute, ok := attributes["snapshot_date"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`regions is missing from object`)
+			`snapshot_date is missing from object`)
 
 		return nil, diags
 	}
 
-	regionsVal, ok := regionsAttribute.(basetypes.ListValue)
+	snapshotDateVal, ok := snapshotDateAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`regions expected to be basetypes.ListValue, was: %T`, regionsAttribute))
+			fmt.Sprintf(`snapshot_date expected to be basetypes.StringValue, was: %T`, snapshotDateAttribute))
 	}
 
-	updatedAtAttribute, ok := attributes["updated_at"]
+	snapshotTypeAttribute, ok := attributes["snapshot_type"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`updated_at is missing from object`)
+			`snapshot_type is missing from object`)
 
 		return nil, diags
 	}
 
-	updatedAtVal, ok := updatedAtAttribute.(basetypes.StringValue)
+	snapshotTypeVal, ok := snapshotTypeAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`updated_at expected to be basetypes.StringValue, was: %T`, updatedAtAttribute))
+			fmt.Sprintf(`snapshot_type expected to be basetypes.StringValue, was: %T`, snapshotTypeAttribute))
 	}
 
-	videoQualityAttribute, ok := attributes["video_quality"]
+	totalBandwidthBytesAttribute, ok := attributes["total_bandwidth_bytes"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`video_quality is missing from object`)
+			`total_bandwidth_bytes is missing from object`)
 
 		return nil, diags
 	}
 
-	videoQualityVal, ok := videoQualityAttribute.(basetypes.StringValue)
+	totalBandwidthBytesVal, ok := totalBandwidthBytesAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`video_quality expected to be basetypes.StringValue, was: %T`, videoQualityAttribute))
+			fmt.Sprintf(`total_bandwidth_bytes expected to be basetypes.StringValue, was: %T`, totalBandwidthBytesAttribute))
+	}
+
+	totalRequestsAttribute, ok := attributes["total_requests"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`total_requests is missing from object`)
+
+		return nil, diags
+	}
+
+	totalRequestsVal, ok := totalRequestsAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`total_requests expected to be basetypes.StringValue, was: %T`, totalRequestsAttribute))
+	}
+
+	uniqueVisitorsAttribute, ok := attributes["unique_visitors"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`unique_visitors is missing from object`)
+
+		return nil, diags
+	}
+
+	uniqueVisitorsVal, ok := uniqueVisitorsAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`unique_visitors expected to be basetypes.StringValue, was: %T`, uniqueVisitorsAttribute))
+	}
+
+	videoBandwidthBytesAttribute, ok := attributes["video_bandwidth_bytes"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`video_bandwidth_bytes is missing from object`)
+
+		return nil, diags
+	}
+
+	videoBandwidthBytesVal, ok := videoBandwidthBytesAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`video_bandwidth_bytes expected to be basetypes.StringValue, was: %T`, videoBandwidthBytesAttribute))
+	}
+
+	videoRequestsAttribute, ok := attributes["video_requests"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`video_requests is missing from object`)
+
+		return nil, diags
+	}
+
+	videoRequestsVal, ok := videoRequestsAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`video_requests expected to be basetypes.StringValue, was: %T`, videoRequestsAttribute))
 	}
 
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return ProjectsDataSourceValue{
-		CreatedAt:    createdAtVal,
-		CustomDomain: customDomainVal,
-		Id:           idVal,
-		Name:         nameVal,
-		OrgId:        orgIdVal,
-		Regions:      regionsVal,
-		UpdatedAt:    updatedAtVal,
-		VideoQuality: videoQualityVal,
-		state:        attr.ValueStateKnown,
+	return BandwidthUsageHistoryDataSourceUsagesValue{
+		CreatedAt:           createdAtVal,
+		DataSource:          dataSourceVal,
+		ImageBandwidthBytes: imageBandwidthBytesVal,
+		ImageRequests:       imageRequestsVal,
+		OrgId:               orgIdVal,
+		SnapshotDate:        snapshotDateVal,
+		SnapshotType:        snapshotTypeVal,
+		TotalBandwidthBytes: totalBandwidthBytesVal,
+		TotalRequests:       totalRequestsVal,
+		UniqueVisitors:      uniqueVisitorsVal,
+		VideoBandwidthBytes: videoBandwidthBytesVal,
+		VideoRequests:       videoRequestsVal,
+		state:               attr.ValueStateKnown,
 	}, diags
 }
 
-func NewProjectsDataSourceValueNull() ProjectsDataSourceValue {
-	return ProjectsDataSourceValue{
+func NewBandwidthUsageHistoryDataSourceUsagesValueNull() BandwidthUsageHistoryDataSourceUsagesValue {
+	return BandwidthUsageHistoryDataSourceUsagesValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewProjectsDataSourceValueUnknown() ProjectsDataSourceValue {
-	return ProjectsDataSourceValue{
+func NewBandwidthUsageHistoryDataSourceUsagesValueUnknown() BandwidthUsageHistoryDataSourceUsagesValue {
+	return BandwidthUsageHistoryDataSourceUsagesValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewProjectsDataSourceValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ProjectsDataSourceValue, diag.Diagnostics) {
+func NewBandwidthUsageHistoryDataSourceUsagesValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (BandwidthUsageHistoryDataSourceUsagesValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -282,11 +377,11 @@ func NewProjectsDataSourceValue(attributeTypes map[string]attr.Type, attributes 
 
 		if !ok {
 			diags.AddError(
-				"Missing ProjectsValue Attribute Value",
-				"While creating a ProjectsValue value, a missing attribute value was detected. "+
-					"A ProjectsValue must contain values for all attributes, even if null or unknown. "+
+				"Missing UsagesValue Attribute Value",
+				"While creating a UsagesValue value, a missing attribute value was detected. "+
+					"A UsagesValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ProjectsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("UsagesValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -294,12 +389,12 @@ func NewProjectsDataSourceValue(attributeTypes map[string]attr.Type, attributes 
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid ProjectsValue Attribute Type",
-				"While creating a ProjectsValue value, an invalid attribute value was detected. "+
-					"A ProjectsValue must use a matching attribute type for the value. "+
+				"Invalid UsagesValue Attribute Type",
+				"While creating a UsagesValue value, an invalid attribute value was detected. "+
+					"A UsagesValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ProjectsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("ProjectsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("UsagesValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("UsagesValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -309,17 +404,17 @@ func NewProjectsDataSourceValue(attributeTypes map[string]attr.Type, attributes 
 
 		if !ok {
 			diags.AddError(
-				"Extra ProjectsValue Attribute Value",
-				"While creating a ProjectsValue value, an extra attribute value was detected. "+
-					"A ProjectsValue must not contain values beyond the expected attribute types. "+
+				"Extra UsagesValue Attribute Value",
+				"While creating a UsagesValue value, an extra attribute value was detected. "+
+					"A UsagesValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra ProjectsValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra UsagesValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
 	createdAtAttribute, ok := attributes["created_at"]
@@ -329,7 +424,7 @@ func NewProjectsDataSourceValue(attributeTypes map[string]attr.Type, attributes 
 			"Attribute Missing",
 			`created_at is missing from object`)
 
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
 	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
@@ -340,58 +435,58 @@ func NewProjectsDataSourceValue(attributeTypes map[string]attr.Type, attributes 
 			fmt.Sprintf(`created_at expected to be basetypes.StringValue, was: %T`, createdAtAttribute))
 	}
 
-	customDomainAttribute, ok := attributes["custom_domain"]
+	dataSourceAttribute, ok := attributes["data_source"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`custom_domain is missing from object`)
+			`data_source is missing from object`)
 
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	customDomainVal, ok := customDomainAttribute.(basetypes.StringValue)
+	dataSourceVal, ok := dataSourceAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`custom_domain expected to be basetypes.StringValue, was: %T`, customDomainAttribute))
+			fmt.Sprintf(`data_source expected to be basetypes.StringValue, was: %T`, dataSourceAttribute))
 	}
 
-	idAttribute, ok := attributes["id"]
+	imageBandwidthBytesAttribute, ok := attributes["image_bandwidth_bytes"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`id is missing from object`)
+			`image_bandwidth_bytes is missing from object`)
 
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	idVal, ok := idAttribute.(basetypes.StringValue)
+	imageBandwidthBytesVal, ok := imageBandwidthBytesAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`id expected to be basetypes.StringValue, was: %T`, idAttribute))
+			fmt.Sprintf(`image_bandwidth_bytes expected to be basetypes.StringValue, was: %T`, imageBandwidthBytesAttribute))
 	}
 
-	nameAttribute, ok := attributes["name"]
+	imageRequestsAttribute, ok := attributes["image_requests"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`name is missing from object`)
+			`image_requests is missing from object`)
 
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
+	imageRequestsVal, ok := imageRequestsAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`image_requests expected to be basetypes.StringValue, was: %T`, imageRequestsAttribute))
 	}
 
 	orgIdAttribute, ok := attributes["org_id"]
@@ -401,7 +496,7 @@ func NewProjectsDataSourceValue(attributeTypes map[string]attr.Type, attributes 
 			"Attribute Missing",
 			`org_id is missing from object`)
 
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
 	orgIdVal, ok := orgIdAttribute.(basetypes.StringValue)
@@ -412,79 +507,155 @@ func NewProjectsDataSourceValue(attributeTypes map[string]attr.Type, attributes 
 			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
 	}
 
-	regionsAttribute, ok := attributes["regions"]
+	snapshotDateAttribute, ok := attributes["snapshot_date"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`regions is missing from object`)
+			`snapshot_date is missing from object`)
 
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	regionsVal, ok := regionsAttribute.(basetypes.ListValue)
+	snapshotDateVal, ok := snapshotDateAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`regions expected to be basetypes.ListValue, was: %T`, regionsAttribute))
+			fmt.Sprintf(`snapshot_date expected to be basetypes.StringValue, was: %T`, snapshotDateAttribute))
 	}
 
-	updatedAtAttribute, ok := attributes["updated_at"]
+	snapshotTypeAttribute, ok := attributes["snapshot_type"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`updated_at is missing from object`)
+			`snapshot_type is missing from object`)
 
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	updatedAtVal, ok := updatedAtAttribute.(basetypes.StringValue)
+	snapshotTypeVal, ok := snapshotTypeAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`updated_at expected to be basetypes.StringValue, was: %T`, updatedAtAttribute))
+			fmt.Sprintf(`snapshot_type expected to be basetypes.StringValue, was: %T`, snapshotTypeAttribute))
 	}
 
-	videoQualityAttribute, ok := attributes["video_quality"]
+	totalBandwidthBytesAttribute, ok := attributes["total_bandwidth_bytes"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`video_quality is missing from object`)
+			`total_bandwidth_bytes is missing from object`)
 
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	videoQualityVal, ok := videoQualityAttribute.(basetypes.StringValue)
+	totalBandwidthBytesVal, ok := totalBandwidthBytesAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`video_quality expected to be basetypes.StringValue, was: %T`, videoQualityAttribute))
+			fmt.Sprintf(`total_bandwidth_bytes expected to be basetypes.StringValue, was: %T`, totalBandwidthBytesAttribute))
+	}
+
+	totalRequestsAttribute, ok := attributes["total_requests"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`total_requests is missing from object`)
+
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
+	}
+
+	totalRequestsVal, ok := totalRequestsAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`total_requests expected to be basetypes.StringValue, was: %T`, totalRequestsAttribute))
+	}
+
+	uniqueVisitorsAttribute, ok := attributes["unique_visitors"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`unique_visitors is missing from object`)
+
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
+	}
+
+	uniqueVisitorsVal, ok := uniqueVisitorsAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`unique_visitors expected to be basetypes.StringValue, was: %T`, uniqueVisitorsAttribute))
+	}
+
+	videoBandwidthBytesAttribute, ok := attributes["video_bandwidth_bytes"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`video_bandwidth_bytes is missing from object`)
+
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
+	}
+
+	videoBandwidthBytesVal, ok := videoBandwidthBytesAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`video_bandwidth_bytes expected to be basetypes.StringValue, was: %T`, videoBandwidthBytesAttribute))
+	}
+
+	videoRequestsAttribute, ok := attributes["video_requests"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`video_requests is missing from object`)
+
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
+	}
+
+	videoRequestsVal, ok := videoRequestsAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`video_requests expected to be basetypes.StringValue, was: %T`, videoRequestsAttribute))
 	}
 
 	if diags.HasError() {
-		return NewProjectsDataSourceValueUnknown(), diags
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	return ProjectsDataSourceValue{
-		CreatedAt:    createdAtVal,
-		CustomDomain: customDomainVal,
-		Id:           idVal,
-		Name:         nameVal,
-		OrgId:        orgIdVal,
-		Regions:      regionsVal,
-		UpdatedAt:    updatedAtVal,
-		VideoQuality: videoQualityVal,
-		state:        attr.ValueStateKnown,
+	return BandwidthUsageHistoryDataSourceUsagesValue{
+		CreatedAt:           createdAtVal,
+		DataSource:          dataSourceVal,
+		ImageBandwidthBytes: imageBandwidthBytesVal,
+		ImageRequests:       imageRequestsVal,
+		OrgId:               orgIdVal,
+		SnapshotDate:        snapshotDateVal,
+		SnapshotType:        snapshotTypeVal,
+		TotalBandwidthBytes: totalBandwidthBytesVal,
+		TotalRequests:       totalRequestsVal,
+		UniqueVisitors:      uniqueVisitorsVal,
+		VideoBandwidthBytes: videoBandwidthBytesVal,
+		VideoRequests:       videoRequestsVal,
+		state:               attr.ValueStateKnown,
 	}, diags
 }
 
-func NewProjectsDataSourceValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ProjectsDataSourceValue {
-	object, diags := NewProjectsDataSourceValue(attributeTypes, attributes)
+func NewBandwidthUsageHistoryDataSourceUsagesValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) BandwidthUsageHistoryDataSourceUsagesValue {
+	object, diags := NewBandwidthUsageHistoryDataSourceUsagesValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -498,15 +669,15 @@ func NewProjectsDataSourceValueMust(attributeTypes map[string]attr.Type, attribu
 				diagnostic.Detail()))
 		}
 
-		panic("NewProjectsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewUsagesValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t ProjectsDataSourceType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t BandwidthUsageHistoryDataSourceUsagesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewProjectsDataSourceValueNull(), nil
+		return NewBandwidthUsageHistoryDataSourceUsagesValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -514,11 +685,11 @@ func (t ProjectsDataSourceType) ValueFromTerraform(ctx context.Context, in tftyp
 	}
 
 	if !in.IsKnown() {
-		return NewProjectsDataSourceValueUnknown(), nil
+		return NewBandwidthUsageHistoryDataSourceUsagesValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewProjectsDataSourceValueNull(), nil
+		return NewBandwidthUsageHistoryDataSourceUsagesValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -541,49 +712,55 @@ func (t ProjectsDataSourceType) ValueFromTerraform(ctx context.Context, in tftyp
 		attributes[k] = a
 	}
 
-	return NewProjectsDataSourceValueMust(ProjectsDataSourceValue{}.AttributeTypes(ctx), attributes), nil
+	return NewBandwidthUsageHistoryDataSourceUsagesValueMust(BandwidthUsageHistoryDataSourceUsagesValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ProjectsDataSourceType) ValueType(ctx context.Context) attr.Value {
-	return ProjectsDataSourceValue{}
+func (t BandwidthUsageHistoryDataSourceUsagesType) ValueType(ctx context.Context) attr.Value {
+	return BandwidthUsageHistoryDataSourceUsagesValue{}
 }
 
-var _ basetypes.ObjectValuable = ProjectsDataSourceValue{}
+var _ basetypes.ObjectValuable = BandwidthUsageHistoryDataSourceUsagesValue{}
 
-type ProjectsDataSourceValue struct {
-	CreatedAt    basetypes.StringValue `tfsdk:"created_at"`
-	CustomDomain basetypes.StringValue `tfsdk:"custom_domain"`
-	Id           basetypes.StringValue `tfsdk:"id"`
-	Name         basetypes.StringValue `tfsdk:"name"`
-	OrgId        basetypes.StringValue `tfsdk:"org_id"`
-	Regions      basetypes.ListValue   `tfsdk:"regions"`
-	UpdatedAt    basetypes.StringValue `tfsdk:"updated_at"`
-	VideoQuality basetypes.StringValue `tfsdk:"video_quality"`
-	state        attr.ValueState
+type BandwidthUsageHistoryDataSourceUsagesValue struct {
+	CreatedAt           basetypes.StringValue `tfsdk:"created_at"`
+	DataSource          basetypes.StringValue `tfsdk:"data_source"`
+	ImageBandwidthBytes basetypes.StringValue `tfsdk:"image_bandwidth_bytes"`
+	ImageRequests       basetypes.StringValue `tfsdk:"image_requests"`
+	OrgId               basetypes.StringValue `tfsdk:"org_id"`
+	SnapshotDate        basetypes.StringValue `tfsdk:"snapshot_date"`
+	SnapshotType        basetypes.StringValue `tfsdk:"snapshot_type"`
+	TotalBandwidthBytes basetypes.StringValue `tfsdk:"total_bandwidth_bytes"`
+	TotalRequests       basetypes.StringValue `tfsdk:"total_requests"`
+	UniqueVisitors      basetypes.StringValue `tfsdk:"unique_visitors"`
+	VideoBandwidthBytes basetypes.StringValue `tfsdk:"video_bandwidth_bytes"`
+	VideoRequests       basetypes.StringValue `tfsdk:"video_requests"`
+	state               attr.ValueState
 }
 
-func (v ProjectsDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 8)
+func (v BandwidthUsageHistoryDataSourceUsagesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 12)
 
 	var val tftypes.Value
 	var err error
 
 	attrTypes["created_at"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["custom_domain"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["id"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["data_source"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["image_bandwidth_bytes"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["image_requests"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["org_id"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["regions"] = basetypes.ListType{
-		ElemType: types.StringType,
-	}.TerraformType(ctx)
-	attrTypes["updated_at"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["video_quality"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["snapshot_date"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["snapshot_type"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["total_bandwidth_bytes"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["total_requests"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["unique_visitors"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["video_bandwidth_bytes"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["video_requests"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 8)
+		vals := make(map[string]tftypes.Value, 12)
 
 		val, err = v.CreatedAt.ToTerraformValue(ctx)
 
@@ -593,29 +770,29 @@ func (v ProjectsDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.
 
 		vals["created_at"] = val
 
-		val, err = v.CustomDomain.ToTerraformValue(ctx)
+		val, err = v.DataSource.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["custom_domain"] = val
+		vals["data_source"] = val
 
-		val, err = v.Id.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["id"] = val
-
-		val, err = v.Name.ToTerraformValue(ctx)
+		val, err = v.ImageBandwidthBytes.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["name"] = val
+		vals["image_bandwidth_bytes"] = val
+
+		val, err = v.ImageRequests.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["image_requests"] = val
 
 		val, err = v.OrgId.ToTerraformValue(ctx)
 
@@ -625,29 +802,61 @@ func (v ProjectsDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.
 
 		vals["org_id"] = val
 
-		val, err = v.Regions.ToTerraformValue(ctx)
+		val, err = v.SnapshotDate.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["regions"] = val
+		vals["snapshot_date"] = val
 
-		val, err = v.UpdatedAt.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["updated_at"] = val
-
-		val, err = v.VideoQuality.ToTerraformValue(ctx)
+		val, err = v.SnapshotType.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["video_quality"] = val
+		vals["snapshot_type"] = val
+
+		val, err = v.TotalBandwidthBytes.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["total_bandwidth_bytes"] = val
+
+		val, err = v.TotalRequests.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["total_requests"] = val
+
+		val, err = v.UniqueVisitors.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["unique_visitors"] = val
+
+		val, err = v.VideoBandwidthBytes.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["video_bandwidth_bytes"] = val
+
+		val, err = v.VideoRequests.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["video_requests"] = val
 
 		if err := tftypes.ValidateValue(objectType, vals); err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
@@ -663,59 +872,34 @@ func (v ProjectsDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.
 	}
 }
 
-func (v ProjectsDataSourceValue) IsNull() bool {
+func (v BandwidthUsageHistoryDataSourceUsagesValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v ProjectsDataSourceValue) IsUnknown() bool {
+func (v BandwidthUsageHistoryDataSourceUsagesValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v ProjectsDataSourceValue) String() string {
-	return "ProjectsValue"
+func (v BandwidthUsageHistoryDataSourceUsagesValue) String() string {
+	return "UsagesValue"
 }
 
-func (v ProjectsDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v BandwidthUsageHistoryDataSourceUsagesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	var regionsVal basetypes.ListValue
-	switch {
-	case v.Regions.IsUnknown():
-		regionsVal = types.ListUnknown(types.StringType)
-	case v.Regions.IsNull():
-		regionsVal = types.ListNull(types.StringType)
-	default:
-		var d diag.Diagnostics
-		regionsVal, d = types.ListValue(types.StringType, v.Regions.Elements())
-		diags.Append(d...)
-	}
-
-	if diags.HasError() {
-		return types.ObjectUnknown(map[string]attr.Type{
-			"created_at":    basetypes.StringType{},
-			"custom_domain": basetypes.StringType{},
-			"id":            basetypes.StringType{},
-			"name":          basetypes.StringType{},
-			"org_id":        basetypes.StringType{},
-			"regions": basetypes.ListType{
-				ElemType: types.StringType,
-			},
-			"updated_at":    basetypes.StringType{},
-			"video_quality": basetypes.StringType{},
-		}), diags
-	}
-
 	attributeTypes := map[string]attr.Type{
-		"created_at":    basetypes.StringType{},
-		"custom_domain": basetypes.StringType{},
-		"id":            basetypes.StringType{},
-		"name":          basetypes.StringType{},
-		"org_id":        basetypes.StringType{},
-		"regions": basetypes.ListType{
-			ElemType: types.StringType,
-		},
-		"updated_at":    basetypes.StringType{},
-		"video_quality": basetypes.StringType{},
+		"created_at":            basetypes.StringType{},
+		"data_source":           basetypes.StringType{},
+		"image_bandwidth_bytes": basetypes.StringType{},
+		"image_requests":        basetypes.StringType{},
+		"org_id":                basetypes.StringType{},
+		"snapshot_date":         basetypes.StringType{},
+		"snapshot_type":         basetypes.StringType{},
+		"total_bandwidth_bytes": basetypes.StringType{},
+		"total_requests":        basetypes.StringType{},
+		"unique_visitors":       basetypes.StringType{},
+		"video_bandwidth_bytes": basetypes.StringType{},
+		"video_requests":        basetypes.StringType{},
 	}
 
 	if v.IsNull() {
@@ -729,21 +913,25 @@ func (v ProjectsDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.O
 	objVal, diags := types.ObjectValue(
 		attributeTypes,
 		map[string]attr.Value{
-			"created_at":    v.CreatedAt,
-			"custom_domain": v.CustomDomain,
-			"id":            v.Id,
-			"name":          v.Name,
-			"org_id":        v.OrgId,
-			"regions":       regionsVal,
-			"updated_at":    v.UpdatedAt,
-			"video_quality": v.VideoQuality,
+			"created_at":            v.CreatedAt,
+			"data_source":           v.DataSource,
+			"image_bandwidth_bytes": v.ImageBandwidthBytes,
+			"image_requests":        v.ImageRequests,
+			"org_id":                v.OrgId,
+			"snapshot_date":         v.SnapshotDate,
+			"snapshot_type":         v.SnapshotType,
+			"total_bandwidth_bytes": v.TotalBandwidthBytes,
+			"total_requests":        v.TotalRequests,
+			"unique_visitors":       v.UniqueVisitors,
+			"video_bandwidth_bytes": v.VideoBandwidthBytes,
+			"video_requests":        v.VideoRequests,
 		})
 
 	return objVal, diags
 }
 
-func (v ProjectsDataSourceValue) Equal(o attr.Value) bool {
-	other, ok := o.(ProjectsDataSourceValue)
+func (v BandwidthUsageHistoryDataSourceUsagesValue) Equal(o attr.Value) bool {
+	other, ok := o.(BandwidthUsageHistoryDataSourceUsagesValue)
 
 	if !ok {
 		return false
@@ -761,15 +949,15 @@ func (v ProjectsDataSourceValue) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.CustomDomain.Equal(other.CustomDomain) {
+	if !v.DataSource.Equal(other.DataSource) {
 		return false
 	}
 
-	if !v.Id.Equal(other.Id) {
+	if !v.ImageBandwidthBytes.Equal(other.ImageBandwidthBytes) {
 		return false
 	}
 
-	if !v.Name.Equal(other.Name) {
+	if !v.ImageRequests.Equal(other.ImageRequests) {
 		return false
 	}
 
@@ -777,40 +965,58 @@ func (v ProjectsDataSourceValue) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.Regions.Equal(other.Regions) {
+	if !v.SnapshotDate.Equal(other.SnapshotDate) {
 		return false
 	}
 
-	if !v.UpdatedAt.Equal(other.UpdatedAt) {
+	if !v.SnapshotType.Equal(other.SnapshotType) {
 		return false
 	}
 
-	if !v.VideoQuality.Equal(other.VideoQuality) {
+	if !v.TotalBandwidthBytes.Equal(other.TotalBandwidthBytes) {
+		return false
+	}
+
+	if !v.TotalRequests.Equal(other.TotalRequests) {
+		return false
+	}
+
+	if !v.UniqueVisitors.Equal(other.UniqueVisitors) {
+		return false
+	}
+
+	if !v.VideoBandwidthBytes.Equal(other.VideoBandwidthBytes) {
+		return false
+	}
+
+	if !v.VideoRequests.Equal(other.VideoRequests) {
 		return false
 	}
 
 	return true
 }
 
-func (v ProjectsDataSourceValue) Type(ctx context.Context) attr.Type {
-	return ProjectsDataSourceType{
+func (v BandwidthUsageHistoryDataSourceUsagesValue) Type(ctx context.Context) attr.Type {
+	return BandwidthUsageHistoryDataSourceUsagesType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v ProjectsDataSourceValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v BandwidthUsageHistoryDataSourceUsagesValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"created_at":    basetypes.StringType{},
-		"custom_domain": basetypes.StringType{},
-		"id":            basetypes.StringType{},
-		"name":          basetypes.StringType{},
-		"org_id":        basetypes.StringType{},
-		"regions": basetypes.ListType{
-			ElemType: types.StringType,
-		},
-		"updated_at":    basetypes.StringType{},
-		"video_quality": basetypes.StringType{},
+		"created_at":            basetypes.StringType{},
+		"data_source":           basetypes.StringType{},
+		"image_bandwidth_bytes": basetypes.StringType{},
+		"image_requests":        basetypes.StringType{},
+		"org_id":                basetypes.StringType{},
+		"snapshot_date":         basetypes.StringType{},
+		"snapshot_type":         basetypes.StringType{},
+		"total_bandwidth_bytes": basetypes.StringType{},
+		"total_requests":        basetypes.StringType{},
+		"unique_visitors":       basetypes.StringType{},
+		"video_bandwidth_bytes": basetypes.StringType{},
+		"video_requests":        basetypes.StringType{},
 	}
 }

@@ -1,4 +1,4 @@
-//nolint:revive,exhaustive // generic SDK mapping is long and handles known kinds
+//nolint:exhaustive // generic SDK mapping handles known kinds
 package provider
 
 import (
@@ -12,36 +12,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	dschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	rschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
 )
-
-// ResourceDescriptor defines how a Terraform resource maps to the Rixl SDK.
-type ResourceDescriptor struct {
-	TypeName string
-
-	// SchemaFn returns the resource schema. It must be a function with signature
-	// func(context.Context) resource/schema.Schema.
-	SchemaFn any
-
-	// Model is a pointer to a zero value of the model struct.
-	Model any
-
-	// ClientField is the name of the typed client on *sdk.Client, e.g. "Feeds".
-	ClientField string
-
-	// SDK method names. Empty methods are skipped.
-	CreateMethod string
-	ReadMethod   string
-	UpdateMethod string
-	DeleteMethod string
-
-	// PathParams are the tfsdk field names, in order, that correspond to the
-	// string path parameters of the SDK methods.
-	PathParams []string
-}
 
 // DataSourceDescriptor defines how a Terraform data source maps to the Rixl SDK.
 type DataSourceDescriptor struct {
@@ -66,153 +39,13 @@ type DataSourceDescriptor struct {
 	PathParams []string
 }
 
-type managedResource struct {
-	client     *sdk.Client
-	descriptor ResourceDescriptor
-}
-
 type managedDataSource struct {
 	client     *sdk.Client
 	descriptor DataSourceDescriptor
 }
 
-func newManagedResource(d ResourceDescriptor) resource.Resource {
-	return &managedResource{descriptor: d}
-}
-
 func newManagedDataSource(d DataSourceDescriptor) datasource.DataSource {
 	return &managedDataSource{descriptor: d}
-}
-
-func (r *managedResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_" + r.descriptor.TypeName
-}
-
-func (r *managedResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = r.resourceSchema(ctx)
-}
-
-func (r *managedResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	client, ok := req.ProviderData.(*sdk.Client)
-	if !ok {
-		resp.Diagnostics.AddError("Unexpected provider data type", fmt.Sprintf("expected *sdk.Client, got %T", req.ProviderData))
-		return
-	}
-	r.client = client
-}
-
-func (r *managedResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	if r.descriptor.CreateMethod == "" {
-		resp.Diagnostics.AddError("Create not supported", "This resource does not support create operations.")
-		return
-	}
-	r.callSDK(ctx, r.descriptor.CreateMethod, &req.Plan, &resp.State, &resp.Diagnostics)
-}
-
-func (r *managedResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	if r.descriptor.ReadMethod == "" {
-		resp.Diagnostics.AddError("Read not supported", "This resource does not support read operations.")
-		return
-	}
-	r.callSDK(ctx, r.descriptor.ReadMethod, &req.State, &resp.State, &resp.Diagnostics)
-}
-
-func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	if r.descriptor.UpdateMethod == "" {
-		resp.Diagnostics.AddError("Update not supported", "This resource does not support update operations.")
-		return
-	}
-	r.callSDK(ctx, r.descriptor.UpdateMethod, &req.Plan, &resp.State, &resp.Diagnostics)
-}
-
-func (r *managedResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	if r.descriptor.DeleteMethod == "" {
-		resp.Diagnostics.AddError("Delete not supported", "This resource does not support delete operations.")
-		return
-	}
-	data := newModel(r.descriptor.Model)
-	resp.Diagnostics.Append(req.State.Get(ctx, data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	clientVal, d := r.clientValue()
-	if d.HasError() {
-		resp.Diagnostics.Append(d...)
-		return
-	}
-
-	method := clientVal.MethodByName(r.descriptor.DeleteMethod)
-	if !method.IsValid() {
-		resp.Diagnostics.AddError("SDK method not found", r.descriptor.DeleteMethod)
-		return
-	}
-
-	_, d = invokeSDKMethod(ctx, method, data, r.descriptor.PathParams)
-	resp.Diagnostics.Append(d...)
-}
-
-func (r *managedResource) callSDK(ctx context.Context, methodName string, from tfsdkGetter, to tfsdkSetter, diags *diag.Diagnostics) {
-	data := newModel(r.descriptor.Model)
-	diags.Append(from.Get(ctx, data)...)
-	if diags.HasError() {
-		return
-	}
-
-	clientVal, d := r.clientValue()
-	if d.HasError() {
-		diags.Append(d...)
-		return
-	}
-
-	method := clientVal.MethodByName(methodName)
-	if !method.IsValid() {
-		diags.AddError("SDK method not found", methodName)
-		return
-	}
-
-	response, d := invokeSDKMethod(ctx, method, data, r.descriptor.PathParams)
-	if d.HasError() {
-		diags.Append(d...)
-		return
-	}
-
-	if response.IsValid() && response.CanInterface() {
-		attrs, err := attributeTypesForSchema(r.resourceSchema(ctx).Attributes)
-		if err != nil {
-			diags.AddError("Failed to derive attribute types", err.Error())
-			return
-		}
-		diags.Append(mapToModel(ctx, mustResponseToMap(response.Interface()), data, attrs)...)
-		if diags.HasError() {
-			return
-		}
-	}
-
-	diags.Append(to.Set(ctx, data)...)
-}
-
-func (r *managedResource) clientValue() (reflect.Value, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	v := reflect.ValueOf(r.client).Elem().FieldByName(r.descriptor.ClientField)
-	if !v.IsValid() {
-		diags.AddError("SDK client not found", r.descriptor.ClientField)
-		return reflect.Value{}, diags
-	}
-	if v.Kind() == reflect.Pointer && v.IsNil() {
-		diags.AddError("SDK client is nil", r.descriptor.ClientField)
-		return reflect.Value{}, diags
-	}
-	return v, diags
-}
-
-func (r *managedResource) resourceSchema(ctx context.Context) rschema.Schema {
-	fnVal := reflect.ValueOf(r.descriptor.SchemaFn)
-	res := fnVal.Call([]reflect.Value{reflect.ValueOf(ctx)})
-	return res[0].Interface().(rschema.Schema)
 }
 
 func (d *managedDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -297,14 +130,6 @@ func (d *managedDataSource) dataSourceSchema(ctx context.Context) dschema.Schema
 }
 
 // Shared helpers.
-
-type tfsdkGetter interface {
-	Get(context.Context, any) diag.Diagnostics
-}
-
-type tfsdkSetter interface {
-	Set(context.Context, any) diag.Diagnostics
-}
 
 func newModel(model any) any {
 	return reflect.New(reflect.TypeOf(model).Elem()).Interface()

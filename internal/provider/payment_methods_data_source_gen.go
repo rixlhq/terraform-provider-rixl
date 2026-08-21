@@ -5,10 +5,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -17,10 +15,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
-func ImagesDataSourceSchema(ctx context.Context) schema.Schema {
+func PaymentMethodsDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"images": schema.ListNestedAttribute{
+			"org_id": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+			},
+			"payment_methods": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"created_at": schema.StringAttribute{
@@ -28,67 +30,34 @@ func ImagesDataSourceSchema(ctx context.Context) schema.Schema {
 							Description:         "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
 							MarkdownDescription: "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
 						},
-						"format": schema.StringAttribute{
-							Computed: true,
-						},
-						"height": schema.Int64Attribute{
+						"details": schema.StringAttribute{
 							Computed: true,
 						},
 						"id": schema.StringAttribute{
 							Computed: true,
 						},
-						"name": schema.StringAttribute{
+						"is_default": schema.BoolAttribute{
 							Computed: true,
 						},
-						"size": schema.StringAttribute{
+						"org_id": schema.StringAttribute{
 							Computed: true,
 						},
-						"thumbhash": schema.StringAttribute{
+						"provider": schema.StringAttribute{
 							Computed: true,
 						},
-						"url": schema.StringAttribute{
-							Computed: true,
-						},
-						"visibility": schema.StringAttribute{
-							Computed: true,
-						},
-						"width": schema.Int64Attribute{
+						"type": schema.StringAttribute{
 							Computed: true,
 						},
 					},
-					CustomType: ImagesType{
+					CustomType: PaymentMethodsDataSourceType{
 						ObjectType: types.ObjectType{
-							AttrTypes: ImagesValue{}.AttributeTypes(ctx),
+							AttrTypes: PaymentMethodsDataSourceValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
 				Computed: true,
 			},
-			"paginationlimit": schema.Int64Attribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Maximum number of items to return.",
-				MarkdownDescription: "Maximum number of items to return.",
-				Validators: []validator.Int64{
-					int64validator.Between(1, 100),
-				},
-			},
-			"paginationoffset": schema.Int64Attribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Number of items to skip before collecting the result set.",
-				MarkdownDescription: "Number of items to skip before collecting the result set.",
-			},
-			"project_id": schema.StringAttribute{
-				Required:            true,
-				Description:         "",
-				MarkdownDescription: "",
-			},
-			"sort_direction": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-			},
-			"sort_field": schema.StringAttribute{
+			"refresh": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
 			},
@@ -96,23 +65,20 @@ func ImagesDataSourceSchema(ctx context.Context) schema.Schema {
 	}
 }
 
-type ImagesModel struct {
-	Images           types.List   `tfsdk:"images"`
-	Paginationlimit  types.Int64  `tfsdk:"paginationlimit"`
-	Paginationoffset types.Int64  `tfsdk:"paginationoffset"`
-	ProjectId        types.String `tfsdk:"project_id"`
-	SortDirection    types.String `tfsdk:"sort_direction"`
-	SortField        types.String `tfsdk:"sort_field"`
+type PaymentMethodsDataSourceModel struct {
+	OrgId          types.String `tfsdk:"org_id"`
+	PaymentMethods types.List   `tfsdk:"payment_methods"`
+	Refresh        types.Bool   `tfsdk:"refresh"`
 }
 
-var _ basetypes.ObjectTypable = ImagesType{}
+var _ basetypes.ObjectTypable = PaymentMethodsDataSourceType{}
 
-type ImagesType struct {
+type PaymentMethodsDataSourceType struct {
 	basetypes.ObjectType
 }
 
-func (t ImagesType) Equal(o attr.Type) bool {
-	other, ok := o.(ImagesType)
+func (t PaymentMethodsDataSourceType) Equal(o attr.Type) bool {
+	other, ok := o.(PaymentMethodsDataSourceType)
 
 	if !ok {
 		return false
@@ -121,11 +87,11 @@ func (t ImagesType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ImagesType) String() string {
-	return "ImagesType"
+func (t PaymentMethodsDataSourceType) String() string {
+	return "PaymentMethodsType"
 }
 
-func (t ImagesType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t PaymentMethodsDataSourceType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -148,40 +114,22 @@ func (t ImagesType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 			fmt.Sprintf(`created_at expected to be basetypes.StringValue, was: %T`, createdAtAttribute))
 	}
 
-	formatAttribute, ok := attributes["format"]
+	detailsAttribute, ok := attributes["details"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`format is missing from object`)
+			`details is missing from object`)
 
 		return nil, diags
 	}
 
-	formatVal, ok := formatAttribute.(basetypes.StringValue)
+	detailsVal, ok := detailsAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`format expected to be basetypes.StringValue, was: %T`, formatAttribute))
-	}
-
-	heightAttribute, ok := attributes["height"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`height is missing from object`)
-
-		return nil, diags
-	}
-
-	heightVal, ok := heightAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`height expected to be basetypes.Int64Value, was: %T`, heightAttribute))
+			fmt.Sprintf(`details expected to be basetypes.StringValue, was: %T`, detailsAttribute))
 	}
 
 	idAttribute, ok := attributes["id"]
@@ -202,146 +150,107 @@ func (t ImagesType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 			fmt.Sprintf(`id expected to be basetypes.StringValue, was: %T`, idAttribute))
 	}
 
-	nameAttribute, ok := attributes["name"]
+	isDefaultAttribute, ok := attributes["is_default"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`name is missing from object`)
+			`is_default is missing from object`)
 
 		return nil, diags
 	}
 
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
+	isDefaultVal, ok := isDefaultAttribute.(basetypes.BoolValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`is_default expected to be basetypes.BoolValue, was: %T`, isDefaultAttribute))
 	}
 
-	sizeAttribute, ok := attributes["size"]
+	orgIdAttribute, ok := attributes["org_id"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`size is missing from object`)
+			`org_id is missing from object`)
 
 		return nil, diags
 	}
 
-	sizeVal, ok := sizeAttribute.(basetypes.StringValue)
+	orgIdVal, ok := orgIdAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`size expected to be basetypes.StringValue, was: %T`, sizeAttribute))
+			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
 	}
 
-	thumbhashAttribute, ok := attributes["thumbhash"]
+	providerAttribute, ok := attributes["provider"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`thumbhash is missing from object`)
+			`provider is missing from object`)
 
 		return nil, diags
 	}
 
-	thumbhashVal, ok := thumbhashAttribute.(basetypes.StringValue)
+	providerVal, ok := providerAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`thumbhash expected to be basetypes.StringValue, was: %T`, thumbhashAttribute))
+			fmt.Sprintf(`provider expected to be basetypes.StringValue, was: %T`, providerAttribute))
 	}
 
-	urlAttribute, ok := attributes["url"]
+	typeAttribute, ok := attributes["type"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`url is missing from object`)
+			`type is missing from object`)
 
 		return nil, diags
 	}
 
-	urlVal, ok := urlAttribute.(basetypes.StringValue)
+	typeVal, ok := typeAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`url expected to be basetypes.StringValue, was: %T`, urlAttribute))
-	}
-
-	visibilityAttribute, ok := attributes["visibility"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`visibility is missing from object`)
-
-		return nil, diags
-	}
-
-	visibilityVal, ok := visibilityAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`visibility expected to be basetypes.StringValue, was: %T`, visibilityAttribute))
-	}
-
-	widthAttribute, ok := attributes["width"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`width is missing from object`)
-
-		return nil, diags
-	}
-
-	widthVal, ok := widthAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`width expected to be basetypes.Int64Value, was: %T`, widthAttribute))
+			fmt.Sprintf(`type expected to be basetypes.StringValue, was: %T`, typeAttribute))
 	}
 
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return ImagesValue{
-		CreatedAt:  createdAtVal,
-		Format:     formatVal,
-		Height:     heightVal,
-		Id:         idVal,
-		Name:       nameVal,
-		Size:       sizeVal,
-		Thumbhash:  thumbhashVal,
-		Url:        urlVal,
-		Visibility: visibilityVal,
-		Width:      widthVal,
-		state:      attr.ValueStateKnown,
+	return PaymentMethodsDataSourceValue{
+		CreatedAt:                    createdAtVal,
+		Details:                      detailsVal,
+		Id:                           idVal,
+		IsDefault:                    isDefaultVal,
+		OrgId:                        orgIdVal,
+		Provider:                     providerVal,
+		PaymentMethodsDataSourceType: typeVal,
+		state:                        attr.ValueStateKnown,
 	}, diags
 }
 
-func NewImagesValueNull() ImagesValue {
-	return ImagesValue{
+func NewPaymentMethodsDataSourceValueNull() PaymentMethodsDataSourceValue {
+	return PaymentMethodsDataSourceValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewImagesValueUnknown() ImagesValue {
-	return ImagesValue{
+func NewPaymentMethodsDataSourceValueUnknown() PaymentMethodsDataSourceValue {
+	return PaymentMethodsDataSourceValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewImagesValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ImagesValue, diag.Diagnostics) {
+func NewPaymentMethodsDataSourceValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (PaymentMethodsDataSourceValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -352,11 +261,11 @@ func NewImagesValue(attributeTypes map[string]attr.Type, attributes map[string]a
 
 		if !ok {
 			diags.AddError(
-				"Missing ImagesValue Attribute Value",
-				"While creating a ImagesValue value, a missing attribute value was detected. "+
-					"A ImagesValue must contain values for all attributes, even if null or unknown. "+
+				"Missing PaymentMethodsValue Attribute Value",
+				"While creating a PaymentMethodsValue value, a missing attribute value was detected. "+
+					"A PaymentMethodsValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ImagesValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("PaymentMethodsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -364,12 +273,12 @@ func NewImagesValue(attributeTypes map[string]attr.Type, attributes map[string]a
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid ImagesValue Attribute Type",
-				"While creating a ImagesValue value, an invalid attribute value was detected. "+
-					"A ImagesValue must use a matching attribute type for the value. "+
+				"Invalid PaymentMethodsValue Attribute Type",
+				"While creating a PaymentMethodsValue value, an invalid attribute value was detected. "+
+					"A PaymentMethodsValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ImagesValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("ImagesValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("PaymentMethodsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("PaymentMethodsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -379,17 +288,17 @@ func NewImagesValue(attributeTypes map[string]attr.Type, attributes map[string]a
 
 		if !ok {
 			diags.AddError(
-				"Extra ImagesValue Attribute Value",
-				"While creating a ImagesValue value, an extra attribute value was detected. "+
-					"A ImagesValue must not contain values beyond the expected attribute types. "+
+				"Extra PaymentMethodsValue Attribute Value",
+				"While creating a PaymentMethodsValue value, an extra attribute value was detected. "+
+					"A PaymentMethodsValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra ImagesValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra PaymentMethodsValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewImagesValueUnknown(), diags
+		return NewPaymentMethodsDataSourceValueUnknown(), diags
 	}
 
 	createdAtAttribute, ok := attributes["created_at"]
@@ -399,7 +308,7 @@ func NewImagesValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`created_at is missing from object`)
 
-		return NewImagesValueUnknown(), diags
+		return NewPaymentMethodsDataSourceValueUnknown(), diags
 	}
 
 	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
@@ -410,40 +319,22 @@ func NewImagesValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			fmt.Sprintf(`created_at expected to be basetypes.StringValue, was: %T`, createdAtAttribute))
 	}
 
-	formatAttribute, ok := attributes["format"]
+	detailsAttribute, ok := attributes["details"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`format is missing from object`)
+			`details is missing from object`)
 
-		return NewImagesValueUnknown(), diags
+		return NewPaymentMethodsDataSourceValueUnknown(), diags
 	}
 
-	formatVal, ok := formatAttribute.(basetypes.StringValue)
+	detailsVal, ok := detailsAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`format expected to be basetypes.StringValue, was: %T`, formatAttribute))
-	}
-
-	heightAttribute, ok := attributes["height"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`height is missing from object`)
-
-		return NewImagesValueUnknown(), diags
-	}
-
-	heightVal, ok := heightAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`height expected to be basetypes.Int64Value, was: %T`, heightAttribute))
+			fmt.Sprintf(`details expected to be basetypes.StringValue, was: %T`, detailsAttribute))
 	}
 
 	idAttribute, ok := attributes["id"]
@@ -453,7 +344,7 @@ func NewImagesValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			"Attribute Missing",
 			`id is missing from object`)
 
-		return NewImagesValueUnknown(), diags
+		return NewPaymentMethodsDataSourceValueUnknown(), diags
 	}
 
 	idVal, ok := idAttribute.(basetypes.StringValue)
@@ -464,135 +355,96 @@ func NewImagesValue(attributeTypes map[string]attr.Type, attributes map[string]a
 			fmt.Sprintf(`id expected to be basetypes.StringValue, was: %T`, idAttribute))
 	}
 
-	nameAttribute, ok := attributes["name"]
+	isDefaultAttribute, ok := attributes["is_default"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`name is missing from object`)
+			`is_default is missing from object`)
 
-		return NewImagesValueUnknown(), diags
+		return NewPaymentMethodsDataSourceValueUnknown(), diags
 	}
 
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
+	isDefaultVal, ok := isDefaultAttribute.(basetypes.BoolValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`is_default expected to be basetypes.BoolValue, was: %T`, isDefaultAttribute))
 	}
 
-	sizeAttribute, ok := attributes["size"]
+	orgIdAttribute, ok := attributes["org_id"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`size is missing from object`)
+			`org_id is missing from object`)
 
-		return NewImagesValueUnknown(), diags
+		return NewPaymentMethodsDataSourceValueUnknown(), diags
 	}
 
-	sizeVal, ok := sizeAttribute.(basetypes.StringValue)
+	orgIdVal, ok := orgIdAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`size expected to be basetypes.StringValue, was: %T`, sizeAttribute))
+			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
 	}
 
-	thumbhashAttribute, ok := attributes["thumbhash"]
+	providerAttribute, ok := attributes["provider"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`thumbhash is missing from object`)
+			`provider is missing from object`)
 
-		return NewImagesValueUnknown(), diags
+		return NewPaymentMethodsDataSourceValueUnknown(), diags
 	}
 
-	thumbhashVal, ok := thumbhashAttribute.(basetypes.StringValue)
+	providerVal, ok := providerAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`thumbhash expected to be basetypes.StringValue, was: %T`, thumbhashAttribute))
+			fmt.Sprintf(`provider expected to be basetypes.StringValue, was: %T`, providerAttribute))
 	}
 
-	urlAttribute, ok := attributes["url"]
+	typeAttribute, ok := attributes["type"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`url is missing from object`)
+			`type is missing from object`)
 
-		return NewImagesValueUnknown(), diags
+		return NewPaymentMethodsDataSourceValueUnknown(), diags
 	}
 
-	urlVal, ok := urlAttribute.(basetypes.StringValue)
+	typeVal, ok := typeAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`url expected to be basetypes.StringValue, was: %T`, urlAttribute))
-	}
-
-	visibilityAttribute, ok := attributes["visibility"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`visibility is missing from object`)
-
-		return NewImagesValueUnknown(), diags
-	}
-
-	visibilityVal, ok := visibilityAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`visibility expected to be basetypes.StringValue, was: %T`, visibilityAttribute))
-	}
-
-	widthAttribute, ok := attributes["width"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`width is missing from object`)
-
-		return NewImagesValueUnknown(), diags
-	}
-
-	widthVal, ok := widthAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`width expected to be basetypes.Int64Value, was: %T`, widthAttribute))
+			fmt.Sprintf(`type expected to be basetypes.StringValue, was: %T`, typeAttribute))
 	}
 
 	if diags.HasError() {
-		return NewImagesValueUnknown(), diags
+		return NewPaymentMethodsDataSourceValueUnknown(), diags
 	}
 
-	return ImagesValue{
-		CreatedAt:  createdAtVal,
-		Format:     formatVal,
-		Height:     heightVal,
-		Id:         idVal,
-		Name:       nameVal,
-		Size:       sizeVal,
-		Thumbhash:  thumbhashVal,
-		Url:        urlVal,
-		Visibility: visibilityVal,
-		Width:      widthVal,
-		state:      attr.ValueStateKnown,
+	return PaymentMethodsDataSourceValue{
+		CreatedAt:                    createdAtVal,
+		Details:                      detailsVal,
+		Id:                           idVal,
+		IsDefault:                    isDefaultVal,
+		OrgId:                        orgIdVal,
+		Provider:                     providerVal,
+		PaymentMethodsDataSourceType: typeVal,
+		state:                        attr.ValueStateKnown,
 	}, diags
 }
 
-func NewImagesValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ImagesValue {
-	object, diags := NewImagesValue(attributeTypes, attributes)
+func NewPaymentMethodsDataSourceValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) PaymentMethodsDataSourceValue {
+	object, diags := NewPaymentMethodsDataSourceValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -606,15 +458,15 @@ func NewImagesValueMust(attributeTypes map[string]attr.Type, attributes map[stri
 				diagnostic.Detail()))
 		}
 
-		panic("NewImagesValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewPaymentMethodsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t ImagesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t PaymentMethodsDataSourceType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewImagesValueNull(), nil
+		return NewPaymentMethodsDataSourceValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -622,11 +474,11 @@ func (t ImagesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (a
 	}
 
 	if !in.IsKnown() {
-		return NewImagesValueUnknown(), nil
+		return NewPaymentMethodsDataSourceValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewImagesValueNull(), nil
+		return NewPaymentMethodsDataSourceValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -649,51 +501,45 @@ func (t ImagesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (a
 		attributes[k] = a
 	}
 
-	return NewImagesValueMust(ImagesValue{}.AttributeTypes(ctx), attributes), nil
+	return NewPaymentMethodsDataSourceValueMust(PaymentMethodsDataSourceValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ImagesType) ValueType(ctx context.Context) attr.Value {
-	return ImagesValue{}
+func (t PaymentMethodsDataSourceType) ValueType(ctx context.Context) attr.Value {
+	return PaymentMethodsDataSourceValue{}
 }
 
-var _ basetypes.ObjectValuable = ImagesValue{}
+var _ basetypes.ObjectValuable = PaymentMethodsDataSourceValue{}
 
-type ImagesValue struct {
-	CreatedAt  basetypes.StringValue `tfsdk:"created_at"`
-	Format     basetypes.StringValue `tfsdk:"format"`
-	Height     basetypes.Int64Value  `tfsdk:"height"`
-	Id         basetypes.StringValue `tfsdk:"id"`
-	Name       basetypes.StringValue `tfsdk:"name"`
-	Size       basetypes.StringValue `tfsdk:"size"`
-	Thumbhash  basetypes.StringValue `tfsdk:"thumbhash"`
-	Url        basetypes.StringValue `tfsdk:"url"`
-	Visibility basetypes.StringValue `tfsdk:"visibility"`
-	Width      basetypes.Int64Value  `tfsdk:"width"`
-	state      attr.ValueState
+type PaymentMethodsDataSourceValue struct {
+	CreatedAt                    basetypes.StringValue `tfsdk:"created_at"`
+	Details                      basetypes.StringValue `tfsdk:"details"`
+	Id                           basetypes.StringValue `tfsdk:"id"`
+	IsDefault                    basetypes.BoolValue   `tfsdk:"is_default"`
+	OrgId                        basetypes.StringValue `tfsdk:"org_id"`
+	Provider                     basetypes.StringValue `tfsdk:"provider"`
+	PaymentMethodsDataSourceType basetypes.StringValue `tfsdk:"type"`
+	state                        attr.ValueState
 }
 
-func (v ImagesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 10)
+func (v PaymentMethodsDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 7)
 
 	var val tftypes.Value
 	var err error
 
 	attrTypes["created_at"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["format"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["height"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["details"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["id"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["size"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["thumbhash"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["url"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["visibility"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["width"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["is_default"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["org_id"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["provider"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["type"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 10)
+		vals := make(map[string]tftypes.Value, 7)
 
 		val, err = v.CreatedAt.ToTerraformValue(ctx)
 
@@ -703,21 +549,13 @@ func (v ImagesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error
 
 		vals["created_at"] = val
 
-		val, err = v.Format.ToTerraformValue(ctx)
+		val, err = v.Details.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["format"] = val
-
-		val, err = v.Height.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["height"] = val
+		vals["details"] = val
 
 		val, err = v.Id.ToTerraformValue(ctx)
 
@@ -727,53 +565,37 @@ func (v ImagesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error
 
 		vals["id"] = val
 
-		val, err = v.Name.ToTerraformValue(ctx)
+		val, err = v.IsDefault.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["name"] = val
+		vals["is_default"] = val
 
-		val, err = v.Size.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["size"] = val
-
-		val, err = v.Thumbhash.ToTerraformValue(ctx)
+		val, err = v.OrgId.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["thumbhash"] = val
+		vals["org_id"] = val
 
-		val, err = v.Url.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["url"] = val
-
-		val, err = v.Visibility.ToTerraformValue(ctx)
+		val, err = v.Provider.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["visibility"] = val
+		vals["provider"] = val
 
-		val, err = v.Width.ToTerraformValue(ctx)
+		val, err = v.PaymentMethodsDataSourceType.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["width"] = val
+		vals["type"] = val
 
 		if err := tftypes.ValidateValue(objectType, vals); err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
@@ -789,32 +611,29 @@ func (v ImagesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error
 	}
 }
 
-func (v ImagesValue) IsNull() bool {
+func (v PaymentMethodsDataSourceValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v ImagesValue) IsUnknown() bool {
+func (v PaymentMethodsDataSourceValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v ImagesValue) String() string {
-	return "ImagesValue"
+func (v PaymentMethodsDataSourceValue) String() string {
+	return "PaymentMethodsValue"
 }
 
-func (v ImagesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v PaymentMethodsDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributeTypes := map[string]attr.Type{
 		"created_at": basetypes.StringType{},
-		"format":     basetypes.StringType{},
-		"height":     basetypes.Int64Type{},
+		"details":    basetypes.StringType{},
 		"id":         basetypes.StringType{},
-		"name":       basetypes.StringType{},
-		"size":       basetypes.StringType{},
-		"thumbhash":  basetypes.StringType{},
-		"url":        basetypes.StringType{},
-		"visibility": basetypes.StringType{},
-		"width":      basetypes.Int64Type{},
+		"is_default": basetypes.BoolType{},
+		"org_id":     basetypes.StringType{},
+		"provider":   basetypes.StringType{},
+		"type":       basetypes.StringType{},
 	}
 
 	if v.IsNull() {
@@ -829,22 +648,19 @@ func (v ImagesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, 
 		attributeTypes,
 		map[string]attr.Value{
 			"created_at": v.CreatedAt,
-			"format":     v.Format,
-			"height":     v.Height,
+			"details":    v.Details,
 			"id":         v.Id,
-			"name":       v.Name,
-			"size":       v.Size,
-			"thumbhash":  v.Thumbhash,
-			"url":        v.Url,
-			"visibility": v.Visibility,
-			"width":      v.Width,
+			"is_default": v.IsDefault,
+			"org_id":     v.OrgId,
+			"provider":   v.Provider,
+			"type":       v.PaymentMethodsDataSourceType,
 		})
 
 	return objVal, diags
 }
 
-func (v ImagesValue) Equal(o attr.Value) bool {
-	other, ok := o.(ImagesValue)
+func (v PaymentMethodsDataSourceValue) Equal(o attr.Value) bool {
+	other, ok := o.(PaymentMethodsDataSourceValue)
 
 	if !ok {
 		return false
@@ -862,11 +678,7 @@ func (v ImagesValue) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.Format.Equal(other.Format) {
-		return false
-	}
-
-	if !v.Height.Equal(other.Height) {
+	if !v.Details.Equal(other.Details) {
 		return false
 	}
 
@@ -874,52 +686,41 @@ func (v ImagesValue) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.Name.Equal(other.Name) {
+	if !v.IsDefault.Equal(other.IsDefault) {
 		return false
 	}
 
-	if !v.Size.Equal(other.Size) {
+	if !v.OrgId.Equal(other.OrgId) {
 		return false
 	}
 
-	if !v.Thumbhash.Equal(other.Thumbhash) {
+	if !v.Provider.Equal(other.Provider) {
 		return false
 	}
 
-	if !v.Url.Equal(other.Url) {
-		return false
-	}
-
-	if !v.Visibility.Equal(other.Visibility) {
-		return false
-	}
-
-	if !v.Width.Equal(other.Width) {
+	if !v.PaymentMethodsDataSourceType.Equal(other.PaymentMethodsDataSourceType) {
 		return false
 	}
 
 	return true
 }
 
-func (v ImagesValue) Type(ctx context.Context) attr.Type {
-	return ImagesType{
+func (v PaymentMethodsDataSourceValue) Type(ctx context.Context) attr.Type {
+	return PaymentMethodsDataSourceType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v ImagesValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v PaymentMethodsDataSourceValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"created_at": basetypes.StringType{},
-		"format":     basetypes.StringType{},
-		"height":     basetypes.Int64Type{},
+		"details":    basetypes.StringType{},
 		"id":         basetypes.StringType{},
-		"name":       basetypes.StringType{},
-		"size":       basetypes.StringType{},
-		"thumbhash":  basetypes.StringType{},
-		"url":        basetypes.StringType{},
-		"visibility": basetypes.StringType{},
-		"width":      basetypes.Int64Type{},
+		"is_default": basetypes.BoolType{},
+		"org_id":     basetypes.StringType{},
+		"provider":   basetypes.StringType{},
+		"type":       basetypes.StringType{},
 	}
 }

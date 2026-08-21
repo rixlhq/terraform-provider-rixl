@@ -17,97 +17,100 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
-func ApiKeysDataSourceSchema(ctx context.Context) schema.Schema {
+func StorageUsageHistoryDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"api_keys": schema.ListNestedAttribute{
+			"days": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.Int64{
+					int64validator.Between(1, 365),
+				},
+			},
+			"org_id": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+			},
+			"total": schema.Int64Attribute{
+				Computed: true,
+			},
+			"usages": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"created_at": schema.StringAttribute{
-							Computed:            true,
-							Description:         "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
-							MarkdownDescription: "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
-						},
-						"expiring_at": schema.StringAttribute{
-							Computed:            true,
-							Description:         "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
-							MarkdownDescription: "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
-						},
-						"id": schema.StringAttribute{
+						"image_file_count": schema.Int64Attribute{
 							Computed: true,
 						},
-						"last_used": schema.StringAttribute{
+						"image_storage_bytes": schema.StringAttribute{
+							Computed: true,
+						},
+						"last_updated": schema.StringAttribute{
 							Computed:            true,
 							Description:         "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
 							MarkdownDescription: "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
 						},
-						"name": schema.StringAttribute{
+						"max_image_count": schema.Int64Attribute{
+							Computed: true,
+						},
+						"max_project_count": schema.Int64Attribute{
+							Computed: true,
+						},
+						"max_video_count": schema.Int64Attribute{
 							Computed: true,
 						},
 						"org_id": schema.StringAttribute{
 							Computed: true,
 						},
-						"project_id": schema.StringAttribute{
+						"project_count": schema.Int64Attribute{
 							Computed: true,
 						},
-						"project_name": schema.StringAttribute{
+						"snapshot_date": schema.StringAttribute{
+							Computed:            true,
+							Description:         "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
+							MarkdownDescription: "A Timestamp represents a point in time independent of any time zone or local\n calendar, encoded as a count of seconds and fractions of seconds at\n nanosecond resolution. The count is relative to an epoch at UTC midnight on\n January 1, 1970, in the proleptic Gregorian calendar which extends the\n Gregorian calendar backwards to year one.\n\n All minutes are 60 seconds long. Leap seconds are \"smeared\" so that no leap\n second table is needed for interpretation, using a [24-hour linear\n smear](https://developers.google.com/time/smear).\n\n The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By\n restricting to that range, we ensure that we can convert to and from [RFC\n 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.\n\n # Examples\n\n Example 1: Compute Timestamp from POSIX `time()`.\n\n     Timestamp timestamp;\n     timestamp.set_seconds(time(NULL));\n     timestamp.set_nanos(0);\n\n Example 2: Compute Timestamp from POSIX `gettimeofday()`.\n\n     struct timeval tv;\n     gettimeofday(&tv, NULL);\n\n     Timestamp timestamp;\n     timestamp.set_seconds(tv.tv_sec);\n     timestamp.set_nanos(tv.tv_usec * 1000);\n\n Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.\n\n     FILETIME ft;\n     GetSystemTimeAsFileTime(&ft);\n     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;\n\n     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z\n     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.\n     Timestamp timestamp;\n     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));\n     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));\n\n Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.\n\n     long millis = System.currentTimeMillis();\n\n     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)\n         .setNanos((int) ((millis % 1000) * 1000000)).build();\n\n Example 5: Compute Timestamp from Java `Instant.now()`.\n\n     Instant now = Instant.now();\n\n     Timestamp timestamp =\n         Timestamp.newBuilder().setSeconds(now.getEpochSecond())\n             .setNanos(now.getNano()).build();\n\n Example 6: Compute Timestamp from current time in Python.\n\n     timestamp = Timestamp()\n     timestamp.GetCurrentTime()\n\n # JSON Mapping\n\n In JSON format, the Timestamp type is encoded as a string in the\n [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the\n format is \"{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z\"\n where {year} is always expressed using four digits while {month}, {day},\n {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional\n seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),\n are optional. The \"Z\" suffix indicates the timezone (\"UTC\"); the timezone\n is required. A proto3 JSON serializer should always use UTC (as indicated by\n \"Z\") when printing the Timestamp type and a proto3 JSON parser should be\n able to accept both UTC and other timezones (as indicated by an offset).\n\n For example, \"2017-01-15T01:30:15.01Z\" encodes 15.01 seconds past\n 01:30 UTC on January 15, 2017.\n\n In JavaScript, one can convert a Date object to this format using the\n standard\n [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)\n method. In Python, a standard `datetime.datetime` object can be converted\n to this format using\n [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with\n the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use\n the Joda Time's [`ISODateTimeFormat.dateTime()`](\n http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()\n ) to obtain a formatter capable of generating timestamps in this format.",
+						},
+						"total_file_count": schema.Int64Attribute{
 							Computed: true,
 						},
-						"secret": schema.StringAttribute{
+						"total_storage_bytes": schema.StringAttribute{
+							Computed: true,
+						},
+						"total_video_minutes": schema.StringAttribute{
+							Computed: true,
+						},
+						"video_file_count": schema.Int64Attribute{
+							Computed: true,
+						},
+						"video_storage_bytes": schema.StringAttribute{
 							Computed: true,
 						},
 					},
-					CustomType: ApiKeysDataSourceType{
+					CustomType: StorageUsageHistoryDataSourceUsagesType{
 						ObjectType: types.ObjectType{
-							AttrTypes: ApiKeysDataSourceValue{}.AttributeTypes(ctx),
+							AttrTypes: StorageUsageHistoryDataSourceUsagesValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
-				Computed: true,
-			},
-			"org_id": schema.StringAttribute{
-				Required:            true,
-				Description:         "",
-				MarkdownDescription: "",
-			},
-			"paginationlimit": schema.Int64Attribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Maximum number of items to return.",
-				MarkdownDescription: "Maximum number of items to return.",
-				Validators: []validator.Int64{
-					int64validator.Between(1, 100),
-				},
-			},
-			"paginationoffset": schema.Int64Attribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Number of items to skip before collecting the result set.",
-				MarkdownDescription: "Number of items to skip before collecting the result set.",
-			},
-			"total": schema.StringAttribute{
 				Computed: true,
 			},
 		},
 	}
 }
 
-type ApiKeysDataSourceModel struct {
-	ApiKeys          types.List   `tfsdk:"api_keys"`
-	OrgId            types.String `tfsdk:"org_id"`
-	Paginationlimit  types.Int64  `tfsdk:"paginationlimit"`
-	Paginationoffset types.Int64  `tfsdk:"paginationoffset"`
-	Total            types.String `tfsdk:"total"`
+type StorageUsageHistoryDataSourceModel struct {
+	Days   types.Int64  `tfsdk:"days"`
+	OrgId  types.String `tfsdk:"org_id"`
+	Total  types.Int64  `tfsdk:"total"`
+	Usages types.List   `tfsdk:"usages"`
 }
 
-var _ basetypes.ObjectTypable = ApiKeysDataSourceType{}
+var _ basetypes.ObjectTypable = StorageUsageHistoryDataSourceUsagesType{}
 
-type ApiKeysDataSourceType struct {
+type StorageUsageHistoryDataSourceUsagesType struct {
 	basetypes.ObjectType
 }
 
-func (t ApiKeysDataSourceType) Equal(o attr.Type) bool {
-	other, ok := o.(ApiKeysDataSourceType)
+func (t StorageUsageHistoryDataSourceUsagesType) Equal(o attr.Type) bool {
+	other, ok := o.(StorageUsageHistoryDataSourceUsagesType)
 
 	if !ok {
 		return false
@@ -116,103 +119,121 @@ func (t ApiKeysDataSourceType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ApiKeysDataSourceType) String() string {
-	return "ApiKeysType"
+func (t StorageUsageHistoryDataSourceUsagesType) String() string {
+	return "UsagesType"
 }
 
-func (t ApiKeysDataSourceType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t StorageUsageHistoryDataSourceUsagesType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
 
-	createdAtAttribute, ok := attributes["created_at"]
+	imageFileCountAttribute, ok := attributes["image_file_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`created_at is missing from object`)
+			`image_file_count is missing from object`)
 
 		return nil, diags
 	}
 
-	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
+	imageFileCountVal, ok := imageFileCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`created_at expected to be basetypes.StringValue, was: %T`, createdAtAttribute))
+			fmt.Sprintf(`image_file_count expected to be basetypes.Int64Value, was: %T`, imageFileCountAttribute))
 	}
 
-	expiringAtAttribute, ok := attributes["expiring_at"]
+	imageStorageBytesAttribute, ok := attributes["image_storage_bytes"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`expiring_at is missing from object`)
+			`image_storage_bytes is missing from object`)
 
 		return nil, diags
 	}
 
-	expiringAtVal, ok := expiringAtAttribute.(basetypes.StringValue)
+	imageStorageBytesVal, ok := imageStorageBytesAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`expiring_at expected to be basetypes.StringValue, was: %T`, expiringAtAttribute))
+			fmt.Sprintf(`image_storage_bytes expected to be basetypes.StringValue, was: %T`, imageStorageBytesAttribute))
 	}
 
-	idAttribute, ok := attributes["id"]
+	lastUpdatedAttribute, ok := attributes["last_updated"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`id is missing from object`)
+			`last_updated is missing from object`)
 
 		return nil, diags
 	}
 
-	idVal, ok := idAttribute.(basetypes.StringValue)
+	lastUpdatedVal, ok := lastUpdatedAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`id expected to be basetypes.StringValue, was: %T`, idAttribute))
+			fmt.Sprintf(`last_updated expected to be basetypes.StringValue, was: %T`, lastUpdatedAttribute))
 	}
 
-	lastUsedAttribute, ok := attributes["last_used"]
+	maxImageCountAttribute, ok := attributes["max_image_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`last_used is missing from object`)
+			`max_image_count is missing from object`)
 
 		return nil, diags
 	}
 
-	lastUsedVal, ok := lastUsedAttribute.(basetypes.StringValue)
+	maxImageCountVal, ok := maxImageCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`last_used expected to be basetypes.StringValue, was: %T`, lastUsedAttribute))
+			fmt.Sprintf(`max_image_count expected to be basetypes.Int64Value, was: %T`, maxImageCountAttribute))
 	}
 
-	nameAttribute, ok := attributes["name"]
+	maxProjectCountAttribute, ok := attributes["max_project_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`name is missing from object`)
+			`max_project_count is missing from object`)
 
 		return nil, diags
 	}
 
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
+	maxProjectCountVal, ok := maxProjectCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`max_project_count expected to be basetypes.Int64Value, was: %T`, maxProjectCountAttribute))
+	}
+
+	maxVideoCountAttribute, ok := attributes["max_video_count"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`max_video_count is missing from object`)
+
+		return nil, diags
+	}
+
+	maxVideoCountVal, ok := maxVideoCountAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`max_video_count expected to be basetypes.Int64Value, was: %T`, maxVideoCountAttribute))
 	}
 
 	orgIdAttribute, ok := attributes["org_id"]
@@ -233,91 +254,168 @@ func (t ApiKeysDataSourceType) ValueFromObject(ctx context.Context, in basetypes
 			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
 	}
 
-	projectIdAttribute, ok := attributes["project_id"]
+	projectCountAttribute, ok := attributes["project_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`project_id is missing from object`)
+			`project_count is missing from object`)
 
 		return nil, diags
 	}
 
-	projectIdVal, ok := projectIdAttribute.(basetypes.StringValue)
+	projectCountVal, ok := projectCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`project_id expected to be basetypes.StringValue, was: %T`, projectIdAttribute))
+			fmt.Sprintf(`project_count expected to be basetypes.Int64Value, was: %T`, projectCountAttribute))
 	}
 
-	projectNameAttribute, ok := attributes["project_name"]
+	snapshotDateAttribute, ok := attributes["snapshot_date"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`project_name is missing from object`)
+			`snapshot_date is missing from object`)
 
 		return nil, diags
 	}
 
-	projectNameVal, ok := projectNameAttribute.(basetypes.StringValue)
+	snapshotDateVal, ok := snapshotDateAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`project_name expected to be basetypes.StringValue, was: %T`, projectNameAttribute))
+			fmt.Sprintf(`snapshot_date expected to be basetypes.StringValue, was: %T`, snapshotDateAttribute))
 	}
 
-	secretAttribute, ok := attributes["secret"]
+	totalFileCountAttribute, ok := attributes["total_file_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`secret is missing from object`)
+			`total_file_count is missing from object`)
 
 		return nil, diags
 	}
 
-	secretVal, ok := secretAttribute.(basetypes.StringValue)
+	totalFileCountVal, ok := totalFileCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`secret expected to be basetypes.StringValue, was: %T`, secretAttribute))
+			fmt.Sprintf(`total_file_count expected to be basetypes.Int64Value, was: %T`, totalFileCountAttribute))
+	}
+
+	totalStorageBytesAttribute, ok := attributes["total_storage_bytes"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`total_storage_bytes is missing from object`)
+
+		return nil, diags
+	}
+
+	totalStorageBytesVal, ok := totalStorageBytesAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`total_storage_bytes expected to be basetypes.StringValue, was: %T`, totalStorageBytesAttribute))
+	}
+
+	totalVideoMinutesAttribute, ok := attributes["total_video_minutes"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`total_video_minutes is missing from object`)
+
+		return nil, diags
+	}
+
+	totalVideoMinutesVal, ok := totalVideoMinutesAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`total_video_minutes expected to be basetypes.StringValue, was: %T`, totalVideoMinutesAttribute))
+	}
+
+	videoFileCountAttribute, ok := attributes["video_file_count"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`video_file_count is missing from object`)
+
+		return nil, diags
+	}
+
+	videoFileCountVal, ok := videoFileCountAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`video_file_count expected to be basetypes.Int64Value, was: %T`, videoFileCountAttribute))
+	}
+
+	videoStorageBytesAttribute, ok := attributes["video_storage_bytes"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`video_storage_bytes is missing from object`)
+
+		return nil, diags
+	}
+
+	videoStorageBytesVal, ok := videoStorageBytesAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`video_storage_bytes expected to be basetypes.StringValue, was: %T`, videoStorageBytesAttribute))
 	}
 
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return ApiKeysDataSourceValue{
-		CreatedAt:   createdAtVal,
-		ExpiringAt:  expiringAtVal,
-		Id:          idVal,
-		LastUsed:    lastUsedVal,
-		Name:        nameVal,
-		OrgId:       orgIdVal,
-		ProjectId:   projectIdVal,
-		ProjectName: projectNameVal,
-		Secret:      secretVal,
-		state:       attr.ValueStateKnown,
+	return StorageUsageHistoryDataSourceUsagesValue{
+		ImageFileCount:    imageFileCountVal,
+		ImageStorageBytes: imageStorageBytesVal,
+		LastUpdated:       lastUpdatedVal,
+		MaxImageCount:     maxImageCountVal,
+		MaxProjectCount:   maxProjectCountVal,
+		MaxVideoCount:     maxVideoCountVal,
+		OrgId:             orgIdVal,
+		ProjectCount:      projectCountVal,
+		SnapshotDate:      snapshotDateVal,
+		TotalFileCount:    totalFileCountVal,
+		TotalStorageBytes: totalStorageBytesVal,
+		TotalVideoMinutes: totalVideoMinutesVal,
+		VideoFileCount:    videoFileCountVal,
+		VideoStorageBytes: videoStorageBytesVal,
+		state:             attr.ValueStateKnown,
 	}, diags
 }
 
-func NewApiKeysDataSourceValueNull() ApiKeysDataSourceValue {
-	return ApiKeysDataSourceValue{
+func NewStorageUsageHistoryDataSourceUsagesValueNull() StorageUsageHistoryDataSourceUsagesValue {
+	return StorageUsageHistoryDataSourceUsagesValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewApiKeysDataSourceValueUnknown() ApiKeysDataSourceValue {
-	return ApiKeysDataSourceValue{
+func NewStorageUsageHistoryDataSourceUsagesValueUnknown() StorageUsageHistoryDataSourceUsagesValue {
+	return StorageUsageHistoryDataSourceUsagesValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ApiKeysDataSourceValue, diag.Diagnostics) {
+func NewStorageUsageHistoryDataSourceUsagesValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (StorageUsageHistoryDataSourceUsagesValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -328,11 +426,11 @@ func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes m
 
 		if !ok {
 			diags.AddError(
-				"Missing ApiKeysValue Attribute Value",
-				"While creating a ApiKeysValue value, a missing attribute value was detected. "+
-					"A ApiKeysValue must contain values for all attributes, even if null or unknown. "+
+				"Missing UsagesValue Attribute Value",
+				"While creating a UsagesValue value, a missing attribute value was detected. "+
+					"A UsagesValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ApiKeysValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("UsagesValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -340,12 +438,12 @@ func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes m
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid ApiKeysValue Attribute Type",
-				"While creating a ApiKeysValue value, an invalid attribute value was detected. "+
-					"A ApiKeysValue must use a matching attribute type for the value. "+
+				"Invalid UsagesValue Attribute Type",
+				"While creating a UsagesValue value, an invalid attribute value was detected. "+
+					"A UsagesValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ApiKeysValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("ApiKeysValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("UsagesValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("UsagesValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -355,107 +453,125 @@ func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes m
 
 		if !ok {
 			diags.AddError(
-				"Extra ApiKeysValue Attribute Value",
-				"While creating a ApiKeysValue value, an extra attribute value was detected. "+
-					"A ApiKeysValue must not contain values beyond the expected attribute types. "+
+				"Extra UsagesValue Attribute Value",
+				"While creating a UsagesValue value, an extra attribute value was detected. "+
+					"A UsagesValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra ApiKeysValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra UsagesValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	createdAtAttribute, ok := attributes["created_at"]
+	imageFileCountAttribute, ok := attributes["image_file_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`created_at is missing from object`)
+			`image_file_count is missing from object`)
 
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
+	imageFileCountVal, ok := imageFileCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`created_at expected to be basetypes.StringValue, was: %T`, createdAtAttribute))
+			fmt.Sprintf(`image_file_count expected to be basetypes.Int64Value, was: %T`, imageFileCountAttribute))
 	}
 
-	expiringAtAttribute, ok := attributes["expiring_at"]
+	imageStorageBytesAttribute, ok := attributes["image_storage_bytes"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`expiring_at is missing from object`)
+			`image_storage_bytes is missing from object`)
 
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	expiringAtVal, ok := expiringAtAttribute.(basetypes.StringValue)
+	imageStorageBytesVal, ok := imageStorageBytesAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`expiring_at expected to be basetypes.StringValue, was: %T`, expiringAtAttribute))
+			fmt.Sprintf(`image_storage_bytes expected to be basetypes.StringValue, was: %T`, imageStorageBytesAttribute))
 	}
 
-	idAttribute, ok := attributes["id"]
+	lastUpdatedAttribute, ok := attributes["last_updated"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`id is missing from object`)
+			`last_updated is missing from object`)
 
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	idVal, ok := idAttribute.(basetypes.StringValue)
+	lastUpdatedVal, ok := lastUpdatedAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`id expected to be basetypes.StringValue, was: %T`, idAttribute))
+			fmt.Sprintf(`last_updated expected to be basetypes.StringValue, was: %T`, lastUpdatedAttribute))
 	}
 
-	lastUsedAttribute, ok := attributes["last_used"]
+	maxImageCountAttribute, ok := attributes["max_image_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`last_used is missing from object`)
+			`max_image_count is missing from object`)
 
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	lastUsedVal, ok := lastUsedAttribute.(basetypes.StringValue)
+	maxImageCountVal, ok := maxImageCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`last_used expected to be basetypes.StringValue, was: %T`, lastUsedAttribute))
+			fmt.Sprintf(`max_image_count expected to be basetypes.Int64Value, was: %T`, maxImageCountAttribute))
 	}
 
-	nameAttribute, ok := attributes["name"]
+	maxProjectCountAttribute, ok := attributes["max_project_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`name is missing from object`)
+			`max_project_count is missing from object`)
 
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
+	maxProjectCountVal, ok := maxProjectCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`max_project_count expected to be basetypes.Int64Value, was: %T`, maxProjectCountAttribute))
+	}
+
+	maxVideoCountAttribute, ok := attributes["max_video_count"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`max_video_count is missing from object`)
+
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
+	}
+
+	maxVideoCountVal, ok := maxVideoCountAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`max_video_count expected to be basetypes.Int64Value, was: %T`, maxVideoCountAttribute))
 	}
 
 	orgIdAttribute, ok := attributes["org_id"]
@@ -465,7 +581,7 @@ func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`org_id is missing from object`)
 
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
 	orgIdVal, ok := orgIdAttribute.(basetypes.StringValue)
@@ -476,80 +592,157 @@ func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes m
 			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
 	}
 
-	projectIdAttribute, ok := attributes["project_id"]
+	projectCountAttribute, ok := attributes["project_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`project_id is missing from object`)
+			`project_count is missing from object`)
 
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	projectIdVal, ok := projectIdAttribute.(basetypes.StringValue)
+	projectCountVal, ok := projectCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`project_id expected to be basetypes.StringValue, was: %T`, projectIdAttribute))
+			fmt.Sprintf(`project_count expected to be basetypes.Int64Value, was: %T`, projectCountAttribute))
 	}
 
-	projectNameAttribute, ok := attributes["project_name"]
+	snapshotDateAttribute, ok := attributes["snapshot_date"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`project_name is missing from object`)
+			`snapshot_date is missing from object`)
 
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	projectNameVal, ok := projectNameAttribute.(basetypes.StringValue)
+	snapshotDateVal, ok := snapshotDateAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`project_name expected to be basetypes.StringValue, was: %T`, projectNameAttribute))
+			fmt.Sprintf(`snapshot_date expected to be basetypes.StringValue, was: %T`, snapshotDateAttribute))
 	}
 
-	secretAttribute, ok := attributes["secret"]
+	totalFileCountAttribute, ok := attributes["total_file_count"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`secret is missing from object`)
+			`total_file_count is missing from object`)
 
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	secretVal, ok := secretAttribute.(basetypes.StringValue)
+	totalFileCountVal, ok := totalFileCountAttribute.(basetypes.Int64Value)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`secret expected to be basetypes.StringValue, was: %T`, secretAttribute))
+			fmt.Sprintf(`total_file_count expected to be basetypes.Int64Value, was: %T`, totalFileCountAttribute))
+	}
+
+	totalStorageBytesAttribute, ok := attributes["total_storage_bytes"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`total_storage_bytes is missing from object`)
+
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
+	}
+
+	totalStorageBytesVal, ok := totalStorageBytesAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`total_storage_bytes expected to be basetypes.StringValue, was: %T`, totalStorageBytesAttribute))
+	}
+
+	totalVideoMinutesAttribute, ok := attributes["total_video_minutes"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`total_video_minutes is missing from object`)
+
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
+	}
+
+	totalVideoMinutesVal, ok := totalVideoMinutesAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`total_video_minutes expected to be basetypes.StringValue, was: %T`, totalVideoMinutesAttribute))
+	}
+
+	videoFileCountAttribute, ok := attributes["video_file_count"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`video_file_count is missing from object`)
+
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
+	}
+
+	videoFileCountVal, ok := videoFileCountAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`video_file_count expected to be basetypes.Int64Value, was: %T`, videoFileCountAttribute))
+	}
+
+	videoStorageBytesAttribute, ok := attributes["video_storage_bytes"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`video_storage_bytes is missing from object`)
+
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
+	}
+
+	videoStorageBytesVal, ok := videoStorageBytesAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`video_storage_bytes expected to be basetypes.StringValue, was: %T`, videoStorageBytesAttribute))
 	}
 
 	if diags.HasError() {
-		return NewApiKeysDataSourceValueUnknown(), diags
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), diags
 	}
 
-	return ApiKeysDataSourceValue{
-		CreatedAt:   createdAtVal,
-		ExpiringAt:  expiringAtVal,
-		Id:          idVal,
-		LastUsed:    lastUsedVal,
-		Name:        nameVal,
-		OrgId:       orgIdVal,
-		ProjectId:   projectIdVal,
-		ProjectName: projectNameVal,
-		Secret:      secretVal,
-		state:       attr.ValueStateKnown,
+	return StorageUsageHistoryDataSourceUsagesValue{
+		ImageFileCount:    imageFileCountVal,
+		ImageStorageBytes: imageStorageBytesVal,
+		LastUpdated:       lastUpdatedVal,
+		MaxImageCount:     maxImageCountVal,
+		MaxProjectCount:   maxProjectCountVal,
+		MaxVideoCount:     maxVideoCountVal,
+		OrgId:             orgIdVal,
+		ProjectCount:      projectCountVal,
+		SnapshotDate:      snapshotDateVal,
+		TotalFileCount:    totalFileCountVal,
+		TotalStorageBytes: totalStorageBytesVal,
+		TotalVideoMinutes: totalVideoMinutesVal,
+		VideoFileCount:    videoFileCountVal,
+		VideoStorageBytes: videoStorageBytesVal,
+		state:             attr.ValueStateKnown,
 	}, diags
 }
 
-func NewApiKeysDataSourceValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ApiKeysDataSourceValue {
-	object, diags := NewApiKeysDataSourceValue(attributeTypes, attributes)
+func NewStorageUsageHistoryDataSourceUsagesValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) StorageUsageHistoryDataSourceUsagesValue {
+	object, diags := NewStorageUsageHistoryDataSourceUsagesValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -563,15 +756,15 @@ func NewApiKeysDataSourceValueMust(attributeTypes map[string]attr.Type, attribut
 				diagnostic.Detail()))
 		}
 
-		panic("NewApiKeysValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewUsagesValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t ApiKeysDataSourceType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t StorageUsageHistoryDataSourceUsagesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewApiKeysDataSourceValueNull(), nil
+		return NewStorageUsageHistoryDataSourceUsagesValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -579,11 +772,11 @@ func (t ApiKeysDataSourceType) ValueFromTerraform(ctx context.Context, in tftype
 	}
 
 	if !in.IsKnown() {
-		return NewApiKeysDataSourceValueUnknown(), nil
+		return NewStorageUsageHistoryDataSourceUsagesValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewApiKeysDataSourceValueNull(), nil
+		return NewStorageUsageHistoryDataSourceUsagesValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -606,89 +799,107 @@ func (t ApiKeysDataSourceType) ValueFromTerraform(ctx context.Context, in tftype
 		attributes[k] = a
 	}
 
-	return NewApiKeysDataSourceValueMust(ApiKeysDataSourceValue{}.AttributeTypes(ctx), attributes), nil
+	return NewStorageUsageHistoryDataSourceUsagesValueMust(StorageUsageHistoryDataSourceUsagesValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ApiKeysDataSourceType) ValueType(ctx context.Context) attr.Value {
-	return ApiKeysDataSourceValue{}
+func (t StorageUsageHistoryDataSourceUsagesType) ValueType(ctx context.Context) attr.Value {
+	return StorageUsageHistoryDataSourceUsagesValue{}
 }
 
-var _ basetypes.ObjectValuable = ApiKeysDataSourceValue{}
+var _ basetypes.ObjectValuable = StorageUsageHistoryDataSourceUsagesValue{}
 
-type ApiKeysDataSourceValue struct {
-	CreatedAt   basetypes.StringValue `tfsdk:"created_at"`
-	ExpiringAt  basetypes.StringValue `tfsdk:"expiring_at"`
-	Id          basetypes.StringValue `tfsdk:"id"`
-	LastUsed    basetypes.StringValue `tfsdk:"last_used"`
-	Name        basetypes.StringValue `tfsdk:"name"`
-	OrgId       basetypes.StringValue `tfsdk:"org_id"`
-	ProjectId   basetypes.StringValue `tfsdk:"project_id"`
-	ProjectName basetypes.StringValue `tfsdk:"project_name"`
-	Secret      basetypes.StringValue `tfsdk:"secret"`
-	state       attr.ValueState
+type StorageUsageHistoryDataSourceUsagesValue struct {
+	ImageFileCount    basetypes.Int64Value  `tfsdk:"image_file_count"`
+	ImageStorageBytes basetypes.StringValue `tfsdk:"image_storage_bytes"`
+	LastUpdated       basetypes.StringValue `tfsdk:"last_updated"`
+	MaxImageCount     basetypes.Int64Value  `tfsdk:"max_image_count"`
+	MaxProjectCount   basetypes.Int64Value  `tfsdk:"max_project_count"`
+	MaxVideoCount     basetypes.Int64Value  `tfsdk:"max_video_count"`
+	OrgId             basetypes.StringValue `tfsdk:"org_id"`
+	ProjectCount      basetypes.Int64Value  `tfsdk:"project_count"`
+	SnapshotDate      basetypes.StringValue `tfsdk:"snapshot_date"`
+	TotalFileCount    basetypes.Int64Value  `tfsdk:"total_file_count"`
+	TotalStorageBytes basetypes.StringValue `tfsdk:"total_storage_bytes"`
+	TotalVideoMinutes basetypes.StringValue `tfsdk:"total_video_minutes"`
+	VideoFileCount    basetypes.Int64Value  `tfsdk:"video_file_count"`
+	VideoStorageBytes basetypes.StringValue `tfsdk:"video_storage_bytes"`
+	state             attr.ValueState
 }
 
-func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 9)
+func (v StorageUsageHistoryDataSourceUsagesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 14)
 
 	var val tftypes.Value
 	var err error
 
-	attrTypes["created_at"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["expiring_at"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["id"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["last_used"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["image_file_count"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["image_storage_bytes"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["last_updated"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["max_image_count"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["max_project_count"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["max_video_count"] = basetypes.Int64Type{}.TerraformType(ctx)
 	attrTypes["org_id"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["project_id"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["project_name"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["secret"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["project_count"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["snapshot_date"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["total_file_count"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["total_storage_bytes"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["total_video_minutes"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["video_file_count"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["video_storage_bytes"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 9)
+		vals := make(map[string]tftypes.Value, 14)
 
-		val, err = v.CreatedAt.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["created_at"] = val
-
-		val, err = v.ExpiringAt.ToTerraformValue(ctx)
+		val, err = v.ImageFileCount.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["expiring_at"] = val
+		vals["image_file_count"] = val
 
-		val, err = v.Id.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["id"] = val
-
-		val, err = v.LastUsed.ToTerraformValue(ctx)
+		val, err = v.ImageStorageBytes.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["last_used"] = val
+		vals["image_storage_bytes"] = val
 
-		val, err = v.Name.ToTerraformValue(ctx)
+		val, err = v.LastUpdated.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["name"] = val
+		vals["last_updated"] = val
+
+		val, err = v.MaxImageCount.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["max_image_count"] = val
+
+		val, err = v.MaxProjectCount.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["max_project_count"] = val
+
+		val, err = v.MaxVideoCount.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["max_video_count"] = val
 
 		val, err = v.OrgId.ToTerraformValue(ctx)
 
@@ -698,29 +909,61 @@ func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.V
 
 		vals["org_id"] = val
 
-		val, err = v.ProjectId.ToTerraformValue(ctx)
+		val, err = v.ProjectCount.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["project_id"] = val
+		vals["project_count"] = val
 
-		val, err = v.ProjectName.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["project_name"] = val
-
-		val, err = v.Secret.ToTerraformValue(ctx)
+		val, err = v.SnapshotDate.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["secret"] = val
+		vals["snapshot_date"] = val
+
+		val, err = v.TotalFileCount.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["total_file_count"] = val
+
+		val, err = v.TotalStorageBytes.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["total_storage_bytes"] = val
+
+		val, err = v.TotalVideoMinutes.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["total_video_minutes"] = val
+
+		val, err = v.VideoFileCount.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["video_file_count"] = val
+
+		val, err = v.VideoStorageBytes.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["video_storage_bytes"] = val
 
 		if err := tftypes.ValidateValue(objectType, vals); err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
@@ -736,31 +979,36 @@ func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.V
 	}
 }
 
-func (v ApiKeysDataSourceValue) IsNull() bool {
+func (v StorageUsageHistoryDataSourceUsagesValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v ApiKeysDataSourceValue) IsUnknown() bool {
+func (v StorageUsageHistoryDataSourceUsagesValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v ApiKeysDataSourceValue) String() string {
-	return "ApiKeysValue"
+func (v StorageUsageHistoryDataSourceUsagesValue) String() string {
+	return "UsagesValue"
 }
 
-func (v ApiKeysDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v StorageUsageHistoryDataSourceUsagesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributeTypes := map[string]attr.Type{
-		"created_at":   basetypes.StringType{},
-		"expiring_at":  basetypes.StringType{},
-		"id":           basetypes.StringType{},
-		"last_used":    basetypes.StringType{},
-		"name":         basetypes.StringType{},
-		"org_id":       basetypes.StringType{},
-		"project_id":   basetypes.StringType{},
-		"project_name": basetypes.StringType{},
-		"secret":       basetypes.StringType{},
+		"image_file_count":    basetypes.Int64Type{},
+		"image_storage_bytes": basetypes.StringType{},
+		"last_updated":        basetypes.StringType{},
+		"max_image_count":     basetypes.Int64Type{},
+		"max_project_count":   basetypes.Int64Type{},
+		"max_video_count":     basetypes.Int64Type{},
+		"org_id":              basetypes.StringType{},
+		"project_count":       basetypes.Int64Type{},
+		"snapshot_date":       basetypes.StringType{},
+		"total_file_count":    basetypes.Int64Type{},
+		"total_storage_bytes": basetypes.StringType{},
+		"total_video_minutes": basetypes.StringType{},
+		"video_file_count":    basetypes.Int64Type{},
+		"video_storage_bytes": basetypes.StringType{},
 	}
 
 	if v.IsNull() {
@@ -774,22 +1022,27 @@ func (v ApiKeysDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.Ob
 	objVal, diags := types.ObjectValue(
 		attributeTypes,
 		map[string]attr.Value{
-			"created_at":   v.CreatedAt,
-			"expiring_at":  v.ExpiringAt,
-			"id":           v.Id,
-			"last_used":    v.LastUsed,
-			"name":         v.Name,
-			"org_id":       v.OrgId,
-			"project_id":   v.ProjectId,
-			"project_name": v.ProjectName,
-			"secret":       v.Secret,
+			"image_file_count":    v.ImageFileCount,
+			"image_storage_bytes": v.ImageStorageBytes,
+			"last_updated":        v.LastUpdated,
+			"max_image_count":     v.MaxImageCount,
+			"max_project_count":   v.MaxProjectCount,
+			"max_video_count":     v.MaxVideoCount,
+			"org_id":              v.OrgId,
+			"project_count":       v.ProjectCount,
+			"snapshot_date":       v.SnapshotDate,
+			"total_file_count":    v.TotalFileCount,
+			"total_storage_bytes": v.TotalStorageBytes,
+			"total_video_minutes": v.TotalVideoMinutes,
+			"video_file_count":    v.VideoFileCount,
+			"video_storage_bytes": v.VideoStorageBytes,
 		})
 
 	return objVal, diags
 }
 
-func (v ApiKeysDataSourceValue) Equal(o attr.Value) bool {
-	other, ok := o.(ApiKeysDataSourceValue)
+func (v StorageUsageHistoryDataSourceUsagesValue) Equal(o attr.Value) bool {
+	other, ok := o.(StorageUsageHistoryDataSourceUsagesValue)
 
 	if !ok {
 		return false
@@ -803,23 +1056,27 @@ func (v ApiKeysDataSourceValue) Equal(o attr.Value) bool {
 		return true
 	}
 
-	if !v.CreatedAt.Equal(other.CreatedAt) {
+	if !v.ImageFileCount.Equal(other.ImageFileCount) {
 		return false
 	}
 
-	if !v.ExpiringAt.Equal(other.ExpiringAt) {
+	if !v.ImageStorageBytes.Equal(other.ImageStorageBytes) {
 		return false
 	}
 
-	if !v.Id.Equal(other.Id) {
+	if !v.LastUpdated.Equal(other.LastUpdated) {
 		return false
 	}
 
-	if !v.LastUsed.Equal(other.LastUsed) {
+	if !v.MaxImageCount.Equal(other.MaxImageCount) {
 		return false
 	}
 
-	if !v.Name.Equal(other.Name) {
+	if !v.MaxProjectCount.Equal(other.MaxProjectCount) {
+		return false
+	}
+
+	if !v.MaxVideoCount.Equal(other.MaxVideoCount) {
 		return false
 	}
 
@@ -827,39 +1084,60 @@ func (v ApiKeysDataSourceValue) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.ProjectId.Equal(other.ProjectId) {
+	if !v.ProjectCount.Equal(other.ProjectCount) {
 		return false
 	}
 
-	if !v.ProjectName.Equal(other.ProjectName) {
+	if !v.SnapshotDate.Equal(other.SnapshotDate) {
 		return false
 	}
 
-	if !v.Secret.Equal(other.Secret) {
+	if !v.TotalFileCount.Equal(other.TotalFileCount) {
+		return false
+	}
+
+	if !v.TotalStorageBytes.Equal(other.TotalStorageBytes) {
+		return false
+	}
+
+	if !v.TotalVideoMinutes.Equal(other.TotalVideoMinutes) {
+		return false
+	}
+
+	if !v.VideoFileCount.Equal(other.VideoFileCount) {
+		return false
+	}
+
+	if !v.VideoStorageBytes.Equal(other.VideoStorageBytes) {
 		return false
 	}
 
 	return true
 }
 
-func (v ApiKeysDataSourceValue) Type(ctx context.Context) attr.Type {
-	return ApiKeysDataSourceType{
+func (v StorageUsageHistoryDataSourceUsagesValue) Type(ctx context.Context) attr.Type {
+	return StorageUsageHistoryDataSourceUsagesType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v ApiKeysDataSourceValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v StorageUsageHistoryDataSourceUsagesValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"created_at":   basetypes.StringType{},
-		"expiring_at":  basetypes.StringType{},
-		"id":           basetypes.StringType{},
-		"last_used":    basetypes.StringType{},
-		"name":         basetypes.StringType{},
-		"org_id":       basetypes.StringType{},
-		"project_id":   basetypes.StringType{},
-		"project_name": basetypes.StringType{},
-		"secret":       basetypes.StringType{},
+		"image_file_count":    basetypes.Int64Type{},
+		"image_storage_bytes": basetypes.StringType{},
+		"last_updated":        basetypes.StringType{},
+		"max_image_count":     basetypes.Int64Type{},
+		"max_project_count":   basetypes.Int64Type{},
+		"max_video_count":     basetypes.Int64Type{},
+		"org_id":              basetypes.StringType{},
+		"project_count":       basetypes.Int64Type{},
+		"snapshot_date":       basetypes.StringType{},
+		"total_file_count":    basetypes.Int64Type{},
+		"total_storage_bytes": basetypes.StringType{},
+		"total_video_minutes": basetypes.StringType{},
+		"video_file_count":    basetypes.Int64Type{},
+		"video_storage_bytes": basetypes.StringType{},
 	}
 }
