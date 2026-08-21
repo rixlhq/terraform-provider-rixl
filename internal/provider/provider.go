@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -80,18 +82,19 @@ func (p *rixlProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 		return
 	}
 
-	opts := []sdk.Option{}
-	if bearer != "" {
-		opts = append(opts, sdk.WithBearer(bearer))
+	httpClient, err := newHTTPClient(base)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid base_url", err.Error())
+		return
 	}
 
-	if base != defaultBaseURL {
-		httpClient, err := newHTTPClient(base)
-		if err != nil {
-			resp.Diagnostics.AddError("Invalid base_url", err.Error())
-			return
-		}
-		opts = append(opts, sdk.WithHTTPClient(httpClient))
+	opts := []sdk.Option{sdk.WithHTTPClient(httpClient)}
+	if bearer != "" {
+		// WithBearer replaces the editor list, so the API key header set by
+		// sdk.New would be cleared regardless. Pass an empty API key to make
+		// the intent explicit and avoid sending an X-API-Key header.
+		apiKey = ""
+		opts = append(opts, sdk.WithBearer(bearer))
 	}
 
 	client, err := sdk.New(apiKey, opts...)
@@ -166,8 +169,22 @@ func newHTTPClient(base string) (*http.Client, error) {
 	if baseURL.Scheme == "" || baseURL.Host == "" {
 		return nil, errors.New("base_url must include scheme and host")
 	}
+
+	var baseTransport http.RoundTripper
+	if dt, ok := http.DefaultTransport.(*http.Transport); ok {
+		cloned := dt.Clone()
+		cloned.DialContext = (&net.Dialer{
+			Timeout:   5 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext
+		baseTransport = cloned
+	} else {
+		baseTransport = http.DefaultTransport
+	}
+
 	return &http.Client{
-		Transport: &baseURLTransport{base: baseURL, inner: http.DefaultTransport},
+		Timeout:   30 * time.Second,
+		Transport: &baseURLTransport{base: baseURL, inner: baseTransport},
 	}, nil
 }
 
@@ -181,13 +198,17 @@ func (t *baseURLTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	newURL.Scheme = t.base.Scheme
 	newURL.Host = t.base.Host
 	if t.base.Path != "" {
-		newURL.Path = strings.TrimSuffix(t.base.Path, "/") + newURL.Path
+		prefix := strings.TrimSuffix(t.base.Path, "/")
+		newURL.Path = prefix + newURL.Path
+		if newURL.RawPath != "" {
+			newURL.RawPath = prefix + newURL.RawPath
+		}
 	}
-	newURL.RawPath = ""
 	req = req.Clone(req.Context())
 	req.URL = &newURL
 	if req.Host != "" {
 		req.Host = t.base.Host
 	}
+	req.Header.Set("User-Agent", "terraform-provider-rixl")
 	return t.inner.RoundTrip(req)
 }

@@ -114,9 +114,11 @@ func (r *dashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	var visibility *string
-	if !plan.Visibility.IsUnknown() {
+	if !plan.Visibility.IsNull() && !plan.Visibility.IsUnknown() {
 		v := plan.Visibility.ValueString()
-		visibility = &v
+		if v != "" {
+			visibility = &v
+		}
 	}
 
 	updateBody := models.AnalyticsV1UpdateDashboardRequest{
@@ -184,7 +186,7 @@ func DashboardResourceSchema(_ context.Context) schema.Schema {
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf("", "private", "org"),
+					stringvalidator.OneOf("private", "org"),
 				},
 			},
 			"is_default": schema.BoolAttribute{

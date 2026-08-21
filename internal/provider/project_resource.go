@@ -2,7 +2,9 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -12,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
 	"github.com/rixlhq/rixl-go/sdk/models"
+	"github.com/rixlhq/rixl-go/sdk/projects"
 )
 
 var _ resource.Resource = (*projectResource)(nil)
@@ -65,7 +68,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		body.Regions = regions
 	}
 
-	if !data.VideoQuality.IsNull() && !data.VideoQuality.IsUnknown() {
+	if !data.VideoQuality.IsNull() && !data.VideoQuality.IsUnknown() && data.VideoQuality.ValueString() != "" {
 		q := models.CommonV1VideoQuality(data.VideoQuality.ValueString())
 		body.VideoQuality = &q
 	}
@@ -92,6 +95,11 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	project, err := r.client.Projects.GetProject(ctx, orgID.ValueString(), projectID.ValueString())
 	if err != nil {
+		var httpErr *projects.ClientHttpError[struct{}]
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to read project", err.Error())
 		return
 	}
@@ -128,18 +136,28 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 			Name:      stringPtr(plan.Name.ValueString()),
 		}
 		if _, err := r.client.Projects.UpdateProjectName(ctx, orgID, projectID, body); err != nil {
+			var httpErr *projects.ClientHttpError[struct{}]
+			if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+				resp.State.RemoveResource(ctx)
+				return
+			}
 			resp.Diagnostics.AddError("Failed to update project name", err.Error())
 			return
 		}
 	}
 
-	if !plan.VideoQuality.Equal(state.VideoQuality) && !plan.VideoQuality.IsUnknown() && !plan.VideoQuality.IsNull() {
+	if !plan.VideoQuality.Equal(state.VideoQuality) && !plan.VideoQuality.IsUnknown() && !plan.VideoQuality.IsNull() && plan.VideoQuality.ValueString() != "" {
 		body := models.UpdateVideoQualityJSONRequest{
 			ProjectID:    stringPtr(projectID),
 			OrgID:        stringPtr(orgID),
 			VideoQuality: models.CommonV1VideoQuality(plan.VideoQuality.ValueString()),
 		}
 		if _, err := r.client.Projects.UpdateVideoQuality(ctx, orgID, projectID, body); err != nil {
+			var httpErr *projects.ClientHttpError[struct{}]
+			if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+				resp.State.RemoveResource(ctx)
+				return
+			}
 			resp.Diagnostics.AddError("Failed to update project video quality", err.Error())
 			return
 		}
@@ -147,6 +165,11 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	project, err := r.client.Projects.GetProject(ctx, orgID, projectID)
 	if err != nil {
+		var httpErr *projects.ClientHttpError[struct{}]
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to read project after update", err.Error())
 		return
 	}
@@ -176,6 +199,10 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 
 	if _, err := r.client.Projects.DeleteProject(ctx, data.OrgId.ValueString(), data.Id.ValueString()); err != nil {
+		var httpErr *projects.ClientHttpError[struct{}]
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError("Failed to delete project", err.Error())
 		return
 	}

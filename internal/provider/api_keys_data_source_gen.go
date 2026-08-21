@@ -53,10 +53,6 @@ func ApiKeysDataSourceSchema(ctx context.Context) schema.Schema {
 						"project_name": schema.StringAttribute{
 							Computed: true,
 						},
-						"secret": schema.StringAttribute{
-							Computed:  true,
-							Sensitive: true,
-						},
 					},
 					CustomType: ApiKeysDataSourceType{
 						ObjectType: types.ObjectType{
@@ -270,24 +266,6 @@ func (t ApiKeysDataSourceType) ValueFromObject(ctx context.Context, in basetypes
 			fmt.Sprintf(`project_name expected to be basetypes.StringValue, was: %T`, projectNameAttribute))
 	}
 
-	secretAttribute, ok := attributes["secret"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`secret is missing from object`)
-
-		return nil, diags
-	}
-
-	secretVal, ok := secretAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`secret expected to be basetypes.StringValue, was: %T`, secretAttribute))
-	}
-
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -301,7 +279,6 @@ func (t ApiKeysDataSourceType) ValueFromObject(ctx context.Context, in basetypes
 		OrgId:       orgIdVal,
 		ProjectId:   projectIdVal,
 		ProjectName: projectNameVal,
-		Secret:      secretVal,
 		state:       attr.ValueStateKnown,
 	}, diags
 }
@@ -513,24 +490,6 @@ func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes m
 			fmt.Sprintf(`project_name expected to be basetypes.StringValue, was: %T`, projectNameAttribute))
 	}
 
-	secretAttribute, ok := attributes["secret"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`secret is missing from object`)
-
-		return NewApiKeysDataSourceValueUnknown(), diags
-	}
-
-	secretVal, ok := secretAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`secret expected to be basetypes.StringValue, was: %T`, secretAttribute))
-	}
-
 	if diags.HasError() {
 		return NewApiKeysDataSourceValueUnknown(), diags
 	}
@@ -544,7 +503,6 @@ func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes m
 		OrgId:       orgIdVal,
 		ProjectId:   projectIdVal,
 		ProjectName: projectNameVal,
-		Secret:      secretVal,
 		state:       attr.ValueStateKnown,
 	}, diags
 }
@@ -625,12 +583,11 @@ type ApiKeysDataSourceValue struct {
 	OrgId       basetypes.StringValue `tfsdk:"org_id"`
 	ProjectId   basetypes.StringValue `tfsdk:"project_id"`
 	ProjectName basetypes.StringValue `tfsdk:"project_name"`
-	Secret      basetypes.StringValue `tfsdk:"secret"`
 	state       attr.ValueState
 }
 
 func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 9)
+	attrTypes := make(map[string]tftypes.Type, 8)
 
 	var val tftypes.Value
 	var err error
@@ -643,13 +600,12 @@ func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.V
 	attrTypes["org_id"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["project_id"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["project_name"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["secret"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 9)
+		vals := make(map[string]tftypes.Value, 8)
 
 		val, err = v.CreatedAt.ToTerraformValue(ctx)
 
@@ -715,14 +671,6 @@ func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.V
 
 		vals["project_name"] = val
 
-		val, err = v.Secret.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["secret"] = val
-
 		if err := tftypes.ValidateValue(objectType, vals); err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
@@ -761,7 +709,6 @@ func (v ApiKeysDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.Ob
 		"org_id":       basetypes.StringType{},
 		"project_id":   basetypes.StringType{},
 		"project_name": basetypes.StringType{},
-		"secret":       basetypes.StringType{},
 	}
 
 	if v.IsNull() {
@@ -783,7 +730,6 @@ func (v ApiKeysDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.Ob
 			"org_id":       v.OrgId,
 			"project_id":   v.ProjectId,
 			"project_name": v.ProjectName,
-			"secret":       v.Secret,
 		})
 
 	return objVal, diags
@@ -836,10 +782,6 @@ func (v ApiKeysDataSourceValue) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.Secret.Equal(other.Secret) {
-		return false
-	}
-
 	return true
 }
 
@@ -861,6 +803,5 @@ func (v ApiKeysDataSourceValue) AttributeTypes(ctx context.Context) map[string]a
 		"org_id":       basetypes.StringType{},
 		"project_id":   basetypes.StringType{},
 		"project_name": basetypes.StringType{},
-		"secret":       basetypes.StringType{},
 	}
 }
