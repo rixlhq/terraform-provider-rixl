@@ -290,6 +290,7 @@ func videoResourceAttributes() map[string]schema.Attribute {
 
 type VideoResourceModel struct {
 	VideoDataSourceModel
+
 	ProjectId      types.String `tfsdk:"project_id"`
 	Name           types.String `tfsdk:"name"`
 	FilePath       types.String `tfsdk:"file_path"`

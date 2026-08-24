@@ -260,6 +260,7 @@ func ImageResourceSchema(_ context.Context) schema.Schema {
 
 type ImageResourceModel struct {
 	ImageDataSourceModel
+
 	ProjectId types.String `tfsdk:"project_id"`
 	Name      types.String `tfsdk:"name"`
 	FilePath  types.String `tfsdk:"file_path"`

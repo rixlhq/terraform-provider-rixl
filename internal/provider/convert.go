@@ -1,4 +1,4 @@
-//nolint:revive,gocognit,unparam // conversion helpers are inherently long and branchy
+//nolint:revive,unparam // conversion helpers are inherently long and branchy
 package provider
 
 import (

@@ -19,7 +19,11 @@ import (
 	"github.com/rixlhq/rixl-go/sdk"
 )
 
-const defaultBaseURL = "https://api.rixl.com"
+const (
+	defaultBaseURL = "https://api.rixl.com"
+	userAgent      = "terraform-provider-rixl"
+	providerAPIKey = "api_key"
+)
 
 var _ provider.Provider = (*rixlProvider)(nil)
 
@@ -42,7 +46,7 @@ func (p *rixlProvider) Metadata(_ context.Context, _ provider.MetadataRequest, r
 func (p *rixlProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"api_key": schema.StringAttribute{
+			providerAPIKey: schema.StringAttribute{
 				Optional:    true,
 				Sensitive:   true,
 				Description: "Rixl API key. May also be set via the RIXL_API_KEY environment variable.",
@@ -218,7 +222,7 @@ func newHTTPClient() *http.Client {
 
 	return &http.Client{
 		Timeout:   30 * time.Second,
-		Transport: &userAgentTransport{inner: baseTransport, ua: "terraform-provider-rixl"},
+		Transport: &userAgentTransport{inner: baseTransport, ua: userAgent},
 	}
 }
 

@@ -32,7 +32,7 @@ func TestUserAgentTransportDoesNotRewriteURL(t *testing.T) {
 		}, nil
 	})
 
-	client := &http.Client{Transport: &userAgentTransport{inner: inner, ua: "terraform-provider-rixl"}}
+	client := &http.Client{Transport: &userAgentTransport{inner: inner, ua: userAgent}}
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPut, originalURL, nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
@@ -47,7 +47,7 @@ func TestUserAgentTransportDoesNotRewriteURL(t *testing.T) {
 	if got == nil {
 		t.Fatalf("request was not sent through transport")
 	}
-	if got.Header.Get("User-Agent") != "terraform-provider-rixl" {
+	if got.Header.Get("User-Agent") != userAgent {
 		t.Fatalf("expected User-Agent header, got %q", got.Header.Get("User-Agent"))
 	}
 	if got.URL.String() != originalURL {
