@@ -7,9 +7,6 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
 	"github.com/rixlhq/rixl-go/sdk/memberships"
@@ -219,96 +216,4 @@ func (r *organizationMemberResource) Delete(ctx context.Context, req resource.De
 		resp.Diagnostics.AddError("Failed to remove organization member", err.Error())
 		return
 	}
-}
-
-func (r *organizationMemberResource) findMember(ctx context.Context, orgID, userID string) (any, error) {
-	params := &memberships.ListOrganizationMembersParams{
-		Limit: new(int32(100)),
-	}
-	if userID != "" {
-		params.UserUserId = new(userID)
-	}
-
-	listResp, err := r.client.Memberships.ListOrganizationMembers(ctx, orgID, params, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range listResp.Members {
-		member := listResp.Members[i]
-		memberMap, err := responseToMap(member)
-		if err != nil {
-			continue
-		}
-		if uid, ok := memberMap["user_id"].(string); ok && uid == userID {
-			return member, nil
-		}
-	}
-	return nil, nil
-}
-
-func (r *organizationMemberResource) applyState(ctx context.Context, orgID, userID, desiredState string) error {
-	switch desiredState {
-	case "MEMBERSHIP_STATE_SUSPENDED":
-		_, err := r.client.Memberships.SuspendMember(ctx, orgID, userID, nil)
-		return err
-	case "MEMBERSHIP_STATE_ACTIVE":
-		_, err := r.client.Memberships.ReactivateMember(ctx, orgID, userID, nil)
-		return err
-	default:
-		return nil
-	}
-}
-
-func OrganizationMemberResourceSchema() schema.Schema {
-	return schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-			},
-			"org_id": schema.StringAttribute{
-				Required:      true,
-				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
-			},
-			"user_id": schema.StringAttribute{
-				Required:      true,
-				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
-			},
-			"role": schema.StringAttribute{
-				Required: true,
-			},
-			"state": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-			},
-			"username": schema.StringAttribute{
-				Computed: true,
-			},
-			"first_name": schema.StringAttribute{
-				Computed: true,
-			},
-			"last_name": schema.StringAttribute{
-				Computed: true,
-			},
-			"joined_at": schema.StringAttribute{
-				Computed: true,
-			},
-			"invitation_expires_at": schema.StringAttribute{
-				Computed: true,
-			},
-		},
-	}
-}
-
-type OrganizationMemberResourceModel struct {
-	Id                  types.String `tfsdk:"id"`
-	OrgId               types.String `tfsdk:"org_id"`
-	UserId              types.String `tfsdk:"user_id"`
-	Role                types.String `tfsdk:"role"`
-	State               types.String `tfsdk:"state"`
-	Username            types.String `tfsdk:"username"`
-	FirstName           types.String `tfsdk:"first_name"`
-	LastName            types.String `tfsdk:"last_name"`
-	JoinedAt            types.String `tfsdk:"joined_at"`
-	InvitationExpiresAt types.String `tfsdk:"invitation_expires_at"`
 }

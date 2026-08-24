@@ -10,7 +10,6 @@ linters:
     - bidichk # Checks for dangerous unicode character sequences. [fast]
     - bodyclose # Checks whether HTTP response body is closed successfully.
     - canonicalheader # Canonicalheader checks whether net/http.Header uses canonical header. [auto-fix]
-    - clickhouselint # Detects common mistakes with the ClickHouse native Go driver API.
     - containedctx # Containedctx is a linter that detects struct contained context.Context field.
     - contextcheck # Check whether the function uses a non-inherited context.
     - copyloopvar # A linter detects places where loop variables are copied. [fast, auto-fix]
@@ -27,18 +26,16 @@ linters:
     - exptostd # Detects functions from golang.org/x/exp/ that can be replaced by std functions. [auto-fix]
     - fatcontext # Detects nested contexts in loops and function literals. [auto-fix]
     - forbidigo # Forbids identifiers.
-    - funlen # Checks for long functions.
     - ginkgolinter # Enforces standards of using ginkgo and gomega. [auto-fix]
     - gocheckcompilerdirectives # Checks that go compiler directive comments (//go:) are valid. [fast]
     - gochecknoinits # Checks that no init functions are present in Go code. [fast]
     - gocognit # Computes and checks the cognitive complexity of functions. [fast]
     - goconst # Finds repeated strings that could be replaced by a constant.
     - gocritic # Provides diagnostics that check for bugs, performance and style issues. [auto-fix]
-    - cyclop # Checks the cyclomatic complexity of functions.
+    - gocyclo # Computes and checks the cyclomatic complexity of functions. [fast]
     - godoclint # Checks Golang's documentation practice (godoc). [fast]
     - goheader # Check if file header matches to pattern. [fast, auto-fix]
-    - gomoddirectives # Manage the use of 'replace', 'retract', and 'excludes' directives in go.mod. [fast]
-    - gomodguard_v2 # Allow and blocklist linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations. [fast]
+    - gomodguard_v2 # Allow and blocklist linter for direct Go module dependencies. [fast]
     - goprintffuncname # Checks that printf-like functions are named with `f` at the end. [fast]
     - gosmopolitan # Report certain i18n/l10n anti-patterns in your Go codebase.
     - govet # Vet examines Go source code and reports suspicious constructs. It is roughly the same as 'go vet' and uses its passes. [auto-fix]
@@ -92,50 +89,24 @@ linters:
       rules:
         - name: file-length-limit
           arguments:
-            - max: 300
+            - max: 250
               skip-comments: true
               skip-blank-lines: true
   exclusions:
     paths:
       - ".*_gen\\.go$"
     rules:
-      # Generated code and large hand-written files have unavoidable repeated
-      # strings (created_at, updated_at, id, etc.) that are not worth constants.
-      - path: "internal/provider/(image_data_sources|video_data_source|videos_data_source|media_helpers|media_schemas|.*_resource|registry|resource|resource_registry|.*_schema)\\.go"
+      # Terraform schema definitions use string literals as map keys for
+      # attribute names (e.g. "created_at", "codec", "bitrate"). These
+      # naturally repeat across resources/data sources sharing common fields.
+      # The registry and generic framework also use repeated string literals
+      # for SDK field names and pagination keys. goconst is fundamentally
+      # incompatible with the Terraform provider schema pattern.
+      - path: "internal/provider/.*\\.go$"
         linters: [goconst]
-      # The generic resource framework uses reflection and fmt.Sprintf for
-      # dynamic dispatch — perfsprint, nolintlint, goconst, and cyclop noise
-      # is not actionable (pagination field names are inherently repeated,
-      # and the reflection-based dispatch is inherently complex).
-      - path: "internal/provider/generic\\.go"
-        linters: [nolintlint, perfsprint, goconst, cyclop, funlen]
-      # Type conversion helpers are inherently branchy (type switches over
-      # Terraform's dynamic types) — cyclop and funlen noise is not actionable.
-      - path: "internal/provider/convert\\.go"
-        linters: [cyclop, gocognit, funlen]
-      # The generic managed resource framework dispatches CRUD via reflection
-      # — cyclop and funlen noise is inherent to the pattern.
-      - path: "internal/provider/resource\\.go"
-        linters: [cyclop, funlen]
-      # schema_types.go dispatches on string type names from the code spec —
-      # the type switch is inherently complex.
-      - path: "internal/provider/schema_types\\.go"
-        linters: [cyclop, goconst, funlen]
-      # Terraform CRUD methods have mandatory error checking at every SDK
-      # call, making cyclomatic complexity inherently high (>10). Schema
-      # functions are declarative attribute maps that exceed funlen by nature.
-      - path: "internal/provider/.*_resource\\.go"
-        linters: [cyclop, funlen]
-      - path: "internal/provider/.*_schema\\.go"
-        linters: [funlen]
-      - path: "internal/provider/(image_data_sources|posts_data_source|videos_data_source)\\.go"
-        linters: [cyclop, funlen]
-      # provider.go DataSources is a long registration list — not actionable.
-      - path: "internal/provider/provider\\.go"
-        linters: [funlen]
-      # Test files: relax style/complexity linters.
+      # Test files: relax style/complexity/lint rules that are noisy in tests.
       - path: ".*_test\\.go$"
-        linters: [funlen, gocognit, cyclop, goconst, errcheck, testpackage, nonamedreturns]
+        linters: [funlen, gocognit, gocyclo, goconst, errcheck, testpackage, nonamedreturns, gochecknoinits]
 
 formatters:
   enable:

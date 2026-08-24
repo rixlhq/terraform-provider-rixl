@@ -1,4 +1,3 @@
-//nolint:goconst // tfsdk attribute names are repeated throughout the provider
 package provider
 
 import (

@@ -1,4 +1,4 @@
-//nolint:revive,unparam // conversion helpers are inherently long and branchy
+//nolint:revive // conversion helpers are inherently long and branchy
 package provider
 
 import (
@@ -104,22 +104,7 @@ func mapToModel(ctx context.Context, m map[string]any, model any, attributes map
 		// Recurse into embedded (anonymous) struct fields so models can
 		// compose a base data-source model with additional resource fields.
 		if field.Anonymous {
-			fieldVal := val.Field(i)
-			if field.Type.Kind() == reflect.Pointer {
-				if fieldVal.IsNil() {
-					fieldVal.Set(reflect.New(field.Type.Elem()))
-				}
-				diags.Append(mapToModel(ctx, m, fieldVal.Interface(), attributes, preserve)...)
-				if diags.HasError() {
-					return diags
-				}
-				continue
-			}
-			if field.Type.Kind() == reflect.Struct {
-				diags.Append(mapToModel(ctx, m, fieldVal.Addr().Interface(), attributes, preserve)...)
-				if diags.HasError() {
-					return diags
-				}
+			if recurseEmbedded(ctx, m, val.Field(i), field, attributes, preserve, &diags) {
 				continue
 			}
 		}
@@ -137,12 +122,8 @@ func mapToModel(ctx context.Context, m map[string]any, model any, attributes map
 		raw, ok := m[name]
 		if !ok {
 			if preserve[name] {
-				// The response did not include this attribute. Preserve the
-				// existing value, which may be a user-provided input (e.g.
-				// file_path) or a value from an earlier state refresh.
 				continue
 			}
-			// The response no longer contains this attribute; reset it.
 			raw = nil
 		}
 
@@ -156,6 +137,27 @@ func mapToModel(ctx context.Context, m map[string]any, model any, attributes map
 	}
 
 	return diags
+}
+
+// recurseEmbedded handles anonymous embedded struct/pointer fields during
+// mapToModel, recursing into them so models can compose a base data-source
+// model with additional resource fields. Returns true if the field was handled.
+func recurseEmbedded(ctx context.Context, m map[string]any, fieldVal reflect.Value, field reflect.StructField, attributes map[string]attr.Type, preserve map[string]bool, diags *diag.Diagnostics) bool {
+	if !field.Anonymous {
+		return false
+	}
+	if field.Type.Kind() == reflect.Pointer {
+		if fieldVal.IsNil() {
+			fieldVal.Set(reflect.New(field.Type.Elem()))
+		}
+		diags.Append(mapToModel(ctx, m, fieldVal.Interface(), attributes, preserve)...)
+		return true
+	}
+	if field.Type.Kind() == reflect.Struct {
+		diags.Append(mapToModel(ctx, m, fieldVal.Addr().Interface(), attributes, preserve)...)
+		return true
+	}
+	return false
 }
 
 // mergeStateAndPlan returns a new model that contains the prior state values
@@ -374,8 +376,7 @@ func nativeToTftypes(ctx context.Context, v any, tfType tftypes.Type) (tftypes.V
 
 	switch {
 	case tfType.Is(tftypes.String):
-		s := nativeToString(v)
-		return tftypes.NewValue(tfType, s), diags
+		return tftypes.NewValue(tfType, nativeToString(v)), diags
 	case tfType.Is(tftypes.Bool):
 		b, err := toBool(v)
 		if err != nil {
@@ -391,61 +392,75 @@ func nativeToTftypes(ctx context.Context, v any, tfType tftypes.Type) (tftypes.V
 		}
 		return tftypes.NewValue(tfType, n), diags
 	case tfType.Is(tftypes.List{}), tfType.Is(tftypes.Set{}), tfType.Is(tftypes.Tuple{}):
-		slice, ok := v.([]any)
-		if !ok {
-			diags.AddError("Type mismatch", fmt.Sprintf("expected list, got %T", v))
-			return tftypes.Value{}, diags
-		}
-		elements := make([]tftypes.Value, 0, len(slice))
-		var elemType tftypes.Type
-		switch t := tfType.(type) {
-		case tftypes.List:
-			elemType = t.ElementType
-		case tftypes.Set:
-			elemType = t.ElementType
-		case tftypes.Tuple:
-			if len(slice) != len(t.ElementTypes) {
-				diags.AddError("Tuple length mismatch", fmt.Sprintf("expected %d elements, got %d", len(t.ElementTypes), len(slice)))
-				return tftypes.Value{}, diags
-			}
-		}
-		for i, e := range slice {
-			if tup, ok := tfType.(tftypes.Tuple); ok {
-				elemType = tup.ElementTypes[i]
-			}
-			ev, d := nativeToTftypes(ctx, e, elemType)
-			diags.Append(d...)
-			if diags.HasError() {
-				return tftypes.Value{}, diags
-			}
-			elements = append(elements, ev)
-		}
-		return tftypes.NewValue(tfType, elements), diags
+		return nativeSliceToTftypes(ctx, v, tfType)
 	case tfType.Is(tftypes.Object{}):
-		m, ok := v.(map[string]any)
-		if !ok {
-			diags.AddError("Type mismatch", fmt.Sprintf("expected object, got %T", v))
-			return tftypes.Value{}, diags
-		}
-		objType := tfType.(tftypes.Object)
-		attrs := make(map[string]tftypes.Value, len(objType.AttributeTypes))
-		for name, at := range objType.AttributeTypes {
-			raw, ok := m[name]
-			if !ok {
-				raw = nil
-			}
-			ev, d := nativeToTftypes(ctx, raw, at)
-			diags.Append(d...)
-			if diags.HasError() {
-				return tftypes.Value{}, diags
-			}
-			attrs[name] = ev
-		}
-		return tftypes.NewValue(tfType, attrs), diags
+		return nativeObjectToTftypes(ctx, v, tfType)
 	default:
 		diags.AddError("Unsupported terraform type", "cannot build tftypes.Value for "+tfType.String())
 		return tftypes.Value{}, diags
 	}
+}
+
+func nativeSliceToTftypes(ctx context.Context, v any, tfType tftypes.Type) (tftypes.Value, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	slice, ok := v.([]any)
+	if !ok {
+		diags.AddError("Type mismatch", fmt.Sprintf("expected list, got %T", v))
+		return tftypes.Value{}, diags
+	}
+
+	elements := make([]tftypes.Value, 0, len(slice))
+	var elemType tftypes.Type
+	switch t := tfType.(type) {
+	case tftypes.List:
+		elemType = t.ElementType
+	case tftypes.Set:
+		elemType = t.ElementType
+	case tftypes.Tuple:
+		if len(slice) != len(t.ElementTypes) {
+			diags.AddError("Tuple length mismatch", fmt.Sprintf("expected %d elements, got %d", len(t.ElementTypes), len(slice)))
+			return tftypes.Value{}, diags
+		}
+	}
+	for i, e := range slice {
+		if tup, ok := tfType.(tftypes.Tuple); ok {
+			elemType = tup.ElementTypes[i]
+		}
+		ev, d := nativeToTftypes(ctx, e, elemType)
+		diags.Append(d...)
+		if diags.HasError() {
+			return tftypes.Value{}, diags
+		}
+		elements = append(elements, ev)
+	}
+	return tftypes.NewValue(tfType, elements), diags
+}
+
+func nativeObjectToTftypes(ctx context.Context, v any, tfType tftypes.Type) (tftypes.Value, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	m, ok := v.(map[string]any)
+	if !ok {
+		diags.AddError("Type mismatch", fmt.Sprintf("expected object, got %T", v))
+		return tftypes.Value{}, diags
+	}
+
+	objType := tfType.(tftypes.Object)
+	attrs := make(map[string]tftypes.Value, len(objType.AttributeTypes))
+	for name, at := range objType.AttributeTypes {
+		raw, ok := m[name]
+		if !ok {
+			raw = nil
+		}
+		ev, d := nativeToTftypes(ctx, raw, at)
+		diags.Append(d...)
+		if diags.HasError() {
+			return tftypes.Value{}, diags
+		}
+		attrs[name] = ev
+	}
+	return tftypes.NewValue(tfType, attrs), diags
 }
 
 // nativeToString formats a native Go value as a decimal string without using

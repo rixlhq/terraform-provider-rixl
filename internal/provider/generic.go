@@ -4,6 +4,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"math"
@@ -171,8 +172,6 @@ func (d *managedDataSource) dataSourceSchema(ctx context.Context) dschema.Schema
 
 // mapResponsePagination maps response pagination fields (limit/offset) to model
 // fields that may be named "limit"/"offset" or "paginationlimit"/"paginationoffset".
-//
-//nolint:gocognit // pagination mapping handles many field types
 func mapResponsePagination(_ context.Context, m map[string]any, data any) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -290,7 +289,7 @@ func invokeSDKMethod(ctx context.Context, method reflect.Value, data any, pathPa
 func invokeSDKMethodErr(ctx context.Context, method reflect.Value, data any, pathParams []string) (reflect.Value, error) {
 	mtype := method.Type()
 	if mtype.NumIn() == 0 || mtype.In(0) != reflect.TypeFor[context.Context]() {
-		return reflect.Value{}, fmt.Errorf("SDK method signature invalid: first argument must be context.Context")
+		return reflect.Value{}, errors.New("SDK method signature invalid: first argument must be context.Context")
 	}
 
 	args := []reflect.Value{reflect.ValueOf(ctx)}
@@ -354,7 +353,7 @@ func invokeSDKMethodErr(ctx context.Context, method reflect.Value, data any, pat
 
 	rets := method.Call(args)
 	if len(rets) < 2 {
-		return reflect.Value{}, fmt.Errorf("SDK method return mismatch: expected (response, error)")
+		return reflect.Value{}, errors.New("SDK method return mismatch: expected (response, error)")
 	}
 
 	errVal := rets[len(rets)-1]
