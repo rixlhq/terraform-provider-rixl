@@ -161,3 +161,36 @@ func fieldValueByName(val reflect.Value, name string) reflect.Value {
 	field := val.FieldByName(name)
 	return field
 }
+
+// userProvidedAttributes returns the names of top-level attributes that are
+// user-provided (Required or Optional). These are inputs that the API may not
+// echo, so they should be preserved when mapping a response into a model.
+func userProvidedAttributes(attributes any) (map[string]bool, error) {
+	attrsVal := reflect.ValueOf(attributes)
+	if attrsVal.Kind() != reflect.Map {
+		return nil, fmt.Errorf("expected map of attributes, got %T", attributes)
+	}
+
+	out := make(map[string]bool, attrsVal.Len())
+	for _, key := range attrsVal.MapKeys() {
+		name := key.String()
+		attrVal := attrsVal.MapIndex(key)
+		if attrVal.Kind() == reflect.Pointer {
+			attrVal = attrVal.Elem()
+		}
+		if !attrVal.IsValid() {
+			continue
+		}
+
+		required := fieldValueByName(attrVal, "Required")
+		optional := fieldValueByName(attrVal, "Optional")
+		if required.IsValid() && required.Bool() {
+			out[name] = true
+			continue
+		}
+		if optional.IsValid() && optional.Bool() {
+			out[name] = true
+		}
+	}
+	return out, nil
+}

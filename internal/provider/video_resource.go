@@ -144,10 +144,17 @@ func (r *videoResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
+	dataAny, diags := mergeStateAndPlan(ctx, &state, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data := dataAny.(*VideoResourceModel)
+
 	if !plan.Visibility.Equal(state.Visibility) && !plan.Visibility.IsNull() && !plan.Visibility.IsUnknown() {
 		vis := models.CommonV1Visibility(plan.Visibility.ValueString())
-		projectID := state.ProjectId.ValueString()
-		videoID := state.Id.ValueString()
+		projectID := data.ProjectId.ValueString()
+		videoID := data.Id.ValueString()
 		body := models.VideosV1UpdateVideoVisibilityRequest{
 			ProjectID:  &projectID,
 			VideoID:    &videoID,
@@ -166,7 +173,7 @@ func (r *videoResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 	}
 
-	res, err := r.client.Videos.GetVideo(ctx, state.Id.ValueString())
+	res, err := r.client.Videos.GetVideo(ctx, data.Id.ValueString())
 	if err != nil {
 		var httpErr *videos.ClientHttpError[struct{}]
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
@@ -177,16 +184,16 @@ func (r *videoResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	resp.Diagnostics.Append(mapResponseToModel(ctx, res.Video, &plan, VideoResourceSchema(ctx).Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, res.Video, data, VideoResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if plan.ProjectId.IsNull() || plan.ProjectId.IsUnknown() {
-		plan.ProjectId = state.ProjectId
+	if data.ProjectId.IsNull() || data.ProjectId.IsUnknown() {
+		data.ProjectId = state.ProjectId
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *videoResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -251,6 +258,9 @@ func VideoResourceSchema(_ context.Context) schema.Schema {
 	attrs["name"] = schema.StringAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.RequiresReplace(),
+		},
 	}
 	attrs["project_id"] = schema.StringAttribute{
 		Required:      true,

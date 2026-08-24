@@ -126,8 +126,15 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	orgID := plan.OrgId.ValueString()
-	projectID := state.Id.ValueString()
+	dataAny, diags := mergeStateAndPlan(ctx, &state, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data := dataAny.(*ProjectModel)
+
+	orgID := data.OrgId.ValueString()
+	projectID := data.Id.ValueString()
 
 	if !plan.Name.Equal(state.Name) {
 		body := models.UpdateProjectNameJSONRequest{
@@ -174,8 +181,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	var data ProjectModel
-	resp.Diagnostics.Append(mapResponseToModel(ctx, project, &data, ProjectResourceSchema(ctx).Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, project, data, ProjectResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -188,7 +194,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		data.Id = state.Id
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -201,6 +207,7 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	if _, err := r.client.Projects.DeleteProject(ctx, data.OrgId.ValueString(), data.Id.ValueString()); err != nil {
 		var httpErr *projects.ClientHttpError[struct{}]
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Failed to delete project", err.Error())

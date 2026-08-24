@@ -127,7 +127,14 @@ func (r *accessPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	body, d := modelToMap(ctx, &plan)
+	dataAny, diags := mergeStateAndPlan(ctx, &state, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data := dataAny.(*AccessPolicyModel)
+
+	body, d := modelToMap(ctx, data)
 	resp.Diagnostics.Append(d...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -138,7 +145,7 @@ func (r *accessPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 	delete(body, "created_at")
 	delete(body, "updated_at")
 
-	policy, err := r.client.AccessPolicies.UpdatePolicy(ctx, state.OrgId.ValueString(), state.Id.ValueString(), body)
+	policy, err := r.client.AccessPolicies.UpdatePolicy(ctx, data.OrgId.ValueString(), data.Id.ValueString(), body)
 	if err != nil {
 		var httpErr *accesspolicies.ClientHttpError[struct{}]
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
@@ -149,19 +156,19 @@ func (r *accessPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	resp.Diagnostics.Append(mapResponseToModel(ctx, policy, &plan, AccessPolicyResourceSchema(ctx).Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, policy, data, AccessPolicyResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if plan.OrgId.IsNull() || plan.OrgId.IsUnknown() {
-		plan.OrgId = state.OrgId
+	if data.OrgId.IsNull() || data.OrgId.IsUnknown() {
+		data.OrgId = state.OrgId
 	}
-	if plan.Id.IsNull() || plan.Id.IsUnknown() {
-		plan.Id = state.Id
+	if data.Id.IsNull() || data.Id.IsUnknown() {
+		data.Id = state.Id
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *accessPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -174,6 +181,7 @@ func (r *accessPolicyResource) Delete(ctx context.Context, req resource.DeleteRe
 	if _, err := r.client.AccessPolicies.DeletePolicy(ctx, data.OrgId.ValueString(), data.Id.ValueString(), nil); err != nil {
 		var httpErr *accesspolicies.ClientHttpError[struct{}]
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Failed to delete access policy", err.Error())

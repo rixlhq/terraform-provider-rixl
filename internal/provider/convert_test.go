@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk/models"
 )
@@ -160,5 +161,46 @@ func TestMapResponsePaginationLargeTotal(t *testing.T) {
 				t.Fatalf("total = %q, want %q", m.Total.ValueString(), c.want)
 			}
 		})
+	}
+}
+
+type mapToModelTestModel struct {
+	Name  types.String `tfsdk:"name"`
+	Desc  types.String `tfsdk:"description"`
+	Extra types.String `tfsdk:"extra"`
+}
+
+func TestMapToModelClearsNilAndPreservesMissing(t *testing.T) {
+	ctx := context.Background()
+
+	var m mapToModelTestModel
+	m.Name = types.StringValue("old name")
+	m.Desc = types.StringValue("old desc")
+	m.Extra = types.StringValue("keep me")
+
+	attrs := map[string]attr.Type{
+		"name":        types.StringType,
+		"description": types.StringType,
+		"extra":       types.StringType,
+	}
+
+	preserve := map[string]bool{"extra": true}
+
+	diags := mapToModel(ctx, map[string]any{
+		"name":        "new name",
+		"description": nil,
+	}, &m, attrs, preserve)
+	if diags.HasError() {
+		t.Fatalf("mapToModel diags: %v", diags)
+	}
+
+	if m.Name.ValueString() != "new name" {
+		t.Fatalf("name = %q, want %q", m.Name.ValueString(), "new name")
+	}
+	if !m.Desc.IsNull() {
+		t.Fatalf("description should be null, got %q", m.Desc.ValueString())
+	}
+	if m.Extra.ValueString() != "keep me" {
+		t.Fatalf("extra should be preserved, got %q", m.Extra.ValueString())
 	}
 }

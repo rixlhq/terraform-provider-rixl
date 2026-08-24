@@ -113,37 +113,55 @@ func (r *dashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
+	dataAny, diags := mergeStateAndPlan(ctx, &state, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data := dataAny.(*DashboardModel)
+
 	var visibility *string
-	if !plan.Visibility.IsNull() && !plan.Visibility.IsUnknown() {
-		v := plan.Visibility.ValueString()
+	if !data.Visibility.IsNull() && !data.Visibility.IsUnknown() {
+		v := data.Visibility.ValueString()
 		if v != "" {
 			visibility = &v
 		}
 	}
 
-	updateBody := models.AnalyticsV1UpdateDashboardRequest{
-		ID:               state.Id.ValueString(),
-		Name:             plan.Name.ValueString(),
-		Visibility:       visibility,
-		ExpectedRevision: int32(state.Revision.ValueInt64()),
+	rev, err := r.resolveRevision(ctx, data)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to resolve dashboard revision", err.Error())
+		return
 	}
 
-	dashboard, err := r.client.Dashboards.UpdateDashboard(ctx, state.Id.ValueString(), updateBody)
+	updateBody := models.AnalyticsV1UpdateDashboardRequest{
+		ID:               data.Id.ValueString(),
+		Name:             data.Name.ValueString(),
+		Visibility:       visibility,
+		ExpectedRevision: rev,
+	}
+
+	dashboard, err := r.client.Dashboards.UpdateDashboard(ctx, data.Id.ValueString(), updateBody)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update dashboard", err.Error())
 		return
 	}
 
-	resp.Diagnostics.Append(mapResponseToModel(ctx, dashboard, &plan, DashboardResourceSchema(ctx).Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, dashboard, data, DashboardResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if plan.Id.IsNull() || plan.Id.IsUnknown() {
-		plan.Id = state.Id
+	// The update response may omit the revision. Keep the value we used so
+	// the next operation does not have to re-fetch.
+	if data.Revision.IsNull() || data.Revision.IsUnknown() {
+		data.Revision = types.Int64Value(int64(rev))
+	}
+	if data.Id.IsNull() || data.Id.IsUnknown() {
+		data.Id = state.Id
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *dashboardResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -153,8 +171,14 @@ func (r *dashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 		return
 	}
 
+	rev, err := r.resolveRevision(ctx, &data)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to resolve dashboard revision", err.Error())
+		return
+	}
+
 	params := &dashboards.DeleteDashboardParams{
-		ExpectedRevision: int32(data.Revision.ValueInt64()),
+		ExpectedRevision: rev,
 	}
 
 	if _, err := r.client.Dashboards.DeleteDashboard(ctx, data.Id.ValueString(), params); err != nil {
@@ -165,6 +189,27 @@ func (r *dashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 		}
 		resp.Diagnostics.AddError("Failed to delete dashboard", err.Error())
 	}
+}
+
+// resolveRevision returns the dashboard revision from state when it is known.
+// It only falls back to a GET when the revision is absent (e.g. after import
+// with a read that did not return it), avoiding an extra API call on every
+// update/delete in the normal flow.
+func (r *dashboardResource) resolveRevision(ctx context.Context, data *DashboardModel) (int32, error) {
+	if !data.Revision.IsNull() && !data.Revision.IsUnknown() {
+		return int32(data.Revision.ValueInt64()), nil
+	}
+
+	dashboard, err := r.client.Dashboards.GetDashboard(ctx, data.Id.ValueString())
+	if err != nil {
+		return 0, fmt.Errorf("failed to read dashboard for revision: %w", err)
+	}
+	if dashboard.Revision == nil {
+		return 0, fmt.Errorf("dashboard %q has no revision", data.Id.ValueString())
+	}
+
+	data.Revision = types.Int64Value(int64(*dashboard.Revision))
+	return *dashboard.Revision, nil
 }
 
 func DashboardResourceSchema(_ context.Context) schema.Schema {

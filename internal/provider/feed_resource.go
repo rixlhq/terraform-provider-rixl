@@ -126,7 +126,14 @@ func (r *feedResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	body, d := modelToMap(ctx, &plan)
+	dataAny, diags := mergeStateAndPlan(ctx, &state, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data := dataAny.(*FeedModel)
+
+	body, d := modelToMap(ctx, data)
 	resp.Diagnostics.Append(d...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -135,10 +142,10 @@ func (r *feedResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	delete(body, "created_at")
 	delete(body, "updated_at")
 	// The API body identifies the resource by feed_id rather than id.
-	body["feed_id"] = state.Id.ValueString()
-	body["project_id"] = state.ProjectId.ValueString()
+	body["feed_id"] = data.Id.ValueString()
+	body["project_id"] = data.ProjectId.ValueString()
 
-	feed, err := r.client.Feeds.UpdateFeed(ctx, state.ProjectId.ValueString(), state.Id.ValueString(), body)
+	feed, err := r.client.Feeds.UpdateFeed(ctx, data.ProjectId.ValueString(), data.Id.ValueString(), body)
 	if err != nil {
 		var httpErr *feeds.ClientHttpError[struct{}]
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
@@ -149,19 +156,19 @@ func (r *feedResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, &plan, FeedResourceSchema(ctx).Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, data, FeedResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if plan.ProjectId.IsNull() || plan.ProjectId.IsUnknown() {
-		plan.ProjectId = state.ProjectId
+	if data.ProjectId.IsNull() || data.ProjectId.IsUnknown() {
+		data.ProjectId = state.ProjectId
 	}
-	if plan.Id.IsNull() || plan.Id.IsUnknown() {
-		plan.Id = state.Id
+	if data.Id.IsNull() || data.Id.IsUnknown() {
+		data.Id = state.Id
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *feedResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

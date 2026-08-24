@@ -43,6 +43,11 @@ type DataSourceDescriptor struct {
 	// ReadResponseField unwraps a nested read response object. Use this when
 	// the read response has the shape { "post": { ... } }.
 	ReadResponseField string
+
+	// PreserveMissing lists attribute names that should be preserved when they
+	// are missing from an API response. Used for one-time secrets and other
+	// computed values the API does not echo on read.
+	PreserveMissing []string
 }
 
 type managedDataSource struct {
@@ -127,7 +132,13 @@ func (d *managedDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			m = unwrapped
 		}
 
-		resp.Diagnostics.Append(mapToModel(ctx, m, data, attrs)...)
+		preserve, d := buildPreserveSet(s.Attributes, attrs, d.descriptor.PathParams, nil, d.descriptor.PreserveMissing)
+		resp.Diagnostics.Append(d...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		resp.Diagnostics.Append(mapToModel(ctx, m, data, attrs, preserve)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}

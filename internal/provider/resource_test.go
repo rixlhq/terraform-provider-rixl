@@ -49,7 +49,7 @@ func TestBuildBodyRemovesPathParamsAndComputed(t *testing.T) {
 		CreatedAt:   types.StringValue("now"),
 	}
 
-	body, diags := r.buildBody(ctx, model, []string{"project_id", "feed_id"}, nil)
+	body, diags := r.buildBody(ctx, model, []string{"project_id", "feed_id"}, nil, nil)
 	if diags.HasError() {
 		t.Fatalf("diags: %v", diags)
 	}
@@ -85,7 +85,7 @@ func TestBuildBodyKeepsPathKeys(t *testing.T) {
 		FeedId:    types.StringValue("f"),
 	}
 
-	body, diags := r.buildBody(ctx, model, []string{"project_id", "feed_id"}, []string{"project_id"})
+	body, diags := r.buildBody(ctx, model, []string{"project_id", "feed_id"}, []string{"project_id"}, r.descriptor.ComputedBodyKeys)
 	if diags.HasError() {
 		t.Fatalf("diags: %v", diags)
 	}

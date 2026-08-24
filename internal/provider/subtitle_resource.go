@@ -149,7 +149,14 @@ func (r *subtitleResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	subtitle, err := r.readSubtitleByID(ctx, state.VideoId.ValueString(), state.Id.ValueString())
+	dataAny, diags := mergeStateAndPlan(ctx, &state, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data := dataAny.(*SubtitleResourceModel)
+
+	subtitle, err := r.readSubtitleByID(ctx, data.VideoId.ValueString(), data.Id.ValueString())
 	if err != nil {
 		var httpErr *subtitles.ClientHttpError[struct{}]
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
@@ -160,12 +167,12 @@ func (r *subtitleResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	resp.Diagnostics.Append(mapResponseToModel(ctx, subtitle, &plan, SubtitleResourceSchema().Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, subtitle, data, SubtitleResourceSchema().Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *subtitleResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

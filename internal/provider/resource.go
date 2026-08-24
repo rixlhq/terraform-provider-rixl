@@ -3,7 +3,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -78,6 +77,15 @@ type ResourceDescriptor struct {
 	// Defaults to id, created_at, updated_at and created_by.
 	ComputedBodyKeys []string
 
+	// UpdateComputedBodyKeys override ComputedBodyKeys for update request
+	// bodies. If empty, ComputedBodyKeys is used for updates as well.
+	UpdateComputedBodyKeys []string
+
+	// PreserveMissing lists attribute names that should be preserved when they
+	// are missing from an API response. Used for one-time secrets and other
+	// computed values the API does not echo on read.
+	PreserveMissing []string
+
 	// CreateResponseField unwraps a nested response object. If the create
 	// response has the shape { "api_key": { ... } }, set this to "api_key".
 	CreateResponseField string
@@ -147,6 +155,12 @@ func (r *managedResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	attrTypes, preserve, d := r.preserveSet(ctx, "create")
+	resp.Diagnostics.Append(d...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	clientVal, diags := r.clientValueMaybeOverride(r.descriptor.CreateClientField)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -165,7 +179,7 @@ func (r *managedResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	response, d := r.invokeResourceMethod(ctx, method, plan, bodyMap, r.methodPathParams("create"))
+	response, d, _ := r.invokeResourceMethod(ctx, method, plan, bodyMap, r.methodPathParams("create"))
 	resp.Diagnostics.Append(d...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -178,7 +192,7 @@ func (r *managedResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	if m != nil {
-		resp.Diagnostics.Append(mapToModel(ctx, m, plan, r.attrTypes(ctx))...)
+		resp.Diagnostics.Append(mapToModel(ctx, m, plan, attrTypes, preserve)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -191,7 +205,7 @@ func (r *managedResource) Create(ctx context.Context, req resource.CreateRequest
 			return
 		}
 		if readM != nil {
-			resp.Diagnostics.Append(mapToModel(ctx, readM, plan, r.attrTypes(ctx))...)
+			resp.Diagnostics.Append(mapToModel(ctx, readM, plan, attrTypes, preserve)...)
 			if resp.Diagnostics.HasError() {
 				return
 			}
@@ -208,6 +222,12 @@ func (r *managedResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
+	attrTypes, preserve, d := r.preserveSet(ctx, "read")
+	resp.Diagnostics.Append(d...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	m, diags := r.doRead(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -218,7 +238,7 @@ func (r *managedResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	resp.Diagnostics.Append(mapToModel(ctx, m, state, r.attrTypes(ctx))...)
+	resp.Diagnostics.Append(mapToModel(ctx, m, state, attrTypes, preserve)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -241,11 +261,15 @@ func (r *managedResource) doRead(ctx context.Context, state any) (map[string]any
 		return nil, diags
 	}
 
-	response, d := r.invokeResourceMethod(ctx, method, state, nil, r.methodPathParams("read"))
-	if d.HasError() {
-		if isNotFound(errFromDiags(d)) {
+	response, d, err := r.invokeResourceMethod(ctx, method, state, nil, r.methodPathParams("read"))
+	if err != nil {
+		if isNotFound(err) {
 			return nil, diags
 		}
+		diags.Append(d...)
+		return nil, diags
+	}
+	if d.HasError() {
 		diags.Append(d...)
 		return nil, diags
 	}
@@ -314,21 +338,35 @@ func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	attrTypes, preserve, d := r.preserveSet(ctx, "update")
+	resp.Diagnostics.Append(d...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	data, diags := mergeStateAndPlan(ctx, state, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	if r.descriptor.UpdateMethod == "" {
 		// No update method; all mutable fields should have RequiresReplace.
 		// Refresh state from the API to keep computed attributes in sync.
-		m, diags := r.doRead(ctx, state)
+		m, diags := r.doRead(ctx, data)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if m != nil {
-			resp.Diagnostics.Append(mapToModel(ctx, m, plan, r.attrTypes(ctx))...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
+		if m == nil {
+			resp.State.RemoveResource(ctx)
+			return
 		}
-		resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+		resp.Diagnostics.Append(mapToModel(ctx, m, data, attrTypes, preserve)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 		return
 	}
 
@@ -350,12 +388,16 @@ func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	response, d := r.invokeResourceMethod(ctx, method, state, bodyMap, r.methodPathParams("update"))
-	if d.HasError() {
-		if isNotFound(errFromDiags(d)) {
+	response, d, err := r.invokeResourceMethod(ctx, method, data, bodyMap, r.methodPathParams("update"))
+	if err != nil {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
+		resp.Diagnostics.Append(d...)
+		return
+	}
+	if d.HasError() {
 		resp.Diagnostics.Append(d...)
 		return
 	}
@@ -367,27 +409,27 @@ func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	if m != nil {
-		resp.Diagnostics.Append(mapToModel(ctx, m, plan, r.attrTypes(ctx))...)
+		resp.Diagnostics.Append(mapToModel(ctx, m, data, attrTypes, preserve)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
 	}
 
 	if r.descriptor.ReadAfterUpdate {
-		readM, diags := r.doRead(ctx, plan)
+		readM, diags := r.doRead(ctx, data)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
 		if readM != nil {
-			resp.Diagnostics.Append(mapToModel(ctx, readM, plan, r.attrTypes(ctx))...)
+			resp.Diagnostics.Append(mapToModel(ctx, readM, data, attrTypes, preserve)...)
 			if resp.Diagnostics.HasError() {
 				return
 			}
 		}
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *managedResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -409,12 +451,16 @@ func (r *managedResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	_, d := r.invokeResourceMethod(ctx, method, state, nil, r.methodPathParams("delete"))
-	if d.HasError() {
-		if isNotFound(errFromDiags(d)) {
+	_, d, err := r.invokeResourceMethod(ctx, method, state, nil, r.methodPathParams("delete"))
+	if err != nil {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
+		resp.Diagnostics.Append(d...)
+		return
+	}
+	if d.HasError() {
 		resp.Diagnostics.Append(d...)
 		return
 	}
@@ -447,13 +493,25 @@ func (r *managedResource) resourceSchema(ctx context.Context) rschema.Schema {
 	return res[0].Interface().(rschema.Schema)
 }
 
-func (r *managedResource) attrTypes(ctx context.Context) map[string]attr.Type {
+func (r *managedResource) preserveSet(ctx context.Context, kind string) (map[string]attr.Type, map[string]bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	s := r.resourceSchema(ctx)
-	attrs, err := attributeTypesForSchema(s.Attributes)
+	attrTypes, err := attributeTypesForSchema(s.Attributes)
 	if err != nil {
-		return nil
+		diags.AddError("Failed to derive attribute types", err.Error())
+		return nil, nil, diags
 	}
-	return attrs
+
+	computedKeys := r.descriptor.ComputedBodyKeys
+	if kind == "update" && len(r.descriptor.UpdateComputedBodyKeys) > 0 {
+		computedKeys = r.descriptor.UpdateComputedBodyKeys
+	}
+	if len(computedKeys) == 0 {
+		computedKeys = []string{"id", "created_at", "updated_at", "created_by"}
+	}
+
+	preserve, d := buildPreserveSet(s.Attributes, attrTypes, r.descriptor.PathParams, computedKeys, r.descriptor.PreserveMissing)
+	return attrTypes, preserve, d
 }
 
 func (r *managedResource) methodPathParams(kind string) []string {
@@ -479,7 +537,7 @@ func (r *managedResource) methodPathParams(kind string) []string {
 }
 
 func (r *managedResource) buildCreateBody(ctx context.Context, plan any) (map[string]any, diag.Diagnostics) {
-	bodyMap, diags := r.buildBody(ctx, plan, r.methodPathParams("create"), r.descriptor.CreateKeepPathKeys)
+	bodyMap, diags := r.buildBody(ctx, plan, r.methodPathParams("create"), r.descriptor.CreateKeepPathKeys, r.descriptor.ComputedBodyKeys)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -489,7 +547,11 @@ func (r *managedResource) buildCreateBody(ctx context.Context, plan any) (map[st
 func (r *managedResource) buildUpdateBody(ctx context.Context, plan, state any) (map[string]any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	bodyMap, d := r.buildBody(ctx, plan, r.methodPathParams("update"), r.descriptor.UpdateKeepPathKeys)
+	computedKeys := r.descriptor.UpdateComputedBodyKeys
+	if len(computedKeys) == 0 {
+		computedKeys = r.descriptor.ComputedBodyKeys
+	}
+	bodyMap, d := r.buildBody(ctx, plan, r.methodPathParams("update"), r.descriptor.UpdateKeepPathKeys, computedKeys)
 	diags.Append(d...)
 	if diags.HasError() {
 		return nil, diags
@@ -516,7 +578,7 @@ func (r *managedResource) buildUpdateBody(ctx context.Context, plan, state any) 
 	return r.applyBodyRenames(bodyMap), diags
 }
 
-func (r *managedResource) buildBody(ctx context.Context, model any, pathParams, keepKeys []string) (map[string]any, diag.Diagnostics) {
+func (r *managedResource) buildBody(ctx context.Context, model any, pathParams, keepKeys, computedBodyKeys []string) (map[string]any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	bodyMap, d := modelToMap(ctx, model)
 	diags.Append(d...)
@@ -530,10 +592,10 @@ func (r *managedResource) buildBody(ctx context.Context, model any, pathParams, 
 	}
 
 	computed := make(map[string]bool)
-	for _, k := range r.descriptor.ComputedBodyKeys {
+	for _, k := range computedBodyKeys {
 		computed[k] = true
 	}
-	if len(r.descriptor.ComputedBodyKeys) == 0 {
+	if len(computedBodyKeys) == 0 {
 		for _, k := range []string{"id", "created_at", "updated_at", "created_by"} {
 			computed[k] = true
 		}
@@ -563,13 +625,13 @@ func (r *managedResource) applyBodyRenames(bodyMap map[string]any) map[string]an
 	return bodyMap
 }
 
-func (r *managedResource) invokeResourceMethod(ctx context.Context, method reflect.Value, model any, bodyMap map[string]any, pathParams []string) (reflect.Value, diag.Diagnostics) {
+func (r *managedResource) invokeResourceMethod(ctx context.Context, method reflect.Value, model any, bodyMap map[string]any, pathParams []string) (reflect.Value, diag.Diagnostics, error) {
 	var diags diag.Diagnostics
 
 	mtype := method.Type()
 	if mtype.NumIn() == 0 || mtype.In(0) != reflect.TypeOf((*context.Context)(nil)).Elem() {
 		diags.AddError("SDK method signature invalid", "first argument must be context.Context")
-		return reflect.Value{}, diags
+		return reflect.Value{}, diags, nil
 	}
 
 	args := []reflect.Value{reflect.ValueOf(ctx)}
@@ -577,7 +639,7 @@ func (r *managedResource) invokeResourceMethod(ctx context.Context, method refle
 	modelMap, d := modelToMap(ctx, model)
 	if d.HasError() {
 		diags.Append(d...)
-		return reflect.Value{}, diags
+		return reflect.Value{}, diags, nil
 	}
 
 	pathIdx := 0
@@ -594,12 +656,12 @@ func (r *managedResource) invokeResourceMethod(ctx context.Context, method refle
 		if inType.Kind() == reflect.String {
 			if pathIdx >= len(pathParams) {
 				diags.AddError("SDK path params mismatch", fmt.Sprintf("missing path param for arg %d", i))
-				return reflect.Value{}, diags
+				return reflect.Value{}, diags, nil
 			}
 			v, d := modelFieldString(model, pathParams[pathIdx])
 			if d.HasError() {
 				diags.Append(d...)
-				return reflect.Value{}, diags
+				return reflect.Value{}, diags, nil
 			}
 			args = append(args, reflect.ValueOf(v).Convert(inType))
 			pathIdx++
@@ -614,7 +676,7 @@ func (r *managedResource) invokeResourceMethod(ctx context.Context, method refle
 			}
 			if err := buildStructFromModel(src, paramsPtr.Elem()); err != nil {
 				diags.AddError("Failed to build request params", err.Error())
-				return reflect.Value{}, diags
+				return reflect.Value{}, diags, nil
 			}
 			args = append(args, paramsPtr)
 			continue
@@ -626,7 +688,7 @@ func (r *managedResource) invokeResourceMethod(ctx context.Context, method refle
 		bodyVal, d := buildBodyValue(bodyMap, inType)
 		if d.HasError() {
 			diags.Append(d...)
-			return reflect.Value{}, diags
+			return reflect.Value{}, diags, nil
 		}
 		args = append(args, bodyVal)
 	}
@@ -634,17 +696,17 @@ func (r *managedResource) invokeResourceMethod(ctx context.Context, method refle
 	rets := method.Call(args)
 	if len(rets) < 2 {
 		diags.AddError("SDK method return mismatch", "expected (response, error)")
-		return reflect.Value{}, diags
+		return reflect.Value{}, diags, nil
 	}
 
 	errVal := rets[len(rets)-1]
 	if !errVal.IsNil() {
 		e := errVal.Interface().(error)
 		diags.AddError("SDK request failed", e.Error())
-		return reflect.Value{}, diags
+		return reflect.Value{}, diags, e
 	}
 
-	return rets[0], diags
+	return rets[0], diags, nil
 }
 
 func (r *managedResource) responseToResourceMap(response reflect.Value) (map[string]any, diag.Diagnostics) {
@@ -774,39 +836,44 @@ func isNotFound(err error) bool {
 	if err == nil {
 		return false
 	}
-	// ClientHttpError types from the SDK all implement Error() as "HTTP %d".
+
+	// Fast path: all SDK ClientHttpError types implement Error() as "HTTP %d".
 	if strings.Contains(err.Error(), "HTTP 404") {
 		return true
 	}
-	// As a fallback, reflect on any StatusCode field.
-	v := reflect.ValueOf(err)
-	for v.IsValid() {
-		if v.Kind() == reflect.Pointer {
-			v = v.Elem()
+
+	// Walk the error chain and any wrapped errors, looking for a StatusCode
+	// field equal to 404. We use errors.Unwrap instead of reflecting on the
+	// Unwrap method so that pointer- and value-receiver Unwrap implementations
+	// are both handled.
+	for err != nil {
+		if hasStatusCode(err, 404) {
+			return true
 		}
-		if v.Kind() == reflect.Struct {
-			if f := v.FieldByName("StatusCode"); f.IsValid() && f.CanInt() {
-				return f.Int() == 404
-			}
-		}
-		if u, ok := v.Interface().(interface{ Unwrap() error }); ok {
-			v = reflect.ValueOf(u.Unwrap())
-		} else {
+		u, ok := err.(interface{ Unwrap() error })
+		if !ok {
 			break
 		}
+		err = u.Unwrap()
 	}
 	return false
 }
 
-func errFromDiags(d diag.Diagnostics) error {
-	for _, de := range d {
-		if de.Severity() == diag.SeverityError {
-			detail := de.Detail()
-			if detail != "" {
-				return errors.New(de.Summary() + ": " + detail)
-			}
-			return errors.New(de.Summary())
+func hasStatusCode(err error, code int64) bool {
+	if err == nil {
+		return false
+	}
+	v := reflect.ValueOf(err)
+	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return false
+		}
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Struct {
+		if f := v.FieldByName("StatusCode"); f.IsValid() && f.CanInt() {
+			return f.Int() == code
 		}
 	}
-	return nil
+	return false
 }

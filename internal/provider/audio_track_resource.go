@@ -151,7 +151,14 @@ func (r *audioTrackResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	audioTrack, err := r.readAudioTrackByID(ctx, state.VideoId.ValueString(), state.Id.ValueString())
+	dataAny, diags := mergeStateAndPlan(ctx, &state, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data := dataAny.(*AudioTrackResourceModel)
+
+	audioTrack, err := r.readAudioTrackByID(ctx, data.VideoId.ValueString(), data.Id.ValueString())
 	if err != nil {
 		var httpErr *audiotracks.ClientHttpError[struct{}]
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
@@ -162,12 +169,12 @@ func (r *audioTrackResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	resp.Diagnostics.Append(mapResponseToModel(ctx, audioTrack, &plan, AudioTrackResourceSchema().Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, audioTrack, data, AudioTrackResourceSchema().Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *audioTrackResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

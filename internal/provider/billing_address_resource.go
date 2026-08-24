@@ -111,20 +111,28 @@ func (r *billingAddressResource) Read(ctx context.Context, req resource.ReadRequ
 }
 
 func (r *billingAddressResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data BillingAddressResourceModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	var state, plan BillingAddressResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	body := r.buildRequest(data)
+	dataAny, diags := mergeStateAndPlan(ctx, &state, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data := dataAny.(*BillingAddressResourceModel)
+
+	body := r.buildRequest(*data)
 	address, err := r.client.Payments.UpsertBillingAddress(ctx, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to upsert billing address", err.Error())
 		return
 	}
 
-	resp.Diagnostics.Append(mapResponseToModel(ctx, address, &data, BillingAddressResourceSchema(ctx).Attributes)...)
+	resp.Diagnostics.Append(mapResponseToModel(ctx, address, data, BillingAddressResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -137,12 +145,17 @@ func (r *billingAddressResource) Update(ctx context.Context, req resource.Update
 		}
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *billingAddressResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// The API does not support deleting a billing address, so we remove the
-	// resource from state without making an API call.
+	// The Rixl API does not expose a delete-billing-address endpoint.
+	// Remove the resource from state and warn the user that the remote
+	// billing address was not modified.
+	resp.Diagnostics.AddWarning(
+		"Billing address not deleted",
+		"The Rixl API does not support deleting billing addresses. The resource has been removed from Terraform state, but the billing address may still exist in the platform.",
+	)
 	resp.State.RemoveResource(ctx)
 }
 

@@ -82,19 +82,22 @@ func (p *rixlProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 		return
 	}
 
-	httpClient, err := newHTTPClient(base)
+	baseURLOpt, err := baseURLRewriter(base)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid base_url", err.Error())
 		return
 	}
 
-	opts := []sdk.Option{sdk.WithHTTPClient(httpClient)}
+	opts := []sdk.Option{
+		sdk.WithHTTPClient(newHTTPClient()),
+		baseURLOpt,
+	}
 	if bearer != "" {
-		// WithBearer replaces the editor list, so the API key header set by
-		// sdk.New would be cleared regardless. Pass an empty API key to make
-		// the intent explicit and avoid sending an X-API-Key header.
+		// sdk.WithBearer replaces the entire editor list, which would drop the
+		// base URL rewriter. Use a custom editor instead so both auth and base
+		// URL rewriting are applied.
 		apiKey = ""
-		opts = append(opts, sdk.WithBearer(bearer))
+		opts = append(opts, authEditor(bearer))
 	}
 
 	client, err := sdk.New(apiKey, opts...)
@@ -112,6 +115,7 @@ func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
 		NewAccessPolicyResource,
 		NewAudioTrackResource,
 		NewBillingAddressResource,
+		NewCustomDomainResource,
 		NewDashboardResource,
 		NewFeedResource,
 		NewImageResource,
@@ -195,15 +199,7 @@ func valueOrEnv(v types.String, env string) string {
 	return os.Getenv(env)
 }
 
-func newHTTPClient(base string) (*http.Client, error) {
-	baseURL, err := url.Parse(base)
-	if err != nil {
-		return nil, fmt.Errorf("parse base_url: %w", err)
-	}
-	if baseURL.Scheme == "" || baseURL.Host == "" {
-		return nil, errors.New("base_url must include scheme and host")
-	}
-
+func newHTTPClient() *http.Client {
 	var baseTransport http.RoundTripper
 	if dt, ok := http.DefaultTransport.(*http.Transport); ok {
 		cloned := dt.Clone()
@@ -218,31 +214,50 @@ func newHTTPClient(base string) (*http.Client, error) {
 
 	return &http.Client{
 		Timeout:   30 * time.Second,
-		Transport: &baseURLTransport{base: baseURL, inner: baseTransport},
-	}, nil
+		Transport: &userAgentTransport{inner: baseTransport, ua: "terraform-provider-rixl"},
+	}
 }
 
-type baseURLTransport struct {
-	base  *url.URL
+type userAgentTransport struct {
 	inner http.RoundTripper
+	ua    string
 }
 
-func (t *baseURLTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	newURL := *req.URL
-	newURL.Scheme = t.base.Scheme
-	newURL.Host = t.base.Host
-	if t.base.Path != "" {
-		prefix := strings.TrimSuffix(t.base.Path, "/")
-		newURL.Path = prefix + newURL.Path
-		if newURL.RawPath != "" {
-			newURL.RawPath = prefix + newURL.RawPath
-		}
-	}
+func (t *userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req = req.Clone(req.Context())
-	req.URL = &newURL
-	if req.Host != "" {
-		req.Host = t.base.Host
-	}
-	req.Header.Set("User-Agent", "terraform-provider-rixl")
+	req.Header.Set("User-Agent", t.ua)
 	return t.inner.RoundTrip(req)
+}
+
+func baseURLRewriter(base string) (sdk.Option, error) {
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return nil, fmt.Errorf("parse base_url: %w", err)
+	}
+	if baseURL.Scheme == "" || baseURL.Host == "" {
+		return nil, errors.New("base_url must include scheme and host")
+	}
+
+	return sdk.WithRequestEditor(func(_ context.Context, req *http.Request) error {
+		req.URL.Scheme = baseURL.Scheme
+		req.URL.Host = baseURL.Host
+		if baseURL.Path != "" {
+			prefix := strings.TrimSuffix(baseURL.Path, "/")
+			req.URL.Path = prefix + req.URL.Path
+			if req.URL.RawPath != "" {
+				req.URL.RawPath = prefix + req.URL.RawPath
+			}
+		}
+		if req.Host != "" {
+			req.Host = baseURL.Host
+		}
+		return nil
+	}), nil
+}
+
+func authEditor(token string) sdk.Option {
+	return sdk.WithRequestEditor(func(_ context.Context, req *http.Request) error {
+		req.Header.Set("Authorization", "Bearer "+token)
+		return nil
+	})
 }

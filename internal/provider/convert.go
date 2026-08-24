@@ -79,7 +79,14 @@ func modelToMap(ctx context.Context, model any) (map[string]any, diag.Diagnostic
 
 // mapToModel sets the fields of a Terraform model struct from a native Go map
 // using the provided schema for type conversion.
-func mapToModel(ctx context.Context, m map[string]any, model any, attributes map[string]attr.Type) diag.Diagnostics {
+//
+// The preserve map controls how missing keys in m are handled. If a key is
+// present in preserve and absent from m, the existing value in model is left
+// unchanged (this is used for user-supplied inputs, path params and computed
+// values that are known not to be echoed by the API). If a key is absent from
+// preserve and absent from m, the field is reset to null, reflecting that the
+// remote API no longer returned it.
+func mapToModel(ctx context.Context, m map[string]any, model any, attributes map[string]attr.Type, preserve map[string]bool) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	val := reflect.ValueOf(model)
@@ -103,14 +110,14 @@ func mapToModel(ctx context.Context, m map[string]any, model any, attributes map
 				if fieldVal.IsNil() {
 					fieldVal.Set(reflect.New(field.Type.Elem()))
 				}
-				diags.Append(mapToModel(ctx, m, fieldVal.Interface(), attributes)...)
+				diags.Append(mapToModel(ctx, m, fieldVal.Interface(), attributes, preserve)...)
 				if diags.HasError() {
 					return diags
 				}
 				continue
 			}
 			if field.Type.Kind() == reflect.Struct {
-				diags.Append(mapToModel(ctx, m, fieldVal.Addr().Interface(), attributes)...)
+				diags.Append(mapToModel(ctx, m, fieldVal.Addr().Interface(), attributes, preserve)...)
 				if diags.HasError() {
 					return diags
 				}
@@ -129,9 +136,15 @@ func mapToModel(ctx context.Context, m map[string]any, model any, attributes map
 		}
 
 		raw, ok := m[name]
-		if !ok || raw == nil {
-			// Leave field at zero (null) value.
-			continue
+		if !ok {
+			if preserve[name] {
+				// The response did not include this attribute. Preserve the
+				// existing value, which may be a user-provided input (e.g.
+				// file_path) or a value from an earlier state refresh.
+				continue
+			}
+			// The response no longer contains this attribute; reset it.
+			raw = nil
 		}
 
 		av, d := fromNative(ctx, raw, attrType)
@@ -144,6 +157,88 @@ func mapToModel(ctx context.Context, m map[string]any, model any, attributes map
 	}
 
 	return diags
+}
+
+// mergeStateAndPlan returns a new model that contains the prior state values
+// for any field that is unknown in plan, and the planned values for any field
+// that is known in plan. This is used before mapping an update response so that
+// computed values that are not echoed by the API are not lost.
+func mergeStateAndPlan(_ context.Context, state, plan any) (any, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if state == nil || plan == nil {
+		diags.AddError("Nil model", "cannot merge nil state or plan")
+		return nil, diags
+	}
+
+	stateVal := reflect.ValueOf(state)
+	if stateVal.Kind() == reflect.Pointer {
+		stateVal = stateVal.Elem()
+	}
+	planVal := reflect.ValueOf(plan)
+	if planVal.Kind() == reflect.Pointer {
+		planVal = planVal.Elem()
+	}
+
+	typ := stateVal.Type()
+	if typ != planVal.Type() {
+		diags.AddError("Model type mismatch", fmt.Sprintf("%s vs %s", typ, planVal.Type()))
+		return nil, diags
+	}
+
+	data := reflect.New(typ).Interface()
+	dataVal := reflect.ValueOf(data).Elem()
+	dataVal.Set(stateVal)
+
+	for i := range typ.NumField() {
+		field := typ.Field(i)
+		if field.Anonymous {
+			continue
+		}
+		if field.Tag.Get("tfsdk") == "" {
+			continue
+		}
+
+		planField := planVal.Field(i).Interface().(attr.Value)
+		if !planField.IsUnknown() {
+			dataVal.Field(i).Set(planVal.Field(i))
+		}
+	}
+
+	return data, diags
+}
+
+// buildPreserveSet combines user-provided attributes (Required or Optional),
+// explicitly requested extra fields, and (for resources) computed body keys
+// that are not sent in requests and should be retained from state.
+func buildPreserveSet(attributes any, attrTypes map[string]attr.Type, pathParams, computedBodyKeys, preserveMissing []string) (map[string]bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	out := make(map[string]bool, len(attrTypes))
+
+	user, err := userProvidedAttributes(attributes)
+	if err != nil {
+		diags.AddError("Failed to derive user-provided attributes", err.Error())
+		return nil, diags
+	}
+	for name := range user {
+		out[name] = true
+	}
+	for _, name := range pathParams {
+		out[name] = true
+	}
+	for _, name := range computedBodyKeys {
+		out[name] = true
+	}
+	for _, name := range preserveMissing {
+		out[name] = true
+	}
+
+	// Ensure every key is a valid attribute; ignore unknown extras.
+	for name := range out {
+		if _, ok := attrTypes[name]; !ok {
+			delete(out, name)
+		}
+	}
+	return out, diags
 }
 
 // toNative converts an attr.Value into a native Go value (string, bool, int64,
@@ -500,6 +595,11 @@ func fieldName(field reflect.StructField) string {
 
 // mapResponseToModel converts a strongly-typed SDK response value into a
 // Terraform model struct using the provided schema attributes.
+//
+// By default all top-level schema attributes are preserved when they are
+// missing from the response. Callers that need more targeted preservation
+// (for example data sources that should only keep path parameters) should
+// use mapToModel directly with an explicit preserve map.
 func mapResponseToModel(ctx context.Context, response any, model any, attributes any) diag.Diagnostics {
 	m, err := responseToMap(response)
 	if err != nil {
@@ -511,7 +611,12 @@ func mapResponseToModel(ctx context.Context, response any, model any, attributes
 		return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to derive attribute types", err.Error())}
 	}
 
-	return mapToModel(ctx, m, model, attrTypes)
+	preserve := make(map[string]bool, len(attrTypes))
+	for name := range attrTypes {
+		preserve[name] = true
+	}
+
+	return mapToModel(ctx, m, model, attrTypes, preserve)
 }
 
 // responseToMap converts a strongly-typed SDK response value into a native Go
