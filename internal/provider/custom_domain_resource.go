@@ -19,6 +19,8 @@ func NewCustomDomainResource() resource.Resource {
 	return &customDomainResource{}
 }
 
+var _ resource.Resource = (*customDomainResource)(nil)
+
 type customDomainResource struct {
 	client *sdk.Client
 }

@@ -15,6 +15,8 @@ import (
 	"github.com/rixlhq/rixl-go/sdk"
 )
 
+var _ resource.Resource = (*managedResource)(nil)
+
 // ResourceDescriptor defines how a Terraform resource maps to the Rixl SDK.
 type ResourceDescriptor struct {
 	TypeName string

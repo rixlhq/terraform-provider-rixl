@@ -20,6 +20,8 @@ import (
 	"github.com/rixlhq/rixl-go/sdk"
 )
 
+var _ datasource.DataSource = (*managedDataSource)(nil)
+
 // DataSourceDescriptor defines how a Terraform data source maps to the Rixl SDK.
 type DataSourceDescriptor struct {
 	TypeName string
