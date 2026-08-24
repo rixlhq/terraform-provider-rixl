@@ -246,7 +246,7 @@ func baseURLRewriter(base string) (sdk.Option, error) {
 		req.URL.Scheme = baseURL.Scheme
 		req.URL.Host = baseURL.Host
 		if baseURL.Path != "" {
-			prefix := strings.TrimSuffix(baseURL.Path, "/")
+			prefix, _ := strings.CutSuffix(baseURL.Path, "/")
 			req.URL.Path = prefix + req.URL.Path
 			if req.URL.RawPath != "" {
 				req.URL.RawPath = prefix + req.URL.RawPath

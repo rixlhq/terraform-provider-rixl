@@ -10,8 +10,8 @@ import (
 
 func TestMapResponseToModelEmbedded(t *testing.T) {
 	img := &models.ImagesV1Image{
-		ID:         ptr("img-1"),
-		Visibility: (*models.CommonV1Visibility)(ptr("VISIBILITY_PUBLIC")),
+		ID:         new("img-1"),
+		Visibility: (*models.CommonV1Visibility)(new("VISIBILITY_PUBLIC")),
 	}
 
 	var data ImageResourceModel

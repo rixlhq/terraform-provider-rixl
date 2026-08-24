@@ -17,7 +17,7 @@ func TestPostsDataSourceMapMedia(t *testing.T) {
 	post := models.PostsV1Post{
 		ID:                &id,
 		FeedID:            &feedID,
-		Type:              (*models.CommonV1MediaType)(strPtr("MEDIA_TYPE_IMAGE")),
+		Type:              (*models.CommonV1MediaType)(new("MEDIA_TYPE_IMAGE")),
 		PostsV1PostAllOf1: &models.PostsV1PostAllOf1{},
 	}
 	_ = post.PostsV1PostAllOf1.FromPostsV1PostAllOf1OneOf0(models.PostsV1PostAllOf1OneOf0{
@@ -56,5 +56,3 @@ func TestPostsDataSourceMapMedia(t *testing.T) {
 
 	t.Logf("mapped post: %v", obj)
 }
-
-func strPtr(s string) *string { return &s }

@@ -82,7 +82,7 @@ func TestBaseURLRewriter(t *testing.T) {
 		t.Fatalf("request path mismatch: got %q, want %q", gotPath, wantPath)
 	}
 
-	srvHost := strings.TrimPrefix(srv.URL, "http://")
+	srvHost, _ := strings.CutPrefix(srv.URL, "http://")
 	if gotHost != srvHost {
 		t.Fatalf("request host mismatch: got %q, want %q", gotHost, srvHost)
 	}

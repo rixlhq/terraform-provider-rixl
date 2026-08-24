@@ -6,19 +6,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// ptr returns a pointer to v. Use this for any literal or value that needs to
-// be passed as *T to the SDK.
-func ptr[T any](v T) *T {
-	return &v
-}
-
 // tfStringPtr converts a types.String to *string, returning nil for null/unknown.
 func tfStringPtr(v types.String) *string {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
-	s := v.ValueString()
-	return &s
+	return new(v.ValueString())
 }
 
 // tfInt32Ptr converts a types.Int64 to *int32, returning nil for null/unknown.
@@ -26,8 +19,7 @@ func tfInt32Ptr(v types.Int64) *int32 {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
-	n := int32(v.ValueInt64())
-	return &n
+	return new(int32(v.ValueInt64()))
 }
 
 // ptrString converts *string to types.String (nil → null).

@@ -221,12 +221,12 @@ func (r *organizationMemberResource) Delete(ctx context.Context, req resource.De
 	}
 }
 
-func (r *organizationMemberResource) findMember(ctx context.Context, orgID, userID string) (interface{}, error) {
+func (r *organizationMemberResource) findMember(ctx context.Context, orgID, userID string) (any, error) {
 	params := &memberships.ListOrganizationMembersParams{
-		Limit: ptr(int32(100)),
+		Limit: new(int32(100)),
 	}
 	if userID != "" {
-		params.UserUserId = &userID
+		params.UserUserId = new(userID)
 	}
 
 	listResp, err := r.client.Memberships.ListOrganizationMembers(ctx, orgID, params, nil)

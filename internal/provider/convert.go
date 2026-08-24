@@ -6,9 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math/big"
 	"reflect"
-	"sort"
+	"slices"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -48,9 +49,7 @@ func modelToMap(ctx context.Context, model any) (map[string]any, diag.Diagnostic
 				if diags.HasError() {
 					return nil, diags
 				}
-				for k, v := range inner {
-					out[k] = v
-				}
+				maps.Copy(out, inner)
 				continue
 			}
 		}
@@ -317,11 +316,8 @@ func tftypesToNative(tv tftypes.Value) (any, diag.Diagnostics) {
 			return nil, diags
 		}
 		// Preserve stable ordering to make maps deterministic.
-		keys := make([]string, 0, len(attrs))
-		for k := range attrs {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
+		keys := slices.Collect(maps.Keys(attrs))
+		slices.Sort(keys)
 		out := make(map[string]any, len(attrs))
 		for _, k := range keys {
 			nv, d := tftypesToNative(attrs[k])

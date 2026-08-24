@@ -629,7 +629,7 @@ func (r *managedResource) invokeResourceMethod(ctx context.Context, method refle
 	var diags diag.Diagnostics
 
 	mtype := method.Type()
-	if mtype.NumIn() == 0 || mtype.In(0) != reflect.TypeOf((*context.Context)(nil)).Elem() {
+	if mtype.NumIn() == 0 || mtype.In(0) != reflect.TypeFor[context.Context]() {
 		diags.AddError("SDK method signature invalid", "first argument must be context.Context")
 		return reflect.Value{}, diags, nil
 	}

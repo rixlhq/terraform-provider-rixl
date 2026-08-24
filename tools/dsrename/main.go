@@ -76,7 +76,7 @@ func rewrite(path string) error {
 // "api_keys_data_source_gen.go" yields "ApiKeys".
 func filePrefix(path, suff string) string {
 	base := filepath.Base(path)
-	base = strings.TrimSuffix(base, suff)
+	base, _ = strings.CutSuffix(base, suff)
 	parts := strings.Split(base, "_")
 	for i, p := range parts {
 		if p == "" {
@@ -110,8 +110,8 @@ func buildMapping(f *ast.File, prefix string) map[string]string {
 			}
 
 			var newName string
-			if strings.HasPrefix(old, prefix) {
-				newName = dataSourcePrefix + strings.TrimPrefix(old, prefix)
+			if after, ok0 := strings.CutPrefix(old, prefix); ok0 {
+				newName = dataSourcePrefix + after
 			} else {
 				newName = dataSourcePrefix + old
 			}

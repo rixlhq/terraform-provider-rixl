@@ -82,10 +82,10 @@ func (r *organizationInvitationResource) Read(ctx context.Context, req resource.
 	userID := data.UserId.ValueString()
 
 	params := &memberships.ListMembershipApplicationsParams{
-		Limit: ptr(int32(100)),
+		Limit: new(int32(100)),
 	}
 	if userID != "" {
-		params.UserUserId = &userID
+		params.UserUserId = new(userID)
 	}
 
 	listResp, err := r.client.Memberships.ListMembershipApplications(ctx, params, nil)

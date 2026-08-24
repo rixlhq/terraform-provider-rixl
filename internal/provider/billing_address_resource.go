@@ -169,8 +169,7 @@ func (r *billingAddressResource) buildRequest(data BillingAddressResourceModel) 
 		Phone:      tfStringPtr(data.Phone),
 	}
 	if !data.Email.IsNull() && !data.Email.IsUnknown() {
-		v := rttypes.Email(data.Email.ValueString())
-		addr.Email = &v
+		addr.Email = new(rttypes.Email(data.Email.ValueString()))
 	}
 
 	req := models.BillingV1UpsertBillingAddressRequest{Address: &addr}

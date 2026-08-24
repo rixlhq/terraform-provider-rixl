@@ -122,9 +122,8 @@ func (r *dashboardResource) Update(ctx context.Context, req resource.UpdateReque
 
 	var visibility *string
 	if !data.Visibility.IsNull() && !data.Visibility.IsUnknown() {
-		v := data.Visibility.ValueString()
-		if v != "" {
-			visibility = &v
+		if v := data.Visibility.ValueString(); v != "" {
+			visibility = new(v)
 		}
 	}
 

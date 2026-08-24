@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
 	"reflect"
 	"strconv"
@@ -216,7 +217,7 @@ func mapResponsePagination(_ context.Context, m map[string]any, data any) diag.D
 				continue
 			}
 			field := val.Field(f.idx)
-			base := strings.TrimSuffix(f.match, "Value")
+			base, _ := strings.CutSuffix(f.match, "Value")
 			switch base {
 			case "Int64":
 				v, d := anyToInt64(raw)
@@ -288,7 +289,7 @@ func invokeSDKMethod(ctx context.Context, method reflect.Value, data any, pathPa
 
 func invokeSDKMethodErr(ctx context.Context, method reflect.Value, data any, pathParams []string) (reflect.Value, error) {
 	mtype := method.Type()
-	if mtype.NumIn() == 0 || mtype.In(0) != reflect.TypeOf((*context.Context)(nil)).Elem() {
+	if mtype.NumIn() == 0 || mtype.In(0) != reflect.TypeFor[context.Context]() {
 		return reflect.Value{}, fmt.Errorf("SDK method signature invalid: first argument must be context.Context")
 	}
 
@@ -301,9 +302,7 @@ func invokeSDKMethodErr(ctx context.Context, method reflect.Value, data any, pat
 
 	pathIdx := 0
 	bodyMap := make(map[string]any, len(modelMap))
-	for k, v := range modelMap {
-		bodyMap[k] = v
-	}
+	maps.Copy(bodyMap, modelMap)
 	for _, p := range pathParams {
 		delete(bodyMap, p)
 	}
@@ -446,8 +445,7 @@ func buildStructFromModel(modelMap map[string]any, target reflect.Value) error {
 	typeOfT := target.Type()
 	out := make(map[string]any, typeOfT.NumField())
 
-	for i := range typeOfT.NumField() {
-		field := typeOfT.Field(i)
+	for field := range typeOfT.Fields() {
 		key := structFieldKey(field)
 		if key == "" {
 			continue
@@ -471,8 +469,8 @@ func buildStructFromModel(modelMap map[string]any, target reflect.Value) error {
 func structFieldKey(field reflect.StructField) string {
 	for _, tag := range []string{"json", "form", "url"} {
 		if t := field.Tag.Get(tag); t != "" {
-			if i := strings.Index(t, ","); i >= 0 {
-				return t[:i]
+			if before, _, ok := strings.Cut(t, ","); ok {
+				return before
 			}
 			return t
 		}
