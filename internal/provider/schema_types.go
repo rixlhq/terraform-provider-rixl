@@ -39,7 +39,7 @@ func attrTypeForAttribute(a any) (attr.Type, error) {
 
 	// Custom type takes precedence for all attribute kinds.
 	if custom := fieldValueByName(val, "CustomType"); custom.IsValid() && !custom.IsZero() {
-		if at, ok := custom.Interface().(attr.Type); ok {
+		if at, ok := reflect.TypeAssert[attr.Type](custom); ok {
 			return at, nil
 		}
 	}
@@ -105,7 +105,7 @@ func attrTypeForCollectionElement(val reflect.Value, kind string) (attr.Type, er
 	if !etVal.IsValid() || etVal.IsZero() {
 		return nil, fmt.Errorf("%s missing ElementType", kind)
 	}
-	at, ok := etVal.Interface().(attr.Type)
+	at, ok := reflect.TypeAssert[attr.Type](etVal)
 	if !ok {
 		return nil, fmt.Errorf("%s ElementType is not an attr.Type", kind)
 	}
@@ -119,7 +119,7 @@ func attrTypeForNestedObject(val reflect.Value) (attr.Type, error) {
 
 	if nestedVal.IsValid() {
 		if custom := fieldValueByName(nestedVal, "CustomType"); custom.IsValid() && !custom.IsZero() {
-			if at, ok := custom.Interface().(attr.Type); ok {
+			if at, ok := reflect.TypeAssert[attr.Type](custom); ok {
 				return at, nil
 			}
 		}

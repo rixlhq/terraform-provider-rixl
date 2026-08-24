@@ -14,6 +14,6 @@ pre-push:
   parallel: true
   commands:
     test:
-      run: go test ./...
+      run: mise run test
     build:
-      run: go build ./...
+      run: mise run build

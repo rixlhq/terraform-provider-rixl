@@ -130,13 +130,11 @@ func isTransientWaitError(err error) bool {
 		return true
 	}
 
-	var imgErr *images.ClientHttpError[struct{}]
-	if errors.As(err, &imgErr) {
+	if imgErr, ok := errors.AsType[*images.ClientHttpError[struct{}]](err); ok {
 		return imgErr.StatusCode == http.StatusNotFound || imgErr.StatusCode >= 500
 	}
 
-	var vidErr *videos.ClientHttpError[struct{}]
-	if errors.As(err, &vidErr) {
+	if vidErr, ok := errors.AsType[*videos.ClientHttpError[struct{}]](err); ok {
 		return vidErr.StatusCode == http.StatusNotFound || vidErr.StatusCode >= 500
 	}
 
