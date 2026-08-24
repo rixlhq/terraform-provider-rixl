@@ -89,6 +89,11 @@ linters:
   exclusions:
     paths:
       - ".*_gen\\.go$"
+    rules:
+      - path: "internal/provider/(image_data_sources|video_data_source|videos_data_source|media_helpers|media_schemas|.*_resource|registry|resource|resource_registry)\\.go"
+        linters: [goconst]
+      - path: "internal/provider/generic\\.go"
+        linters: [nolintlint, perfsprint]
 formatters:
   enable:
     - gofmt

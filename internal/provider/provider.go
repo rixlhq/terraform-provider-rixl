@@ -1,137 +1,263 @@
-// Package provider implements the Rixl Terraform provider.
 package provider
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
+	"strings"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	"github.com/rixlhq/terraform-provider-rixl/internal/providerdata"
-	"github.com/rixlhq/terraform-provider-rixl/internal/rixlclient"
+	"github.com/rixlhq/rixl-go/sdk"
 )
 
-var _ provider.Provider = &RixlProvider{}
+const defaultBaseURL = "https://api.rixl.com"
 
-// RixlProvider implements the Rixl Terraform provider.
-type RixlProvider struct {
-	version string
-}
+var _ provider.Provider = (*rixlProvider)(nil)
 
-// RixlProviderModel describes the provider configuration.
-type RixlProviderModel struct {
+type rixlProvider struct{}
+
+type providerConfig struct {
 	APIKey      types.String `tfsdk:"api_key"`
 	BearerToken types.String `tfsdk:"bearer_token"`
 	BaseURL     types.String `tfsdk:"base_url"`
 }
 
-// Metadata returns the provider type name and version.
-func (p *RixlProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "rixl"
-	resp.Version = p.version
+func New() provider.Provider {
+	return &rixlProvider{}
 }
 
-// Schema returns the provider configuration schema.
-func (p *RixlProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *rixlProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "rixl"
+}
+
+func (p *rixlProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Terraform provider for managing Rixl platform resources.",
 		Attributes: map[string]schema.Attribute{
 			"api_key": schema.StringAttribute{
-				MarkdownDescription: "Rixl API key used for the `X-API-Key` header. Can be set via the `RIXL_API_KEY` environment variable.",
-				Optional:            true,
-				Sensitive:           true,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Rixl API key. May also be set via the RIXL_API_KEY environment variable.",
 			},
 			"bearer_token": schema.StringAttribute{
-				MarkdownDescription: "Rixl bearer token used for the `Authorization` header. Can be set via the `RIXL_BEARER_TOKEN` environment variable.",
-				Optional:            true,
-				Sensitive:           true,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Rixl bearer token. May also be set via the RIXL_BEARER_TOKEN environment variable.",
 			},
 			"base_url": schema.StringAttribute{
-				MarkdownDescription: "Override the Rixl API base URL. Can be set via the `RIXL_BASE_URL` environment variable. Defaults to `https://api.rixl.com`.",
-				Optional:            true,
+				Optional:    true,
+				Description: "Rixl API base URL. Defaults to https://api.rixl.com. May also be set via the RIXL_BASE_URL environment variable.",
 			},
 		},
 	}
 }
 
-// Configure validates provider configuration and creates the API client.
-func (p *RixlProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data RixlProviderModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+func (p *rixlProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var cfg providerConfig
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	data = applyEnvOverrides(data)
+	apiKey := valueOrEnv(cfg.APIKey, "RIXL_API_KEY")
+	bearer := valueOrEnv(cfg.BearerToken, "RIXL_BEARER_TOKEN")
+	base := valueOrEnv(cfg.BaseURL, "RIXL_BASE_URL")
+	if base == "" {
+		base = defaultBaseURL
+	}
 
-	if !isConfigured(data) {
+	if apiKey == "" && bearer == "" {
 		resp.Diagnostics.AddError(
-			"Missing Credentials",
-			"Either api_key or bearer_token must be configured.",
+			"Missing Authentication",
+			"Either api_key or bearer_token must be configured, or the RIXL_API_KEY / RIXL_BEARER_TOKEN environment variables must be set.",
 		)
 		return
 	}
 
-	c, err := rixlclient.New(
-		envStringValue(data.APIKey),
-		envStringValue(data.BearerToken),
-		envStringValue(data.BaseURL),
-	)
+	baseURLOpt, err := baseURLRewriter(base)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Configuration Error", err.Error())
+		resp.Diagnostics.AddError("Invalid base_url", err.Error())
 		return
 	}
 
-	pd := &providerdata.Data{Client: c}
-	resp.DataSourceData = pd
-	resp.ResourceData = pd
-}
-
-func applyEnvOverrides(data RixlProviderModel) RixlProviderModel {
-	data.APIKey = envOrString(data.APIKey, "RIXL_API_KEY")
-	data.BearerToken = envOrString(data.BearerToken, "RIXL_BEARER_TOKEN")
-	data.BaseURL = envOrString(data.BaseURL, "RIXL_BASE_URL")
-	return data
-}
-
-func isConfigured(data RixlProviderModel) bool {
-	return isSet(data.APIKey) || isSet(data.BearerToken)
-}
-
-func isSet(s types.String) bool {
-	return !s.IsNull() && !s.IsUnknown() && s.ValueString() != ""
-}
-
-func envOrString(v types.String, env string) types.String {
-	if !v.IsNull() && !v.IsUnknown() && v.ValueString() != "" {
-		return v
+	opts := []sdk.Option{
+		sdk.WithHTTPClient(newHTTPClient()),
+		baseURLOpt,
 	}
-	if val := os.Getenv(env); val != "" {
-		return types.StringValue(val)
+	if bearer != "" {
+		// sdk.WithBearer replaces the entire editor list, which would drop the
+		// base URL rewriter. Use a custom editor instead so both auth and base
+		// URL rewriting are applied.
+		apiKey = ""
+		opts = append(opts, authEditor(bearer))
 	}
-	return v
+
+	client, err := sdk.New(apiKey, opts...)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create Rixl client", err.Error())
+		return
+	}
+
+	resp.DataSourceData = client
+	resp.ResourceData = client
 }
 
-func envStringValue(v types.String) string {
-	if v.IsNull() || v.IsUnknown() {
-		return ""
-	}
-	return v.ValueString()
-}
-
-// Resources returns the resources supported by this provider.
-func (p *RixlProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{
+func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
+	return append([]func() resource.Resource{
+		NewAccessPolicyResource,
+		NewAudioTrackResource,
+		NewBillingAddressResource,
+		NewCustomDomainResource,
+		NewDashboardResource,
 		NewFeedResource,
+		NewImageResource,
+		NewPostResource,
+		NewProjectResource,
+		NewSubtitleResource,
+		NewVideoResource,
+	}, genericResourceConstructors()...)
+}
+
+func (p *rixlProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		NewApiKeysDataSource,
+		NewAudioTracksDataSource,
+		NewBandwidthUsageDataSource,
+		NewBandwidthUsageHistoryDataSource,
+		NewBillingAddressDataSource,
+		NewBlogSubscriptionDataSource,
+		NewChaptersDataSource,
+		NewCheckMembershipDataSource,
+		NewClientCredentialsDataSource,
+		NewDashboardDataSource,
+		NewDashboardDatasetsDataSource,
+		NewDashboardStatsDataSource,
+		NewDashboardsDataSource,
+		NewDomainDataSource,
+		NewDomainAutoJoinDataSource,
+		NewFeedDataSource,
+		NewFeedStatsDataSource,
+		NewFeedsDataSource,
+		NewImageDataSource,
+		NewImageStatsDataSource,
+		NewImagesDataSource,
+		NewInternalMembershipInfoDataSource,
+		NewInvoicesDataSource,
+		NewLanguagesDataSource,
+		NewMembershipApplicationsDataSource,
+		NewMembershipsDataSource,
+		NewOrganizationMembersDataSource,
+		NewPasskeysDataSource,
+		NewPaymentMethodFromPaymentIntentDataSource,
+		NewPaymentMethodFromSetupIntentDataSource,
+		NewPaymentMethodsDataSource,
+		NewPermissionRegistriesDataSource,
+		NewPlanDataSource,
+		NewPlansDataSource,
+		NewPoliciesDataSource,
+		NewPolicyDataSource,
+		NewPolicyAttachmentsDataSource,
+		NewPostDataSource,
+		NewPostStatsDataSource,
+		NewPostsDataSource,
+		NewProjectDataSource,
+		NewProjectsDataSource,
+		NewProvidersDataSource,
+		NewRealtimeStatsDataSource,
+		NewStorageUsageDataSource,
+		NewStorageUsageHistoryDataSource,
+		NewSubscriptionDataSource,
+		NewSubscriptionHistoryDataSource,
+		NewSubtitlesDataSource,
+		NewTopFeedsDataSource,
+		NewTopImagesDataSource,
+		NewTopPostsDataSource,
+		NewTopVideosDataSource,
+		NewUserDataSource,
+		NewUserInfoDataSource,
+		NewUserPoliciesDataSource,
+		NewVideoDataSource,
+		NewVideoHeatmapDataSource,
+		NewVideoHotSegmentsDataSource,
+		NewVideoStatsDataSource,
+		NewVideosDataSource,
 	}
 }
 
-// New returns a factory for the Rixl provider.
-func New(version string) func() provider.Provider {
-	return func() provider.Provider {
-		return &RixlProvider{version: version}
+func valueOrEnv(v types.String, env string) string {
+	if !v.IsNull() && !v.IsUnknown() {
+		return v.ValueString()
 	}
+	return os.Getenv(env)
+}
+
+func newHTTPClient() *http.Client {
+	var baseTransport http.RoundTripper
+	if dt, ok := http.DefaultTransport.(*http.Transport); ok {
+		cloned := dt.Clone()
+		cloned.DialContext = (&net.Dialer{
+			Timeout:   5 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext
+		baseTransport = cloned
+	} else {
+		baseTransport = http.DefaultTransport
+	}
+
+	return &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: &userAgentTransport{inner: baseTransport, ua: "terraform-provider-rixl"},
+	}
+}
+
+type userAgentTransport struct {
+	inner http.RoundTripper
+	ua    string
+}
+
+func (t *userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req = req.Clone(req.Context())
+	req.Header.Set("User-Agent", t.ua)
+	return t.inner.RoundTrip(req)
+}
+
+func baseURLRewriter(base string) (sdk.Option, error) {
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return nil, fmt.Errorf("parse base_url: %w", err)
+	}
+	if baseURL.Scheme == "" || baseURL.Host == "" {
+		return nil, errors.New("base_url must include scheme and host")
+	}
+
+	return sdk.WithRequestEditor(func(_ context.Context, req *http.Request) error {
+		req.URL.Scheme = baseURL.Scheme
+		req.URL.Host = baseURL.Host
+		if baseURL.Path != "" {
+			prefix := strings.TrimSuffix(baseURL.Path, "/")
+			req.URL.Path = prefix + req.URL.Path
+			if req.URL.RawPath != "" {
+				req.URL.RawPath = prefix + req.URL.RawPath
+			}
+		}
+		if req.Host != "" {
+			req.Host = baseURL.Host
+		}
+		return nil
+	}), nil
+}
+
+func authEditor(token string) sdk.Option {
+	return sdk.WithRequestEditor(func(_ context.Context, req *http.Request) error {
+		req.Header.Set("Authorization", "Bearer "+token)
+		return nil
+	})
 }

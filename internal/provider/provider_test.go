@@ -1,92 +1,146 @@
-package provider_test
+package provider
 
 import (
+	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
-	fwprovider "github.com/hashicorp/terraform-plugin-framework/provider"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
-
-	rixlprovider "github.com/rixlhq/terraform-provider-rixl/internal/provider"
+	"github.com/rixlhq/rixl-go/sdk"
 )
 
-func newEmptyConfig(t *testing.T, schemaResp *fwprovider.SchemaResponse) tfsdk.Config {
-	t.Helper()
+type roundTripperFunc func(*http.Request) (*http.Response, error)
 
-	typ := schemaResp.Schema.Type().TerraformType(t.Context())
-	objType := typ.(tftypes.Object)
-	vals := make(map[string]tftypes.Value, len(objType.AttributeTypes))
-	for attr, attrType := range objType.AttributeTypes {
-		vals[attr] = tftypes.NewValue(attrType, nil)
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestUserAgentTransportDoesNotRewriteURL(t *testing.T) {
+	originalURL := "https://presigned.example.com/upload?signature=abc"
+
+	var got *http.Request
+	inner := roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		got = req
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader("")),
+			Header:     make(http.Header),
+		}, nil
+	})
+
+	client := &http.Client{Transport: &userAgentTransport{inner: inner, ua: "terraform-provider-rixl"}}
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPut, originalURL, nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
 	}
 
-	return tfsdk.Config{
-		Raw:    tftypes.NewValue(typ, vals),
-		Schema: schemaResp.Schema,
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if got == nil {
+		t.Fatalf("request was not sent through transport")
+	}
+	if got.Header.Get("User-Agent") != "terraform-provider-rixl" {
+		t.Fatalf("expected User-Agent header, got %q", got.Header.Get("User-Agent"))
+	}
+	if got.URL.String() != originalURL {
+		t.Fatalf("presigned URL was rewritten: got %q, want %q", got.URL.String(), originalURL)
 	}
 }
 
-func TestProviderMetadata(t *testing.T) {
-	t.Parallel()
+func TestBaseURLRewriter(t *testing.T) {
+	var gotPath, gotHost string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotHost = r.Host
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
 
-	p := rixlprovider.New("dev")()
-	var resp fwprovider.MetadataResponse
-	p.Metadata(t.Context(), fwprovider.MetadataRequest{}, &resp)
+	opt, err := baseURLRewriter(srv.URL)
+	if err != nil {
+		t.Fatalf("baseURLRewriter: %v", err)
+	}
 
-	if resp.TypeName != "rixl" {
-		t.Fatalf("expected type name rixl, got %q", resp.TypeName)
+	client, err := sdk.New("test-key", sdk.WithHTTPClient(newHTTPClient()), opt)
+	if err != nil {
+		t.Fatalf("sdk.New: %v", err)
+	}
+
+	_, _ = client.APIKeys.ListApiKeys(context.Background(), "org-1", nil)
+
+	wantPath := "/organizations/org-1/api-keys/v1"
+	if gotPath != wantPath {
+		t.Fatalf("request path mismatch: got %q, want %q", gotPath, wantPath)
+	}
+
+	srvHost := strings.TrimPrefix(srv.URL, "http://")
+	if gotHost != srvHost {
+		t.Fatalf("request host mismatch: got %q, want %q", gotHost, srvHost)
 	}
 }
 
-func TestProviderSchema(t *testing.T) {
-	t.Parallel()
+func TestAuthEditor(t *testing.T) {
+	var gotAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
 
-	p := rixlprovider.New("dev")()
-	var resp fwprovider.SchemaResponse
-	p.Schema(t.Context(), fwprovider.SchemaRequest{}, &resp)
+	baseOpt, err := baseURLRewriter(srv.URL)
+	if err != nil {
+		t.Fatalf("baseURLRewriter: %v", err)
+	}
 
-	attrs := resp.Schema.Attributes
-	required := []string{"api_key", "bearer_token", "base_url"}
-	for _, attr := range required {
-		if _, ok := attrs[attr]; !ok {
-			t.Fatalf("expected schema to contain %q", attr)
-		}
+	client, err := sdk.New("", sdk.WithHTTPClient(newHTTPClient()), baseOpt, authEditor("my-token"))
+	if err != nil {
+		t.Fatalf("sdk.New: %v", err)
+	}
+
+	_, _ = client.APIKeys.ListApiKeys(context.Background(), "org", nil)
+
+	wantAuth := "Bearer my-token"
+	if gotAuth != wantAuth {
+		t.Fatalf("Authorization header mismatch: got %q, want %q", gotAuth, wantAuth)
 	}
 }
 
-func TestProviderConfigureMissingCredentials(t *testing.T) {
-	t.Parallel()
-
-	p := rixlprovider.New("dev")()
-
-	var schemaResp fwprovider.SchemaResponse
-	p.Schema(t.Context(), fwprovider.SchemaRequest{}, &schemaResp)
-
-	var configureResp fwprovider.ConfigureResponse
-	p.Configure(t.Context(), fwprovider.ConfigureRequest{
-		Config: newEmptyConfig(t, &schemaResp),
-	}, &configureResp)
-
-	if !configureResp.Diagnostics.HasError() {
-		t.Fatal("expected error for missing credentials")
+func TestUploadFileURLNotRewritten(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "upload.bin")
+	if err := os.WriteFile(path, []byte("hello"), 0o644); err != nil {
+		t.Fatalf("write test file: %v", err)
 	}
-}
 
-func TestProviderConfigureReadsEnv(t *testing.T) {
-	t.Setenv("RIXL_API_KEY", "api-key")
-	t.Setenv("RIXL_BASE_URL", "https://api.example.com")
+	var gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
 
-	p := rixlprovider.New("dev")()
+	client, err := sdk.New("test-key", sdk.WithHTTPClient(newHTTPClient()))
+	if err != nil {
+		t.Fatalf("sdk.New: %v", err)
+	}
 
-	var schemaResp fwprovider.SchemaResponse
-	p.Schema(t.Context(), fwprovider.SchemaRequest{}, &schemaResp)
+	uploadURL := srv.URL + "/upload/123"
+	if err := client.UploadFile(context.Background(), uploadURL, path); err != nil {
+		t.Fatalf("UploadFile: %v", err)
+	}
 
-	var configureResp fwprovider.ConfigureResponse
-	p.Configure(t.Context(), fwprovider.ConfigureRequest{
-		Config: newEmptyConfig(t, &schemaResp),
-	}, &configureResp)
-
-	if configureResp.Diagnostics.HasError() {
-		t.Fatalf("unexpected error: %s", configureResp.Diagnostics.Errors())
+	wantPath := "/upload/123"
+	if gotPath != wantPath {
+		t.Fatalf("upload URL was rewritten: got %q, want %q", gotPath, wantPath)
 	}
 }

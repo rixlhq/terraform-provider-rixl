@@ -36,4 +36,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "feat(provider): regenerate from latest OpenAPI spec"
-          file_pattern: 'internal/provider/*_gen.go internal/provider/data_source_specs.go generator_config.yml go.mod go.sum'
+          file_pattern: 'internal/provider/*_gen.go internal/provider/registry.go internal/provider/resource_registry.go internal/provider/provider.go generator_config.yml go.mod go.sum'

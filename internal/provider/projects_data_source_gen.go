@@ -56,9 +56,9 @@ func ProjectsDataSourceSchema(ctx context.Context) schema.Schema {
 							Computed: true,
 						},
 					},
-					CustomType: ProjectsProjectsType{
+					CustomType: ProjectsDataSourceType{
 						ObjectType: types.ObjectType{
-							AttrTypes: ProjectsProjectsValue{}.AttributeTypes(ctx),
+							AttrTypes: ProjectsDataSourceValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
@@ -68,19 +68,19 @@ func ProjectsDataSourceSchema(ctx context.Context) schema.Schema {
 	}
 }
 
-type ProjectsModel struct {
+type ProjectsDataSourceModel struct {
 	OrgId    types.String `tfsdk:"org_id"`
 	Projects types.List   `tfsdk:"projects"`
 }
 
-var _ basetypes.ObjectTypable = ProjectsProjectsType{}
+var _ basetypes.ObjectTypable = ProjectsDataSourceType{}
 
-type ProjectsProjectsType struct {
+type ProjectsDataSourceType struct {
 	basetypes.ObjectType
 }
 
-func (t ProjectsProjectsType) Equal(o attr.Type) bool {
-	other, ok := o.(ProjectsProjectsType)
+func (t ProjectsDataSourceType) Equal(o attr.Type) bool {
+	other, ok := o.(ProjectsDataSourceType)
 
 	if !ok {
 		return false
@@ -89,11 +89,11 @@ func (t ProjectsProjectsType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ProjectsProjectsType) String() string {
-	return "ProjectsProjectsType"
+func (t ProjectsDataSourceType) String() string {
+	return "ProjectsType"
 }
 
-func (t ProjectsProjectsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t ProjectsDataSourceType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -246,7 +246,7 @@ func (t ProjectsProjectsType) ValueFromObject(ctx context.Context, in basetypes.
 		return nil, diags
 	}
 
-	return ProjectsProjectsValue{
+	return ProjectsDataSourceValue{
 		CreatedAt:    createdAtVal,
 		CustomDomain: customDomainVal,
 		Id:           idVal,
@@ -259,19 +259,19 @@ func (t ProjectsProjectsType) ValueFromObject(ctx context.Context, in basetypes.
 	}, diags
 }
 
-func ProjectsNewProjectsValueNull() ProjectsProjectsValue {
-	return ProjectsProjectsValue{
+func NewProjectsDataSourceValueNull() ProjectsDataSourceValue {
+	return ProjectsDataSourceValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func ProjectsNewProjectsValueUnknown() ProjectsProjectsValue {
-	return ProjectsProjectsValue{
+func NewProjectsDataSourceValueUnknown() ProjectsDataSourceValue {
+	return ProjectsDataSourceValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ProjectsProjectsValue, diag.Diagnostics) {
+func NewProjectsDataSourceValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ProjectsDataSourceValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -282,11 +282,11 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 
 		if !ok {
 			diags.AddError(
-				"Missing ProjectsProjectsValue Attribute Value",
-				"While creating a ProjectsProjectsValue value, a missing attribute value was detected. "+
-					"A ProjectsProjectsValue must contain values for all attributes, even if null or unknown. "+
+				"Missing ProjectsValue Attribute Value",
+				"While creating a ProjectsValue value, a missing attribute value was detected. "+
+					"A ProjectsValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ProjectsProjectsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("ProjectsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -294,12 +294,12 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid ProjectsProjectsValue Attribute Type",
-				"While creating a ProjectsProjectsValue value, an invalid attribute value was detected. "+
-					"A ProjectsProjectsValue must use a matching attribute type for the value. "+
+				"Invalid ProjectsValue Attribute Type",
+				"While creating a ProjectsValue value, an invalid attribute value was detected. "+
+					"A ProjectsValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ProjectsProjectsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("ProjectsProjectsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("ProjectsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("ProjectsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -309,17 +309,17 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 
 		if !ok {
 			diags.AddError(
-				"Extra ProjectsProjectsValue Attribute Value",
-				"While creating a ProjectsProjectsValue value, an extra attribute value was detected. "+
-					"A ProjectsProjectsValue must not contain values beyond the expected attribute types. "+
+				"Extra ProjectsValue Attribute Value",
+				"While creating a ProjectsValue value, an extra attribute value was detected. "+
+					"A ProjectsValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra ProjectsProjectsValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra ProjectsValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
 	createdAtAttribute, ok := attributes["created_at"]
@@ -329,7 +329,7 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`created_at is missing from object`)
 
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
 	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
@@ -347,7 +347,7 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`custom_domain is missing from object`)
 
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
 	customDomainVal, ok := customDomainAttribute.(basetypes.StringValue)
@@ -365,7 +365,7 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`id is missing from object`)
 
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
 	idVal, ok := idAttribute.(basetypes.StringValue)
@@ -383,7 +383,7 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`name is missing from object`)
 
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
 	nameVal, ok := nameAttribute.(basetypes.StringValue)
@@ -401,7 +401,7 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`org_id is missing from object`)
 
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
 	orgIdVal, ok := orgIdAttribute.(basetypes.StringValue)
@@ -419,7 +419,7 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`regions is missing from object`)
 
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
 	regionsVal, ok := regionsAttribute.(basetypes.ListValue)
@@ -437,7 +437,7 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`updated_at is missing from object`)
 
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
 	updatedAtVal, ok := updatedAtAttribute.(basetypes.StringValue)
@@ -455,7 +455,7 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`video_quality is missing from object`)
 
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
 	videoQualityVal, ok := videoQualityAttribute.(basetypes.StringValue)
@@ -467,10 +467,10 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 	}
 
 	if diags.HasError() {
-		return ProjectsNewProjectsValueUnknown(), diags
+		return NewProjectsDataSourceValueUnknown(), diags
 	}
 
-	return ProjectsProjectsValue{
+	return ProjectsDataSourceValue{
 		CreatedAt:    createdAtVal,
 		CustomDomain: customDomainVal,
 		Id:           idVal,
@@ -483,8 +483,8 @@ func ProjectsNewProjectsValue(attributeTypes map[string]attr.Type, attributes ma
 	}, diags
 }
 
-func ProjectsNewProjectsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ProjectsProjectsValue {
-	object, diags := ProjectsNewProjectsValue(attributeTypes, attributes)
+func NewProjectsDataSourceValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ProjectsDataSourceValue {
+	object, diags := NewProjectsDataSourceValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -498,15 +498,15 @@ func ProjectsNewProjectsValueMust(attributeTypes map[string]attr.Type, attribute
 				diagnostic.Detail()))
 		}
 
-		panic("ProjectsNewProjectsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewProjectsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t ProjectsProjectsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t ProjectsDataSourceType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return ProjectsNewProjectsValueNull(), nil
+		return NewProjectsDataSourceValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -514,11 +514,11 @@ func (t ProjectsProjectsType) ValueFromTerraform(ctx context.Context, in tftypes
 	}
 
 	if !in.IsKnown() {
-		return ProjectsNewProjectsValueUnknown(), nil
+		return NewProjectsDataSourceValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return ProjectsNewProjectsValueNull(), nil
+		return NewProjectsDataSourceValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -541,16 +541,16 @@ func (t ProjectsProjectsType) ValueFromTerraform(ctx context.Context, in tftypes
 		attributes[k] = a
 	}
 
-	return ProjectsNewProjectsValueMust(ProjectsProjectsValue{}.AttributeTypes(ctx), attributes), nil
+	return NewProjectsDataSourceValueMust(ProjectsDataSourceValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ProjectsProjectsType) ValueType(ctx context.Context) attr.Value {
-	return ProjectsProjectsValue{}
+func (t ProjectsDataSourceType) ValueType(ctx context.Context) attr.Value {
+	return ProjectsDataSourceValue{}
 }
 
-var _ basetypes.ObjectValuable = ProjectsProjectsValue{}
+var _ basetypes.ObjectValuable = ProjectsDataSourceValue{}
 
-type ProjectsProjectsValue struct {
+type ProjectsDataSourceValue struct {
 	CreatedAt    basetypes.StringValue `tfsdk:"created_at"`
 	CustomDomain basetypes.StringValue `tfsdk:"custom_domain"`
 	Id           basetypes.StringValue `tfsdk:"id"`
@@ -562,7 +562,7 @@ type ProjectsProjectsValue struct {
 	state        attr.ValueState
 }
 
-func (v ProjectsProjectsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v ProjectsDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 8)
 
 	var val tftypes.Value
@@ -663,19 +663,19 @@ func (v ProjectsProjectsValue) ToTerraformValue(ctx context.Context) (tftypes.Va
 	}
 }
 
-func (v ProjectsProjectsValue) IsNull() bool {
+func (v ProjectsDataSourceValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v ProjectsProjectsValue) IsUnknown() bool {
+func (v ProjectsDataSourceValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v ProjectsProjectsValue) String() string {
-	return "ProjectsProjectsValue"
+func (v ProjectsDataSourceValue) String() string {
+	return "ProjectsValue"
 }
 
-func (v ProjectsProjectsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v ProjectsDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var regionsVal basetypes.ListValue
@@ -742,8 +742,8 @@ func (v ProjectsProjectsValue) ToObjectValue(ctx context.Context) (basetypes.Obj
 	return objVal, diags
 }
 
-func (v ProjectsProjectsValue) Equal(o attr.Value) bool {
-	other, ok := o.(ProjectsProjectsValue)
+func (v ProjectsDataSourceValue) Equal(o attr.Value) bool {
+	other, ok := o.(ProjectsDataSourceValue)
 
 	if !ok {
 		return false
@@ -792,15 +792,15 @@ func (v ProjectsProjectsValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v ProjectsProjectsValue) Type(ctx context.Context) attr.Type {
-	return ProjectsProjectsType{
+func (v ProjectsDataSourceValue) Type(ctx context.Context) attr.Type {
+	return ProjectsDataSourceType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v ProjectsProjectsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v ProjectsDataSourceValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"created_at":    basetypes.StringType{},
 		"custom_domain": basetypes.StringType{},

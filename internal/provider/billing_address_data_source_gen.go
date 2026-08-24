@@ -31,10 +31,8 @@ func BillingAddressDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"org_id": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "",
-				MarkdownDescription: "",
+				Optional: true,
+				Computed: true,
 			},
 			"phone": schema.StringAttribute{
 				Computed: true,
@@ -49,7 +47,7 @@ func BillingAddressDataSourceSchema(ctx context.Context) schema.Schema {
 	}
 }
 
-type BillingAddressModel struct {
+type BillingAddressDataSourceModel struct {
 	City       types.String `tfsdk:"city"`
 	Country    types.String `tfsdk:"country"`
 	Email      types.String `tfsdk:"email"`

@@ -2,292 +2,249 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"strings"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
-
-	"github.com/rixlhq/terraform-provider-rixl/internal/providerdata"
-	"github.com/rixlhq/terraform-provider-rixl/internal/rixlclient"
-	"github.com/rixlhq/terraform-provider-rixl/internal/rixlcommon"
+	"github.com/rixlhq/rixl-go/sdk"
+	"github.com/rixlhq/rixl-go/sdk/feeds"
 )
 
-var (
-	_ resource.Resource                = &feedResource{}
-	_ resource.ResourceWithImportState = &feedResource{}
-)
+var _ resource.Resource = (*feedResource)(nil)
 
-// NewFeedResource returns a resource that manages Rixl feeds.
 func NewFeedResource() resource.Resource {
 	return &feedResource{}
 }
 
 type feedResource struct {
-	client *rixlclient.Client
+	client *sdk.Client
 }
 
-// Metadata returns the full resource type name.
 func (r *feedResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_feed"
 }
 
-// Schema returns the feed resource schema.
 func (r *feedResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	s := FeedResourceSchema(ctx)
-
-	if attr, ok := s.Attributes["project_id"].(schema.StringAttribute); ok {
-		attr.Optional = false
-		attr.Computed = false
-		attr.Required = true
-		s.Attributes["project_id"] = attr
-	}
-	if attr, ok := s.Attributes["name"].(schema.StringAttribute); ok {
-		attr.Optional = false
-		attr.Computed = false
-		attr.Required = true
-		s.Attributes["name"] = attr
-	}
-
-	resp.Schema = s
+	resp.Schema = FeedResourceSchema(ctx)
 }
 
-// Configure prepares the API client for the resource.
 func (r *feedResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
-	pd, ok := req.ProviderData.(*providerdata.Data)
+	client, ok := req.ProviderData.(*sdk.Client)
 	if !ok {
-		resp.Diagnostics.AddError("Unexpected Configure Type", fmt.Sprintf("Expected *providerdata.Data, got %T", req.ProviderData))
+		resp.Diagnostics.AddError("Unexpected provider data type", fmt.Sprintf("expected *sdk.Client, got %T", req.ProviderData))
 		return
 	}
-	r.client = pd.Client
+	r.client = client
 }
 
-// Create creates a new feed.
 func (r *feedResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	if r.client == nil {
-		resp.Diagnostics.AddError("Missing Client", "Configure the provider to use this resource.")
-		return
-	}
-
-	var plan FeedModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	var data FeedModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if plan.ProjectId.IsNull() || plan.ProjectId.IsUnknown() || plan.ProjectId.ValueString() == "" {
-		resp.Diagnostics.AddError("Missing project_id", "project_id is required to create a feed.")
+	projectID := data.ProjectId.ValueString()
+
+	body, d := modelToMap(ctx, &data)
+	resp.Diagnostics.Append(d...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-	if plan.Name.IsNull() || plan.Name.IsUnknown() || plan.Name.ValueString() == "" {
-		resp.Diagnostics.AddError("Missing name", "name is required to create a feed.")
+	delete(body, "id")
+	delete(body, "project_id")
+	delete(body, "created_at")
+	delete(body, "updated_at")
+
+	feed, err := r.client.Feeds.CreateFeed(ctx, projectID, body)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create feed", err.Error())
 		return
 	}
 
-	path := fmt.Sprintf("/feeds/v1/projects/%s/feeds", plan.ProjectId.ValueString())
-	body, err := json.Marshal(feedRequestBody(plan, false))
-	if err != nil {
-		resp.Diagnostics.AddError("Request Encoding Error", err.Error())
+	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, &data, FeedResourceSchema(ctx).Attributes)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	respBody, err := r.client.Post(ctx, path, body)
-	if err != nil {
-		resp.Diagnostics.AddError("Rixl API Error", err.Error())
-		return
+	if data.ProjectId.IsNull() || data.ProjectId.IsUnknown() {
+		data.ProjectId = types.StringValue(projectID)
 	}
 
-	stateVal, err := r.responseToState(ctx, respBody, req.Plan.Raw)
-	if err != nil {
-		resp.Diagnostics.AddError("Response Conversion Error", err.Error())
-		return
-	}
-	resp.State.Raw = stateVal
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-// Read refreshes the feed state from the API.
 func (r *feedResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	if r.client == nil {
-		resp.Diagnostics.AddError("Missing Client", "Configure the provider to use this resource.")
+	var data FeedModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	path, err := r.buildPath(req.State.Raw, "/feeds/v1/projects/{project_id}/feeds/{feed_id}")
-	if err != nil {
-		resp.Diagnostics.AddError("Path Error", err.Error())
-		return
-	}
+	projectID := data.ProjectId.ValueString()
+	feedID := data.Id.ValueString()
 
-	respBody, err := r.client.Get(ctx, path, nil)
+	feed, err := r.client.Feeds.GetFeed(ctx, projectID, feedID)
 	if err != nil {
-		if rixlclient.IsNotFound(err) {
+		var httpErr *feeds.ClientHttpError[struct{}]
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Rixl API Error", err.Error())
+		resp.Diagnostics.AddError("Failed to read feed", err.Error())
 		return
 	}
 
-	stateVal, err := r.responseToState(ctx, respBody, req.State.Raw)
-	if err != nil {
-		resp.Diagnostics.AddError("Response Conversion Error", err.Error())
+	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, &data, FeedResourceSchema(ctx).Attributes)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-	resp.State.Raw = stateVal
+
+	if data.ProjectId.IsNull() || data.ProjectId.IsUnknown() {
+		data.ProjectId = types.StringValue(projectID)
+	}
+	if data.Id.IsNull() || data.Id.IsUnknown() {
+		data.Id = types.StringValue(feedID)
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-// Update modifies an existing feed.
 func (r *feedResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	if r.client == nil {
-		resp.Diagnostics.AddError("Missing Client", "Configure the provider to use this resource.")
-		return
-	}
-
-	var plan FeedModel
+	var state, plan FeedModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if plan.ProjectId.IsNull() || plan.ProjectId.IsUnknown() || plan.ProjectId.ValueString() == "" {
-		resp.Diagnostics.AddError("Missing project_id", "project_id is required to update a feed.")
+	dataAny, diags := mergeStateAndPlan(ctx, &state, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-	if plan.Id.IsNull() || plan.Id.IsUnknown() || plan.Id.ValueString() == "" {
-		resp.Diagnostics.AddError("Missing id", "feed id is required to update a feed.")
-		return
-	}
+	data := dataAny.(*FeedModel)
 
-	path := fmt.Sprintf("/feeds/v1/projects/%s/feeds/%s", plan.ProjectId.ValueString(), plan.Id.ValueString())
-	body, err := json.Marshal(feedRequestBody(plan, true))
+	body, d := modelToMap(ctx, data)
+	resp.Diagnostics.Append(d...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	delete(body, "id")
+	delete(body, "created_at")
+	delete(body, "updated_at")
+	// The API body identifies the resource by feed_id rather than id.
+	body["feed_id"] = data.Id.ValueString()
+	body["project_id"] = data.ProjectId.ValueString()
+
+	feed, err := r.client.Feeds.UpdateFeed(ctx, data.ProjectId.ValueString(), data.Id.ValueString(), body)
 	if err != nil {
-		resp.Diagnostics.AddError("Request Encoding Error", err.Error())
-		return
-	}
-
-	respBody, err := r.client.Put(ctx, path, body)
-	if err != nil {
-		resp.Diagnostics.AddError("Rixl API Error", err.Error())
-		return
-	}
-
-	stateVal, err := r.responseToState(ctx, respBody, req.Plan.Raw)
-	if err != nil {
-		resp.Diagnostics.AddError("Response Conversion Error", err.Error())
-		return
-	}
-	resp.State.Raw = stateVal
-}
-
-// Delete removes a feed.
-func (r *feedResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	if r.client == nil {
-		resp.Diagnostics.AddError("Missing Client", "Configure the provider to use this resource.")
-		return
-	}
-
-	path, err := r.buildPath(req.State.Raw, "/feeds/v1/projects/{project_id}/feeds/{feed_id}")
-	if err != nil {
-		resp.Diagnostics.AddError("Path Error", err.Error())
-		return
-	}
-
-	if _, err := r.client.Delete(ctx, path); err != nil && !rixlclient.IsNotFound(err) {
-		resp.Diagnostics.AddError("Rixl API Error", err.Error())
-		return
-	}
-
-	resp.State.RemoveResource(ctx)
-}
-
-// ImportState imports a feed using a project_id/feed_id format.
-func (r *feedResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.Split(req.ID, "/") // project_id/feed_id
-	if len(parts) != 2 {
-		resp.Diagnostics.AddError("Invalid Import ID", "Expected project_id/feed_id.")
-		return
-	}
-
-	tfType := feedResourceSchemaType(ctx)
-	objType := tfType.(tftypes.Object)
-	vals := make(map[string]tftypes.Value, len(objType.AttributeTypes))
-	for attr, attrType := range objType.AttributeTypes {
-		switch attr {
-		case "project_id":
-			vals[attr] = tftypes.NewValue(attrType, parts[0])
-		case "id":
-			vals[attr] = tftypes.NewValue(attrType, parts[1])
-		default:
-			vals[attr] = tftypes.NewValue(attrType, nil)
-		}
-	}
-	importVal := tftypes.NewValue(tfType, vals)
-
-	path := fmt.Sprintf("/feeds/v1/projects/%s/feeds/%s", parts[0], parts[1])
-	respBody, err := r.client.Get(ctx, path, nil)
-	if err != nil {
-		if rixlclient.IsNotFound(err) {
-			resp.Diagnostics.AddError("Import Not Found", err.Error())
+		var httpErr *feeds.ClientHttpError[struct{}]
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Rixl API Error", err.Error())
+		resp.Diagnostics.AddError("Failed to update feed", err.Error())
 		return
 	}
 
-	stateVal, err := r.responseToState(ctx, respBody, importVal)
-	if err != nil {
-		resp.Diagnostics.AddError("Response Conversion Error", err.Error())
+	resp.Diagnostics.Append(mapResponseToModel(ctx, feed, data, FeedResourceSchema(ctx).Attributes)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-	resp.State.Raw = stateVal
-}
 
-func (r *feedResource) buildPath(value tftypes.Value, template string) (string, error) {
-	return buildPath(value, template, map[string]string{"feed_id": "id"})
-}
-
-func (r *feedResource) responseToState(ctx context.Context, body []byte, base tftypes.Value) (tftypes.Value, error) {
-	tfVal, err := responseToState(ctx, feedResourceSchemaType(ctx), body, "")
-	if err != nil {
-		return tftypes.Value{}, err
+	if data.ProjectId.IsNull() || data.ProjectId.IsUnknown() {
+		data.ProjectId = state.ProjectId
 	}
-	return rixlcommon.OverlayKnown(base, tfVal), nil
-}
-
-func feedResourceSchemaType(ctx context.Context) tftypes.Type {
-	return FeedResourceSchema(ctx).Type().TerraformType(ctx)
-}
-
-func feedRequestBody(plan FeedModel, isUpdate bool) map[string]any {
-	body := make(map[string]any)
-
-	body["project_id"] = plan.ProjectId.ValueString()
-	body["name"] = plan.Name.ValueString()
-
-	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
-		body["description"] = plan.Description.ValueString()
+	if data.Id.IsNull() || data.Id.IsUnknown() {
+		data.Id = state.Id
 	}
 
-	addBool := func(key string, v types.Bool) {
-		if !v.IsNull() && !v.IsUnknown() {
-			body[key] = v.ValueBool()
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+func (r *feedResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data FeedModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if _, err := r.client.Feeds.DeleteFeed(ctx, data.ProjectId.ValueString(), data.Id.ValueString()); err != nil {
+		var httpErr *feeds.ClientHttpError[struct{}]
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
+			return
 		}
+		resp.Diagnostics.AddError("Failed to delete feed", err.Error())
 	}
-	addBool("allow_images", plan.AllowImages)
-	addBool("allow_videos", plan.AllowVideos)
-	addBool("has_likes", plan.HasLikes)
-	addBool("has_shares", plan.HasShares)
-	addBool("has_comments", plan.HasComments)
+}
 
-	if isUpdate {
-		body["feed_id"] = plan.Id.ValueString()
+func FeedResourceSchema(_ context.Context) schema.Schema {
+	return schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"allow_images": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+			},
+			"allow_videos": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+			},
+			"created_at": schema.StringAttribute{
+				Computed: true,
+			},
+			"description": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+			},
+			"has_comments": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+			},
+			"has_likes": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+			},
+			"has_shares": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+			},
+			"id": schema.StringAttribute{
+				Computed: true,
+			},
+			"name": schema.StringAttribute{
+				Required: true,
+			},
+			"project_id": schema.StringAttribute{
+				Required:      true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			},
+			"updated_at": schema.StringAttribute{
+				Computed: true,
+			},
+		},
 	}
+}
 
-	return body
+type FeedModel struct {
+	AllowImages types.Bool   `tfsdk:"allow_images"`
+	AllowVideos types.Bool   `tfsdk:"allow_videos"`
+	CreatedAt   types.String `tfsdk:"created_at"`
+	Description types.String `tfsdk:"description"`
+	HasComments types.Bool   `tfsdk:"has_comments"`
+	HasLikes    types.Bool   `tfsdk:"has_likes"`
+	HasShares   types.Bool   `tfsdk:"has_shares"`
+	Id          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	ProjectId   types.String `tfsdk:"project_id"`
+	UpdatedAt   types.String `tfsdk:"updated_at"`
 }

@@ -52,7 +52,7 @@ func ProjectDataSourceSchema(ctx context.Context) schema.Schema {
 	}
 }
 
-type ProjectModel struct {
+type ProjectDataSourceModel struct {
 	CreatedAt    types.String `tfsdk:"created_at"`
 	CustomDomain types.String `tfsdk:"custom_domain"`
 	Id           types.String `tfsdk:"id"`

@@ -28,9 +28,9 @@ func LanguagesDataSourceSchema(ctx context.Context) schema.Schema {
 							Computed: true,
 						},
 					},
-					CustomType: LanguagesLanguagesType{
+					CustomType: LanguagesDataSourceType{
 						ObjectType: types.ObjectType{
-							AttrTypes: LanguagesLanguagesValue{}.AttributeTypes(ctx),
+							AttrTypes: LanguagesDataSourceValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
@@ -40,18 +40,18 @@ func LanguagesDataSourceSchema(ctx context.Context) schema.Schema {
 	}
 }
 
-type LanguagesModel struct {
+type LanguagesDataSourceModel struct {
 	Languages types.List `tfsdk:"languages"`
 }
 
-var _ basetypes.ObjectTypable = LanguagesLanguagesType{}
+var _ basetypes.ObjectTypable = LanguagesDataSourceType{}
 
-type LanguagesLanguagesType struct {
+type LanguagesDataSourceType struct {
 	basetypes.ObjectType
 }
 
-func (t LanguagesLanguagesType) Equal(o attr.Type) bool {
-	other, ok := o.(LanguagesLanguagesType)
+func (t LanguagesDataSourceType) Equal(o attr.Type) bool {
+	other, ok := o.(LanguagesDataSourceType)
 
 	if !ok {
 		return false
@@ -60,11 +60,11 @@ func (t LanguagesLanguagesType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t LanguagesLanguagesType) String() string {
-	return "LanguagesLanguagesType"
+func (t LanguagesDataSourceType) String() string {
+	return "LanguagesType"
 }
 
-func (t LanguagesLanguagesType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t LanguagesDataSourceType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -109,26 +109,26 @@ func (t LanguagesLanguagesType) ValueFromObject(ctx context.Context, in basetype
 		return nil, diags
 	}
 
-	return LanguagesLanguagesValue{
+	return LanguagesDataSourceValue{
 		Code:  codeVal,
 		Name:  nameVal,
 		state: attr.ValueStateKnown,
 	}, diags
 }
 
-func LanguagesNewLanguagesValueNull() LanguagesLanguagesValue {
-	return LanguagesLanguagesValue{
+func NewLanguagesDataSourceValueNull() LanguagesDataSourceValue {
+	return LanguagesDataSourceValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func LanguagesNewLanguagesValueUnknown() LanguagesLanguagesValue {
-	return LanguagesLanguagesValue{
+func NewLanguagesDataSourceValueUnknown() LanguagesDataSourceValue {
+	return LanguagesDataSourceValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func LanguagesNewLanguagesValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (LanguagesLanguagesValue, diag.Diagnostics) {
+func NewLanguagesDataSourceValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (LanguagesDataSourceValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -139,11 +139,11 @@ func LanguagesNewLanguagesValue(attributeTypes map[string]attr.Type, attributes 
 
 		if !ok {
 			diags.AddError(
-				"Missing LanguagesLanguagesValue Attribute Value",
-				"While creating a LanguagesLanguagesValue value, a missing attribute value was detected. "+
-					"A LanguagesLanguagesValue must contain values for all attributes, even if null or unknown. "+
+				"Missing LanguagesValue Attribute Value",
+				"While creating a LanguagesValue value, a missing attribute value was detected. "+
+					"A LanguagesValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("LanguagesLanguagesValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("LanguagesValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -151,12 +151,12 @@ func LanguagesNewLanguagesValue(attributeTypes map[string]attr.Type, attributes 
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid LanguagesLanguagesValue Attribute Type",
-				"While creating a LanguagesLanguagesValue value, an invalid attribute value was detected. "+
-					"A LanguagesLanguagesValue must use a matching attribute type for the value. "+
+				"Invalid LanguagesValue Attribute Type",
+				"While creating a LanguagesValue value, an invalid attribute value was detected. "+
+					"A LanguagesValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("LanguagesLanguagesValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("LanguagesLanguagesValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("LanguagesValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("LanguagesValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -166,17 +166,17 @@ func LanguagesNewLanguagesValue(attributeTypes map[string]attr.Type, attributes 
 
 		if !ok {
 			diags.AddError(
-				"Extra LanguagesLanguagesValue Attribute Value",
-				"While creating a LanguagesLanguagesValue value, an extra attribute value was detected. "+
-					"A LanguagesLanguagesValue must not contain values beyond the expected attribute types. "+
+				"Extra LanguagesValue Attribute Value",
+				"While creating a LanguagesValue value, an extra attribute value was detected. "+
+					"A LanguagesValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra LanguagesLanguagesValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra LanguagesValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return LanguagesNewLanguagesValueUnknown(), diags
+		return NewLanguagesDataSourceValueUnknown(), diags
 	}
 
 	codeAttribute, ok := attributes["code"]
@@ -186,7 +186,7 @@ func LanguagesNewLanguagesValue(attributeTypes map[string]attr.Type, attributes 
 			"Attribute Missing",
 			`code is missing from object`)
 
-		return LanguagesNewLanguagesValueUnknown(), diags
+		return NewLanguagesDataSourceValueUnknown(), diags
 	}
 
 	codeVal, ok := codeAttribute.(basetypes.StringValue)
@@ -204,7 +204,7 @@ func LanguagesNewLanguagesValue(attributeTypes map[string]attr.Type, attributes 
 			"Attribute Missing",
 			`name is missing from object`)
 
-		return LanguagesNewLanguagesValueUnknown(), diags
+		return NewLanguagesDataSourceValueUnknown(), diags
 	}
 
 	nameVal, ok := nameAttribute.(basetypes.StringValue)
@@ -216,18 +216,18 @@ func LanguagesNewLanguagesValue(attributeTypes map[string]attr.Type, attributes 
 	}
 
 	if diags.HasError() {
-		return LanguagesNewLanguagesValueUnknown(), diags
+		return NewLanguagesDataSourceValueUnknown(), diags
 	}
 
-	return LanguagesLanguagesValue{
+	return LanguagesDataSourceValue{
 		Code:  codeVal,
 		Name:  nameVal,
 		state: attr.ValueStateKnown,
 	}, diags
 }
 
-func LanguagesNewLanguagesValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) LanguagesLanguagesValue {
-	object, diags := LanguagesNewLanguagesValue(attributeTypes, attributes)
+func NewLanguagesDataSourceValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) LanguagesDataSourceValue {
+	object, diags := NewLanguagesDataSourceValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -241,15 +241,15 @@ func LanguagesNewLanguagesValueMust(attributeTypes map[string]attr.Type, attribu
 				diagnostic.Detail()))
 		}
 
-		panic("LanguagesNewLanguagesValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewLanguagesValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t LanguagesLanguagesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t LanguagesDataSourceType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return LanguagesNewLanguagesValueNull(), nil
+		return NewLanguagesDataSourceValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -257,11 +257,11 @@ func (t LanguagesLanguagesType) ValueFromTerraform(ctx context.Context, in tftyp
 	}
 
 	if !in.IsKnown() {
-		return LanguagesNewLanguagesValueUnknown(), nil
+		return NewLanguagesDataSourceValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return LanguagesNewLanguagesValueNull(), nil
+		return NewLanguagesDataSourceValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -284,22 +284,22 @@ func (t LanguagesLanguagesType) ValueFromTerraform(ctx context.Context, in tftyp
 		attributes[k] = a
 	}
 
-	return LanguagesNewLanguagesValueMust(LanguagesLanguagesValue{}.AttributeTypes(ctx), attributes), nil
+	return NewLanguagesDataSourceValueMust(LanguagesDataSourceValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t LanguagesLanguagesType) ValueType(ctx context.Context) attr.Value {
-	return LanguagesLanguagesValue{}
+func (t LanguagesDataSourceType) ValueType(ctx context.Context) attr.Value {
+	return LanguagesDataSourceValue{}
 }
 
-var _ basetypes.ObjectValuable = LanguagesLanguagesValue{}
+var _ basetypes.ObjectValuable = LanguagesDataSourceValue{}
 
-type LanguagesLanguagesValue struct {
+type LanguagesDataSourceValue struct {
 	Code  basetypes.StringValue `tfsdk:"code"`
 	Name  basetypes.StringValue `tfsdk:"name"`
 	state attr.ValueState
 }
 
-func (v LanguagesLanguagesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v LanguagesDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 2)
 
 	var val tftypes.Value
@@ -344,19 +344,19 @@ func (v LanguagesLanguagesValue) ToTerraformValue(ctx context.Context) (tftypes.
 	}
 }
 
-func (v LanguagesLanguagesValue) IsNull() bool {
+func (v LanguagesDataSourceValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v LanguagesLanguagesValue) IsUnknown() bool {
+func (v LanguagesDataSourceValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v LanguagesLanguagesValue) String() string {
-	return "LanguagesLanguagesValue"
+func (v LanguagesDataSourceValue) String() string {
+	return "LanguagesValue"
 }
 
-func (v LanguagesLanguagesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v LanguagesDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributeTypes := map[string]attr.Type{
@@ -382,8 +382,8 @@ func (v LanguagesLanguagesValue) ToObjectValue(ctx context.Context) (basetypes.O
 	return objVal, diags
 }
 
-func (v LanguagesLanguagesValue) Equal(o attr.Value) bool {
-	other, ok := o.(LanguagesLanguagesValue)
+func (v LanguagesDataSourceValue) Equal(o attr.Value) bool {
+	other, ok := o.(LanguagesDataSourceValue)
 
 	if !ok {
 		return false
@@ -408,15 +408,15 @@ func (v LanguagesLanguagesValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v LanguagesLanguagesValue) Type(ctx context.Context) attr.Type {
-	return LanguagesLanguagesType{
+func (v LanguagesDataSourceValue) Type(ctx context.Context) attr.Type {
+	return LanguagesDataSourceType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v LanguagesLanguagesValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v LanguagesDataSourceValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"code": basetypes.StringType{},
 		"name": basetypes.StringType{},

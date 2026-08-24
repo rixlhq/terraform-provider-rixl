@@ -8,6 +8,8 @@ terraform-provider-rixl
 openapi.json
 openapi.yaml
 provider_code_spec.json
+__pycache__/
+
 
 # Terraform artifacts
 *.tfstate
