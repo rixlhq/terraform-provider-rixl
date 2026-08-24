@@ -223,7 +223,7 @@ func (r *organizationMemberResource) Delete(ctx context.Context, req resource.De
 
 func (r *organizationMemberResource) findMember(ctx context.Context, orgID, userID string) (interface{}, error) {
 	params := &memberships.ListOrganizationMembersParams{
-		Limit: int32Ptr(100),
+		Limit: ptr(int32(100)),
 	}
 	if userID != "" {
 		params.UserUserId = &userID

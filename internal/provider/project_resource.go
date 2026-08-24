@@ -56,7 +56,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 
 	name := data.Name.ValueString()
 	body := models.CreateProjectJSONRequest{
-		Name: stringPtr(name),
+		Name: ptr(name),
 	}
 
 	if !data.Regions.IsNull() && !data.Regions.IsUnknown() {
@@ -138,9 +138,9 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	if !plan.Name.Equal(state.Name) {
 		body := models.UpdateProjectNameJSONRequest{
-			ProjectID: stringPtr(projectID),
-			OrgID:     stringPtr(orgID),
-			Name:      stringPtr(plan.Name.ValueString()),
+			ProjectID: ptr(projectID),
+			OrgID:     ptr(orgID),
+			Name:      ptr(plan.Name.ValueString()),
 		}
 		if _, err := r.client.Projects.UpdateProjectName(ctx, orgID, projectID, body); err != nil {
 			var httpErr *projects.ClientHttpError[struct{}]
@@ -155,8 +155,8 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	if !plan.VideoQuality.Equal(state.VideoQuality) && !plan.VideoQuality.IsUnknown() && !plan.VideoQuality.IsNull() && plan.VideoQuality.ValueString() != "" {
 		body := models.UpdateVideoQualityJSONRequest{
-			ProjectID:    stringPtr(projectID),
-			OrgID:        stringPtr(orgID),
+			ProjectID:    ptr(projectID),
+			OrgID:        ptr(orgID),
 			VideoQuality: models.CommonV1VideoQuality(plan.VideoQuality.ValueString()),
 		}
 		if _, err := r.client.Projects.UpdateVideoQuality(ctx, orgID, projectID, body); err != nil {

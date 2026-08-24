@@ -209,19 +209,16 @@ func buildWidgetInput(data DashboardWidgetResourceModel) models.AnalyticsV1Widge
 		ChartType: data.ChartType.ValueString(),
 		Dataset:   data.Dataset.ValueString(),
 		Metric:    data.Metric.ValueString(),
+		Interval:  tfStringPtr(data.Interval),
+		Limit:     tfInt32Ptr(data.Limit),
+		PosX:      tfInt32Ptr(data.PosX),
+		PosY:      tfInt32Ptr(data.PosY),
+		Width:     tfInt32Ptr(data.Width),
+		Height:    tfInt32Ptr(data.Height),
+		SortOrder: tfInt32Ptr(data.SortOrder),
+		GroupBy:   stringListValue(data.GroupBy),
+		Filters:   buildChartFilters(data.Filters),
 	}
-
-	applyOptionalString(&input.Interval, data.Interval)
-	applyOptionalInt32(&input.Limit, data.Limit)
-	applyOptionalInt32(&input.PosX, data.PosX)
-	applyOptionalInt32(&input.PosY, data.PosY)
-	applyOptionalInt32(&input.Width, data.Width)
-	applyOptionalInt32(&input.Height, data.Height)
-	applyOptionalInt32(&input.SortOrder, data.SortOrder)
-
-	input.GroupBy = stringListValue(data.GroupBy)
-	input.Filters = buildChartFilters(data.Filters)
-
 	return input
 }
 
@@ -263,20 +260,4 @@ func stringListValue(list types.List) []string {
 		}
 	}
 	return elements
-}
-
-func applyOptionalString(target **string, v types.String) {
-	if v.IsNull() || v.IsUnknown() {
-		return
-	}
-	s := v.ValueString()
-	*target = &s
-}
-
-func applyOptionalInt32(target **int32, v types.Int64) {
-	if v.IsNull() || v.IsUnknown() {
-		return
-	}
-	n := int32(v.ValueInt64())
-	*target = &n
 }

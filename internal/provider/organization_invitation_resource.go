@@ -82,7 +82,7 @@ func (r *organizationInvitationResource) Read(ctx context.Context, req resource.
 	userID := data.UserId.ValueString()
 
 	params := &memberships.ListMembershipApplicationsParams{
-		Limit: int32Ptr(100),
+		Limit: ptr(int32(100)),
 	}
 	if userID != "" {
 		params.UserUserId = &userID
@@ -254,5 +254,3 @@ type OrganizationInvitationResourceModel struct {
 	DecidedAt             types.String `tfsdk:"decided_at"`
 	InvitationExpiresAt   types.String `tfsdk:"invitation_expires_at"`
 }
-
-func int32Ptr(v int32) *int32 { return &v }

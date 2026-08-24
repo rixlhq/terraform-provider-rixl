@@ -82,10 +82,8 @@ func (r *billingAddressResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	params := &payments.GetBillingAddressParams{}
-	if !data.OrgId.IsNull() && !data.OrgId.IsUnknown() {
-		orgID := data.OrgId.ValueString()
-		params.OrgId = &orgID
+	params := &payments.GetBillingAddressParams{
+		OrgId: tfStringPtr(data.OrgId),
 	}
 
 	address, err := r.client.Payments.GetBillingAddress(ctx, params)
@@ -167,14 +165,8 @@ func (r *billingAddressResource) buildRequest(data BillingAddressResourceModel) 
 		State:      data.State.ValueString(),
 		PostalCode: data.PostalCode.ValueString(),
 		Country:    data.Country.ValueString(),
-	}
-	if !data.Line2.IsNull() && !data.Line2.IsUnknown() {
-		v := data.Line2.ValueString()
-		addr.Line2 = &v
-	}
-	if !data.Phone.IsNull() && !data.Phone.IsUnknown() {
-		v := data.Phone.ValueString()
-		addr.Phone = &v
+		Line2:      tfStringPtr(data.Line2),
+		Phone:      tfStringPtr(data.Phone),
 	}
 	if !data.Email.IsNull() && !data.Email.IsUnknown() {
 		v := rttypes.Email(data.Email.ValueString())
@@ -182,10 +174,7 @@ func (r *billingAddressResource) buildRequest(data BillingAddressResourceModel) 
 	}
 
 	req := models.BillingV1UpsertBillingAddressRequest{Address: &addr}
-	if !data.OrgId.IsNull() && !data.OrgId.IsUnknown() {
-		v := data.OrgId.ValueString()
-		req.OrgID = &v
-	}
+	req.OrgID = tfStringPtr(data.OrgId)
 	return req
 }
 

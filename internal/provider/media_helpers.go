@@ -3,7 +3,6 @@ package provider
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -12,45 +11,6 @@ import (
 	"github.com/rixlhq/rixl-go/sdk/models"
 	"github.com/rixlhq/rixl-go/sdk/videos"
 )
-
-func ptrString(s *string) types.String {
-	if s == nil {
-		return types.StringNull()
-	}
-	return types.StringValue(*s)
-}
-
-func stringPtr(s string) *string {
-	return &s
-}
-
-func ptrInt64(i *int64) types.Int64 {
-	if i == nil {
-		return types.Int64Null()
-	}
-	return types.Int64Value(*i)
-}
-
-func ptrInt32(i *int32) types.Int64 {
-	if i == nil {
-		return types.Int64Null()
-	}
-	return types.Int64Value(int64(*i))
-}
-
-func ptrBool(b *bool) types.Bool {
-	if b == nil {
-		return types.BoolNull()
-	}
-	return types.BoolValue(*b)
-}
-
-func ptrTime(t *time.Time) types.String {
-	if t == nil {
-		return types.StringNull()
-	}
-	return types.StringValue(t.Format(time.RFC3339Nano))
-}
 
 func commonV1FileAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
