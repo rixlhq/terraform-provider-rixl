@@ -23,6 +23,7 @@ MANUAL_RESOURCES = [
     "NewAccessPolicyResource",
     "NewAudioTrackResource",
     "NewBillingAddressResource",
+    "NewCustomDomainResource",
     "NewDashboardResource",
     "NewFeedResource",
     "NewImageResource",
@@ -79,6 +80,11 @@ RESOURCE_META: dict[str, dict] = {
             "cancel_at_period_end", "stripe_customer_id", "stripe_subscription_id", "currency",
             "expiring_soon", "price", "trials_ending_soon",
         ],
+        "update_computed_body_keys": [
+            "id", "payment_method_id", "billing_address", "plan_id", "plan_name", "plan_type", "status", "current_period_end",
+            "cancel_at_period_end", "stripe_customer_id", "stripe_subscription_id", "currency",
+            "expiring_soon", "price", "trials_ending_soon",
+        ],
         "create_response_field": "",
         "read_list_field": "",
         "read_after_create": True,
@@ -108,7 +114,7 @@ RESOURCE_META: dict[str, dict] = {
         "create_keep_path_keys": [],
         "update_keep_path_keys": [],
         "body_renames": {},
-        "computed_body_keys": ["id", "type", "provider", "details", "is_default", "created_at"],
+        "computed_body_keys": ["id", "type", "provider", "details", "is_default", "brand", "last4", "exp_month", "exp_year", "created_at"],
         "create_response_field": "",
         "read_list_field": "payment_methods",
         "read_list_id_field": "id",
@@ -364,6 +370,10 @@ def generate_resource_registry(resources: list[str], method_to_field: dict[str, 
         lines.append(f"\t\tUpdateKeepPathKeys:  []string{{{go_string_list(m.get('update_keep_path_keys', []))}}},")
         lines.append(f"\t\tBodyRenames:         {go_string_map(m.get('body_renames', {}))},")
         lines.append(f"\t\tComputedBodyKeys:    []string{{{go_string_list(m.get('computed_body_keys', []))}}},")
+        if m.get("update_computed_body_keys"):
+            lines.append(f"\t\tUpdateComputedBodyKeys: []string{{{go_string_list(m['update_computed_body_keys'])}}},")
+        if m.get("preserve_missing"):
+            lines.append(f"\t\tPreserveMissing:     []string{{{go_string_list(m['preserve_missing'])}}},")
         lines.append(f'\t\tCreateResponseField: "{m.get("create_response_field", "")}",')
         if m.get("create_flatten_field"):
             lines.append(f'\t\tCreateFlattenField:  "{m["create_flatten_field"]}",')
