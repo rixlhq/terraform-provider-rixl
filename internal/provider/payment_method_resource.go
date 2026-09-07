@@ -47,8 +47,10 @@ func PaymentMethodResourceSchema(_ context.Context) rschema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"provider": rschema.StringAttribute{
+			"provider_name": rschema.StringAttribute{
 				Computed: true,
+				Description: "Payment provider (e.g. stripe). Named provider_name because " +
+					"\"provider\" is reserved by Terraform for provider selection.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -105,7 +107,7 @@ type PaymentMethodModel struct {
 	PaymentMethodId types.String `tfsdk:"payment_method_id"`
 	SetAsDefault    types.Bool   `tfsdk:"set_as_default"`
 	Type            types.String `tfsdk:"type"`
-	Provider        types.String `tfsdk:"provider"`
+	ProviderName    types.String `tfsdk:"provider_name"`
 	Details         types.String `tfsdk:"details"`
 	IsDefault       types.Bool   `tfsdk:"is_default"`
 	Brand           types.String `tfsdk:"brand"`
