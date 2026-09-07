@@ -80,6 +80,43 @@ def remove_secret(attributes: list) -> list:
     return filter_attrs(attributes)
 
 
+TIMESTAMP_REPLACEMENT = 'RFC 3339 timestamp, e.g. "2024-12-25T12:00:00Z".'
+
+
+def sanitize_timestamp_descriptions(attributes: list) -> None:
+    """Replace verbose protobuf Timestamp descriptions with a concise form.
+
+    The OpenAPI spec embeds the full google.protobuf.Timestamp description
+    (including '# Examples' headings) which breaks tfplugindocs rendering.
+    """
+
+    def fn(attr: dict) -> None:
+        for kind in (
+            "string",
+            "int64",
+            "bool",
+            "float64",
+            "number",
+            "list",
+            "set",
+            "map",
+            "single_nested",
+            "list_nested",
+            "set_nested",
+            "map_nested",
+            "object",
+            "dynamic",
+        ):
+            container = attr.get(kind)
+            if not isinstance(container, dict):
+                continue
+            desc = container.get("description")
+            if isinstance(desc, str) and desc.startswith("A Timestamp represents"):
+                container["description"] = TIMESTAMP_REPLACEMENT
+
+    walk_attributes(attributes, fn)
+
+
 def get_attr_type(attr: dict) -> str | None:
     for key in (
         "string",
@@ -378,8 +415,10 @@ def main() -> int:
     # Fix mangled attribute names produced by the OpenAPI generator.
     for r in spec.get("resources", []):
         rename_attributes(r["schema"]["attributes"], "useruser_id", "user_id")
+        sanitize_timestamp_descriptions(r["schema"]["attributes"])
     for ds in spec.get("datasources", []):
         rename_attributes(ds["schema"]["attributes"], "useruser_id", "user_id")
+        sanitize_timestamp_descriptions(ds["schema"]["attributes"])
 
     # Deduplicate resources.
     seen = set()
