@@ -8,6 +8,7 @@ import "github.com/hashicorp/terraform-plugin-framework/resource"
 func genericResourceConstructors() []func() resource.Resource {
 	return []func() resource.Resource{
 		NewApiKeyResource,
+		NewAuthProviderConnectionResource,
 		NewClientCredentialResource,
 		NewPaymentMethodResource,
 		NewPolicyAttachmentResource,
@@ -35,6 +36,29 @@ func NewApiKeyResource() resource.Resource {
 		ReadListField:       "api_keys",
 		ReadListIDField:     "id",
 		ReadAfterCreate:     false,
+		ReadAfterUpdate:     false,
+	})
+}
+
+func NewAuthProviderConnectionResource() resource.Resource {
+	return newManagedResource(ResourceDescriptor{
+		TypeName:            "auth_provider_connection",
+		SchemaFn:            AuthProviderConnectionResourceSchema,
+		Model:               &AuthProviderConnectionModel{},
+		ClientField:         "SocialProviders",
+		CreateMethod:        "ConnectProvider",
+		ReadMethod:          "ListProviders",
+		DeleteMethod:        "DisconnectProvider",
+		PathParams:          []string{},
+		DeletePathParams:    []string{"id"},
+		CreateKeepPathKeys:  []string{},
+		UpdateKeepPathKeys:  []string{},
+		BodyRenames:         map[string]string{"id": "provider"},
+		ComputedBodyKeys:    []string{"username", "first_name", "last_name", "email_address", "image_url"},
+		CreateResponseField: "",
+		ReadListField:       "providers",
+		ReadListIDField:     "id",
+		ReadAfterCreate:     true,
 		ReadAfterUpdate:     false,
 	})
 }
@@ -77,8 +101,8 @@ func NewPaymentMethodResource() resource.Resource {
 		DeletePathParams:    []string{"id"},
 		CreateKeepPathKeys:  []string{},
 		UpdateKeepPathKeys:  []string{},
-		BodyRenames:         map[string]string{},
-		ComputedBodyKeys:    []string{"id", "type", "provider", "details", "is_default", "brand", "last4", "exp_month", "exp_year", "created_at"},
+		BodyRenames:         map[string]string{"provider_name": "provider"},
+		ComputedBodyKeys:    []string{"id", "type", "provider_name", "details", "is_default", "brand", "last4", "exp_month", "exp_year", "created_at"},
 		CreateResponseField: "",
 		ReadListField:       "payment_methods",
 		ReadListIDField:     "id",

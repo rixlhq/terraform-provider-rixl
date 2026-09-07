@@ -36,10 +36,12 @@ data "rixl_image" "hero" {
 
 Read-Only:
 
+- `created_at` (String)
 - `format` (String)
 - `id` (String)
 - `name` (String)
 - `project_id` (String)
-- `size` (String)
+- `size` (Number)
 - `status` (String)
+- `updated_at` (String)
 - `url` (String)

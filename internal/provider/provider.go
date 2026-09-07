@@ -45,6 +45,8 @@ func (p *rixlProvider) Metadata(_ context.Context, _ provider.MetadataRequest, r
 
 func (p *rixlProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description:         "The Rixl provider allows Terraform to manage Rixl platform resources.",
+		MarkdownDescription: "The Rixl provider allows Terraform to manage Rixl platform resources.",
 		Attributes: map[string]schema.Attribute{
 			providerAPIKey: schema.StringAttribute{
 				Optional:    true,
@@ -132,6 +134,7 @@ func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
 		NewPostResource,
 		NewProjectResource,
 		NewSubtitleResource,
+		NewVideoChaptersResource,
 		NewVideoResource,
 	}, genericResourceConstructors()...)
 }

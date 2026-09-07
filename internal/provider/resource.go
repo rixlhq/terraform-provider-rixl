@@ -292,7 +292,15 @@ func (r *managedResource) responseToReadMap(ctx context.Context, response reflec
 	}
 
 	if r.descriptor.ReadListField != "" {
-		return r.selectFromList(ctx, m, model)
+		selected, d := r.selectFromList(ctx, m, model)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		if selected == nil {
+			return nil, diags
+		}
+		return r.applyReverseBodyRenames(selected), diags
 	}
 
 	if r.descriptor.ReadResponseField != "" {
@@ -328,7 +336,7 @@ func (r *managedResource) responseToReadMap(ctx context.Context, response reflec
 		m = flat
 	}
 
-	return m, diags
+	return r.applyReverseBodyRenames(m), diags
 }
 
 func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -627,6 +635,43 @@ func (r *managedResource) applyBodyRenames(bodyMap map[string]any) map[string]an
 	return bodyMap
 }
 
+func (r *managedResource) applyReverseBodyRenames(m map[string]any) map[string]any {
+	if len(r.descriptor.BodyRenames) == 0 {
+		return m
+	}
+	reverseRenameMap(m, r.descriptor.BodyRenames)
+	if r.descriptor.ReadListField == "" {
+		return m
+	}
+	raw, ok := m[r.descriptor.ReadListField]
+	if !ok {
+		return m
+	}
+	list, ok := raw.([]any)
+	if !ok {
+		return m
+	}
+	for _, item := range list {
+		if itemMap, ok := item.(map[string]any); ok {
+			reverseRenameMap(itemMap, r.descriptor.BodyRenames)
+		}
+	}
+	return m
+}
+
+func reverseRenameMap(m map[string]any, renames map[string]string) {
+	for src, dst := range renames {
+		v, ok := m[dst]
+		if !ok {
+			continue
+		}
+		if _, exists := m[src]; !exists {
+			m[src] = v
+		}
+		delete(m, dst)
+	}
+}
+
 func (r *managedResource) invokeResourceMethod(ctx context.Context, method reflect.Value, model any, bodyMap map[string]any, pathParams []string) (reflect.Value, diag.Diagnostics, error) {
 	var diags diag.Diagnostics
 
@@ -735,7 +780,7 @@ func (r *managedResource) responseToResourceMap(response reflect.Value) (map[str
 		return nil, diags
 	}
 
-	return m, diags
+	return r.applyReverseBodyRenames(m), diags
 }
 
 func (r *managedResource) unwrapCreateResponse(m map[string]any) (map[string]any, diag.Diagnostics) {
@@ -795,6 +840,15 @@ func (r *managedResource) selectFromList(ctx context.Context, m map[string]any, 
 	if idField == "" {
 		idField = "id"
 	}
+	// List items carry API body keys. When the id attribute is renamed for
+	// the API via BodyRenames (e.g. id -> provider), also match the renamed
+	// key so path-scoped identities can be selected from list reads.
+	idKeys := []string{idField}
+	for src, dst := range r.descriptor.BodyRenames {
+		if src == idField && dst != idField {
+			idKeys = append(idKeys, dst)
+		}
+	}
 	id := r.modelID(ctx, model)
 	if id == nil {
 		return nil, diags
@@ -804,8 +858,10 @@ func (r *managedResource) selectFromList(ctx context.Context, m map[string]any, 
 		if !ok {
 			continue
 		}
-		if item[idField] == id {
-			return item, diags
+		for _, k := range idKeys {
+			if item[k] == id {
+				return item, diags
+			}
 		}
 	}
 	return nil, diags
