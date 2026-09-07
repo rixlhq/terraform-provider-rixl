@@ -27,8 +27,8 @@ data "rixl_api_keys" "all" {
 
 ### Optional
 
-- `pagination_limit` (Number)
-- `pagination_offset` (Number)
+- `paginationlimit` (Number) Maximum number of items to return.
+- `paginationoffset` (Number) Number of items to skip before collecting the result set.
 
 ### Read-Only
 
@@ -312,4 +312,3 @@ Read-Only:
 - `org_id` (String)
 - `project_id` (String)
 - `project_name` (String)
-- `secret` (String)
