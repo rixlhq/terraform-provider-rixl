@@ -292,7 +292,15 @@ func (r *managedResource) responseToReadMap(ctx context.Context, response reflec
 	}
 
 	if r.descriptor.ReadListField != "" {
-		return r.selectFromList(ctx, m, model)
+		selected, d := r.selectFromList(ctx, m, model)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		if selected == nil {
+			return nil, diags
+		}
+		return r.applyReverseBodyRenames(selected), diags
 	}
 
 	if r.descriptor.ReadResponseField != "" {
@@ -328,7 +336,7 @@ func (r *managedResource) responseToReadMap(ctx context.Context, response reflec
 		m = flat
 	}
 
-	return m, diags
+	return r.applyReverseBodyRenames(m), diags
 }
 
 func (r *managedResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -627,6 +635,43 @@ func (r *managedResource) applyBodyRenames(bodyMap map[string]any) map[string]an
 	return bodyMap
 }
 
+func (r *managedResource) applyReverseBodyRenames(m map[string]any) map[string]any {
+	if len(r.descriptor.BodyRenames) == 0 {
+		return m
+	}
+	reverseRenameMap(m, r.descriptor.BodyRenames)
+	if r.descriptor.ReadListField == "" {
+		return m
+	}
+	raw, ok := m[r.descriptor.ReadListField]
+	if !ok {
+		return m
+	}
+	list, ok := raw.([]any)
+	if !ok {
+		return m
+	}
+	for _, item := range list {
+		if itemMap, ok := item.(map[string]any); ok {
+			reverseRenameMap(itemMap, r.descriptor.BodyRenames)
+		}
+	}
+	return m
+}
+
+func reverseRenameMap(m map[string]any, renames map[string]string) {
+	for src, dst := range renames {
+		v, ok := m[dst]
+		if !ok {
+			continue
+		}
+		if _, exists := m[src]; !exists {
+			m[src] = v
+		}
+		delete(m, dst)
+	}
+}
+
 func (r *managedResource) invokeResourceMethod(ctx context.Context, method reflect.Value, model any, bodyMap map[string]any, pathParams []string) (reflect.Value, diag.Diagnostics, error) {
 	var diags diag.Diagnostics
 
@@ -735,7 +780,7 @@ func (r *managedResource) responseToResourceMap(response reflect.Value) (map[str
 		return nil, diags
 	}
 
-	return m, diags
+	return r.applyReverseBodyRenames(m), diags
 }
 
 func (r *managedResource) unwrapCreateResponse(m map[string]any) (map[string]any, diag.Diagnostics) {
