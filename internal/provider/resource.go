@@ -840,6 +840,15 @@ func (r *managedResource) selectFromList(ctx context.Context, m map[string]any, 
 	if idField == "" {
 		idField = "id"
 	}
+	// List items carry API body keys. When the id attribute is renamed for
+	// the API via BodyRenames (e.g. id -> provider), also match the renamed
+	// key so path-scoped identities can be selected from list reads.
+	idKeys := []string{idField}
+	for src, dst := range r.descriptor.BodyRenames {
+		if src == idField && dst != idField {
+			idKeys = append(idKeys, dst)
+		}
+	}
 	id := r.modelID(ctx, model)
 	if id == nil {
 		return nil, diags
@@ -849,8 +858,10 @@ func (r *managedResource) selectFromList(ctx context.Context, m map[string]any, 
 		if !ok {
 			continue
 		}
-		if item[idField] == id {
-			return item, diags
+		for _, k := range idKeys {
+			if item[k] == id {
+				return item, diags
+			}
 		}
 	}
 	return nil, diags
