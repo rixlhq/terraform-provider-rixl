@@ -25,7 +25,6 @@ data "rixl_project" "main" {
 ### Required
 
 - `org_id` (String)
-- `project_id` (String)
 
 ### Read-Only
 
