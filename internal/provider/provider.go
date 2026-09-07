@@ -134,6 +134,7 @@ func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
 		NewPostResource,
 		NewProjectResource,
 		NewSubtitleResource,
+		NewVideoChaptersResource,
 		NewVideoResource,
 	}, genericResourceConstructors()...)
 }
