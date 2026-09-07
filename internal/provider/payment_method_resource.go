@@ -14,6 +14,7 @@ import (
 
 func PaymentMethodResourceSchema(_ context.Context) rschema.Schema {
 	return rschema.Schema{
+		Version: 1,
 		Attributes: map[string]rschema.Attribute{
 			"id": rschema.StringAttribute{
 				Computed: true,
