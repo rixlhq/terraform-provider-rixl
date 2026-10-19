@@ -3,6 +3,7 @@ package provider
 import (
 	"cmp"
 	"context"
+	"fmt"
 	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk/models"
 )
@@ -103,6 +105,58 @@ func normalizeVideoChapters(ctx context.Context, data *VideoChaptersResourceMode
 	return diags
 }
 
+var _ validator.List = videoChaptersListValidator{}
+
+type videoChaptersListValidator struct{}
+
+func (v videoChaptersListValidator) Description(ctx context.Context) string {
+	return "Validates that video chapters have unique start_time_sec values in ascending order."
+}
+
+func (v videoChaptersListValidator) MarkdownDescription(ctx context.Context) string {
+	return "Validates that video chapters have unique `start_time_sec` values in ascending order."
+}
+
+func (v videoChaptersListValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	var items []VideoChapterItemModel
+	diags := req.ConfigValue.ElementsAs(ctx, &items, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	seenStarts := make(map[float64]int)
+	var prevStart *float64
+	for i, item := range items {
+		if item.StartTimeSec.IsNull() || item.StartTimeSec.IsUnknown() {
+			continue
+		}
+		val := item.StartTimeSec.ValueFloat64()
+		if firstIdx, exists := seenStarts[val]; exists {
+			resp.Diagnostics.AddAttributeError(
+				req.Path.AtListIndex(i).AtName("start_time_sec"),
+				"Duplicate chapter start_time_sec",
+				fmt.Sprintf("Chapter at index %d has duplicate start_time_sec %v (already defined at index %d). Chapter start times must be unique.", i, val, firstIdx),
+			)
+		} else {
+			seenStarts[val] = i
+		}
+
+		if prevStart != nil && val < *prevStart {
+			resp.Diagnostics.AddAttributeError(
+				req.Path.AtListIndex(i).AtName("start_time_sec"),
+				"Unsorted chapter start_time_sec",
+				fmt.Sprintf("Chapter at index %d has start_time_sec %v, which is less than preceding chapter start_time_sec %v. Chapters must be in ascending order by start_time_sec.", i, val, *prevStart),
+			)
+		}
+		prevStart = &val
+	}
+}
+
 // VideoChaptersResourceSchema defines the rixl_video_chapters collection
 // schema. The API returns no timestamps for chapters, so the schema carries
 // none as computed attributes.
@@ -121,7 +175,9 @@ func VideoChaptersResourceSchema() schema.Schema {
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 			},
 			"chapters": schema.ListNestedAttribute{
-				Required: true,
+				Description:         "List of chapters for the video, sorted ascending by start_time_sec with unique start times.",
+				MarkdownDescription: "List of chapters for the video, sorted ascending by `start_time_sec` with unique start times.",
+				Required:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"title": schema.StringAttribute{
@@ -131,6 +187,9 @@ func VideoChaptersResourceSchema() schema.Schema {
 							Required: true,
 						},
 					},
+				},
+				Validators: []validator.List{
+					videoChaptersListValidator{},
 				},
 			},
 		},
