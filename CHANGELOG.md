@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.3.1...v1.4.0) (2026-10-19)
+
+
+### Features
+
+* **provider:** eliminate custom generator scripts and adopt idiomatic Go provider toolchain ([#27](https://github.com/rixlhq/terraform-provider-rixl/issues/27)) ([fb6e8ac](https://github.com/rixlhq/terraform-provider-rixl/commit/fb6e8ac2ac91a8de70fb73ab6da28565e77518aa))
+
 ## [1.3.1](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.3.0...v1.3.1) (2026-10-19)
 
 
