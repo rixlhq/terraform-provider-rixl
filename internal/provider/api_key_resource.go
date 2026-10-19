@@ -2,18 +2,19 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
+	"github.com/rixlhq/rixl-go/sdk/models"
 )
 
 var (
-	_ resource.Resource                = (*apiKeyResource)(nil)
-	_ resource.ResourceWithImportState = (*apiKeyResource)(nil)
+	_ resource.Resource                = &apiKeyResource{}
+	_ resource.ResourceWithConfigure   = &apiKeyResource{}
+	_ resource.ResourceWithImportState = &apiKeyResource{}
 )
 
 func NewApiKeyResource() resource.Resource {
@@ -38,57 +39,55 @@ func (r *apiKeyResource) Configure(_ context.Context, req resource.ConfigureRequ
 	}
 	client, ok := req.ProviderData.(*sdk.Client)
 	if !ok {
-		resp.Diagnostics.AddError("Unexpected provider data type", fmt.Sprintf("expected *sdk.Client, got %T", req.ProviderData))
+		resp.Diagnostics.AddError("Unexpected Resource Configure Type", "Expected *sdk.Client")
 		return
 	}
 	r.client = client
 }
 
 func (r *apiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data ApiKeyModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	var plan ApiKeyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	body, diags := modelToMap(ctx, &data)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	name := plan.Name.ValueString()
+	body := models.ApikeysV1CreateAPIKeyRequest{
+		Name: &name,
 	}
-	delete(body, "org_id")
-	delete(body, "id")
-	delete(body, "created_at")
-	delete(body, "last_used")
-	delete(body, "project_name")
-	delete(body, "secret")
+	if !plan.ProjectId.IsNull() && !plan.ProjectId.IsUnknown() {
+		pid := plan.ProjectId.ValueString()
+		body.ProjectID = &pid
+	}
 
-	res, err := r.client.APIKeys.CreateApiKey(ctx, data.OrgId.ValueString(), body)
+	res, err := r.client.APIKeys.CreateApiKey(ctx, plan.OrgId.ValueString(), body)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create API key", err.Error())
 		return
 	}
 
+	var data ApiKeyModel
 	resp.Diagnostics.Append(mapResponseToModel(ctx, res.APIKey, &data, ApiKeyResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	if res.APIKey != nil && res.APIKey.Secret != nil {
 		data.Secret = types.StringValue(*res.APIKey.Secret)
 	}
+	data.OrgId = plan.OrgId
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *apiKeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data ApiKeyModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	var state ApiKeyModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	res, err := r.client.APIKeys.ListApiKeys(ctx, data.OrgId.ValueString(), nil)
+	res, err := r.client.APIKeys.ListApiKeys(ctx, state.OrgId.ValueString(), nil)
 	if err != nil {
 		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -98,9 +97,10 @@ func (r *apiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
+	keyID := state.Id.ValueString()
 	var found any
 	for _, key := range res.APIKeys {
-		if key.ID != nil && *key.ID == data.Id.ValueString() {
+		if key.ID != nil && *key.ID == keyID {
 			found = key
 			break
 		}
@@ -110,7 +110,8 @@ func (r *apiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	savedSecret := data.Secret
+	savedSecret := state.Secret
+	var data ApiKeyModel
 	resp.Diagnostics.Append(mapResponseToModel(ctx, found, &data, ApiKeyResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -122,9 +123,27 @@ func (r *apiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 func (r *apiKeyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan ApiKeyModel
+	var state ApiKeyModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	if !plan.Name.Equal(state.Name) {
+		body := map[string]any{
+			"name": plan.Name.ValueString(),
+		}
+		_, err := r.client.APIKeys.UpdateApiKey(ctx, state.OrgId.ValueString(), state.Id.ValueString(), body)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to update API key", err.Error())
+			return
+		}
+	}
+
+	savedSecret := state.Secret
+	if !savedSecret.IsNull() && !savedSecret.IsUnknown() {
+		plan.Secret = savedSecret
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

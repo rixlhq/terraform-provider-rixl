@@ -21,8 +21,7 @@ description: |-
 
 ### Optional
 
-- `billing_address` (Attributes) (see [below for nested schema](#nestedatt--billing_address))
-- `org_id` (String) The org_id query parameter.
+- `org_id` (String)
 - `payment_method_id` (String)
 
 ### Read-Only
@@ -40,21 +39,3 @@ description: |-
 - `stripe_customer_id` (String)
 - `stripe_subscription_id` (String)
 - `trials_ending_soon` (Boolean)
-
-<a id="nestedatt--billing_address"></a>
-### Nested Schema for `billing_address`
-
-Required:
-
-- `city` (String)
-- `country` (String)
-- `line1` (String)
-- `name` (String)
-- `postal_code` (String)
-- `state` (String)
-
-Optional:
-
-- `email` (String)
-- `line2` (String)
-- `phone` (String)
