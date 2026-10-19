@@ -2,18 +2,32 @@
 page_title: "IAM, RBAC, and Security Automation - Terraform Provider for Rixl"
 subcategory: "Guides"
 description: |-
-  Security guide for implementing least-privilege access control, role-based access policies (RBAC), machine-to-machine OAuth2 credentials, and enterprise Single Sign-On (SSO) with the Rixl Terraform provider.
+  Security and identity guide for managing least-privilege IAM access policies, policy attachments, API keys, OAuth client credentials, and SSO with Rixl using Terraform.
 ---
 
-# Identity, Access Management (IAM), and Security Automation
+# IAM, RBAC, and Security Automation
 
-The **Rixl Terraform Provider** provides native resources for managing enterprise security policies, identity federation, and automated service authentication.
+Securing media assets, publishing workflows, and administrative operations requires strict least-privilege access controls. The **Rixl Terraform Provider** allows organizations to manage granular role-based access control (RBAC) policies, bind policies to identities, provision machine-to-machine OAuth2 client credentials, and configure external identity provider connections.
 
 ---
 
-## 1. Declarative Access Policies
+## Architecture Overview
 
-Define fine-grained IAM policies following the principle of least privilege. Policies assign explicit permission strings to identities:
+```mermaid
+graph TD
+    Org[Rixl Organization] --> Policy[rixl_access_policy: Granular Permissions]
+    Policy --> Attachment[rixl_policy_attachment: Bind Policy]
+    Attachment --> User[User / Team Member]
+    Attachment --> M2M[rixl_client_credential: Automation Service]
+    Org --> APIKey[rixl_api_key: Admin CI/CD Key]
+    Org --> SSO[rixl_auth_provider_connection: SSO Provider]
+```
+
+---
+
+## 1. Defining Granular Access Policies
+
+Define fine-grained IAM policies specifying exact allowable actions using the `permissions` list:
 
 ```terraform
 variable "org_id" {
@@ -21,97 +35,102 @@ variable "org_id" {
   description = "Rixl Organization ID"
 }
 
-# Read-only policy for media consumers
-resource "rixl_access_policy" "read_only" {
+# Video Ingest Operator Policy
+resource "rixl_access_policy" "video_ingest_operator" {
   org_id      = var.org_id
-  name        = "media-read-only"
-  description = "Allows viewing and listing videos and content feeds without write access"
+  name        = "Video Ingestion Operator"
+  description = "Allows uploading and transcoding video assets and chapters"
+
   permissions = [
-    "video:read",
-    "feed:read",
-    "image:read",
+    "videos:create",
+    "videos:read",
+    "videos:chapters:create",
+    "videos:chapters:read",
+    "subtitles:create",
+    "subtitles:read",
   ]
 }
 
-# Full administrator policy for video ingestion pipelines
-resource "rixl_access_policy" "media_publisher" {
+# Read-only Telemetry & Analytics Policy
+resource "rixl_access_policy" "analytics_viewer" {
   org_id      = var.org_id
-  name        = "media-publisher"
-  description = "Permits video upload, transcoding trigger, and subtitle management"
+  name        = "Analytics Viewer"
+  description = "Permits reading dashboards and playback statistics"
+
   permissions = [
-    "video:read",
-    "video:write",
-    "subtitle:write",
-    "audio_track:write",
-    "feed:write",
+    "dashboards:read",
+    "analytics:read",
+    "realtime:read",
   ]
 }
 ```
 
 ---
 
-## 2. Attaching Policies
+## 2. Binding Policies with Policy Attachments
 
-Bind access policies to users, service principals, or roles using `rixl_policy_attachment`:
+Attach access policies to users or client credentials using `rixl_policy_attachment`:
 
 ```terraform
-resource "rixl_policy_attachment" "publisher_binding" {
+variable "target_user_id" {
+  type        = string
+  description = "User ID to grant video ingestion permissions"
+}
+
+resource "rixl_policy_attachment" "operator_attachment" {
   org_id        = var.org_id
-  policy_id     = rixl_access_policy.media_publisher.id
-  identity_id   = var.service_user_id
+  policy_id     = rixl_access_policy.video_ingest_operator.id
+  identity_id   = var.target_user_id
   identity_type = "POLICY_IDENTITY_TYPE_USER"
 }
 ```
 
 ---
 
-## 3. Machine-to-Machine OAuth2 Client Credentials
+## 3. Provisioning Machine-to-Machine (M2M) OAuth2 Credentials
 
-For automated backend microservices and CI/CD pipelines, generate scoped OAuth2 client credentials instead of user passwords:
+For automated backend services and CI/CD pipelines, provision short-lived, self-refreshing OAuth2 client credentials:
 
 ```terraform
-resource "rixl_client_credential" "ci_runner" {
-  org_id = var.org_id
-  name   = "github-actions-encoder-bot"
+resource "rixl_client_credential" "backend_encoder_service" {
+  name = "backend-encoder-service"
 }
 
-output "client_id" {
-  value       = rixl_client_credential.ci_runner.client_id
-  description = "The OAuth2 Client ID for automation"
+output "m2m_client_id" {
+  value       = rixl_client_credential.backend_encoder_service.client_id
+  description = "OAuth2 Client ID for backend SDK authentication"
 }
 
-output "client_secret" {
-  value       = rixl_client_credential.ci_runner.client_secret
+output "m2m_client_secret" {
+  value       = rixl_client_credential.backend_encoder_service.client_secret
   sensitive   = true
-  description = "The OAuth2 Client Secret (store securely in GitHub Actions Secrets or Vault)"
+  description = "OAuth2 Client Secret (store securely in vault)"
 }
 ```
 
 ---
 
-## 4. Long-Lived API Keys
+## 4. API Key Management
 
-For systems that do not support dynamic OAuth token exchanges, generate static API keys:
+Generate organization-scoped API keys for platform administrators or infrastructure provisioning:
 
 ```terraform
-resource "rixl_api_key" "webhook_receiver" {
-  org_id     = var.org_id
-  project_id = var.project_id
-  name       = "webhook-dispatcher-key"
+resource "rixl_api_key" "deployer_key" {
+  name = "terraform-production-deployer"
 }
 
-output "api_key" {
-  value       = rixl_api_key.webhook_receiver.secret
+output "deployer_api_key_secret" {
+  value       = rixl_api_key.deployer_key.secret
   sensitive   = true
-  description = "The generated API Key secret token"
+  description = "API Key secret value (available only at creation)"
 }
 ```
 
 ---
 
-## 5. Enterprise Identity Provider Connections
+## 5. Enterprise Single Sign-On (SSO) Connection
 
-Connect enterprise identity providers (Google, Apple, Microsoft) for seamless authentication:
+Connect enterprise identity providers to enforce centralized authentication:
 
 ```terraform
 resource "rixl_auth_provider_connection" "google_oauth" {
@@ -126,5 +145,5 @@ resource "rixl_auth_provider_connection" "google_oauth" {
 
 - [Getting Started with Rixl](getting-started) &mdash; Initial provider configuration and project provisioning.
 - [Automated Video Streaming Pipeline](video-streaming-pipeline) &mdash; Uploading videos, generating HLS streams, and adding subtitles.
-- [Custom CDN Streaming Domains and SSL Automation](custom-domains-and-cdn) &mdash; Vanity streaming domains and DNS verification.
-- [Observability, Telemetry, and Analytics](monitoring-and-analytics) &mdash; Tracking CDN bandwidth and viewer metrics.
+- [Custom Domains and Auto-Join Management](custom-domains) &mdash; Organization domain verification, project domain associations, and corporate email auto-join policies.
+- [Observability, Telemetry, and Analytics](monitoring-and-analytics) &mdash; Tracking media bandwidth and viewer metrics.

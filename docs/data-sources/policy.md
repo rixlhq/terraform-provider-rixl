@@ -2,12 +2,12 @@
 subcategory: "Identity & Access Management (IAM)"
 page_title: "rixl_policy Data Source - rixl"
 description: |-
-  Fetches the statement, actions, and resource scope of an IAM access policy.
+  Retrieves details and assigned permissions for an IAM access policy.
 ---
 
 # rixl_policy (Data Source)
 
-Fetches the statement, actions, and resource scope of an IAM access policy.
+Retrieves details and assigned permissions for an IAM access policy.
 
 
 

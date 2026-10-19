@@ -2,17 +2,17 @@
 subcategory: "Custom Domains"
 page_title: "rixl_project_custom_domain Resource - rixl"
 description: |-
-  Configures and verifies a custom CDN streaming domain for a Rixl project.
+  Associates a verified custom domain with a Rixl project.
 ---
 
 # rixl_project_custom_domain (Resource)
 
-Configures and verifies a custom CDN streaming domain for a Rixl project.
+Associates a verified custom domain with a Rixl project.
 
 ## Example Usage
 
 ```terraform
-resource "rixl_project_custom_domain" "cdn" {
+resource "rixl_project_custom_domain" "custom_domain" {
   org_id        = var.rixl_org_id
   project_id    = rixl_project.prod.id
   custom_domain = "video.example.com"

@@ -7,7 +7,7 @@ description: |-
 
 # Observability, Telemetry, and Analytics
 
-Rixl continuously captures delivery telemetry across all video streams, image assets, and custom CDN domains. Using the **Rixl Terraform Provider**, you can programmatically provision executive dashboards, monitor storage and bandwidth consumption, and integrate real-time stats into your observability stack.
+Rixl continuously captures delivery telemetry across all video streams, image assets, and content feeds. Using the **Rixl Terraform Provider**, you can programmatically provision executive dashboards, monitor storage and bandwidth consumption, and integrate real-time stats into your observability stack.
 
 ---
 
@@ -35,13 +35,13 @@ resource "rixl_dashboard_widget" "viewer_sessions" {
   height       = 4
 }
 
-# Add CDN bandwidth widget
-resource "rixl_dashboard_widget" "cdn_egress" {
+# Add bandwidth consumption widget
+resource "rixl_dashboard_widget" "bandwidth_usage" {
   dashboard_id = rixl_dashboard.ops_cockpit.id
-  title        = "CDN Egress Bandwidth"
+  title        = "Total Bandwidth Consumption"
   chart_type   = "timeseries"
   dataset      = "bandwidth"
-  metric       = "egress_bytes"
+  metric       = "total_bandwidth_bytes"
   pos_x        = 6
   pos_y        = 0
   width        = 6
@@ -51,9 +51,9 @@ resource "rixl_dashboard_widget" "cdn_egress" {
 
 ---
 
-## 2. Querying Real-Time Playback and Bandwidth
+## 2. Tracking Storage & Bandwidth Consumption
 
-Use Terraform data sources to feed infrastructure metrics into downstream alerting configurations or automated scaling rules:
+Read metered infrastructure metrics for billing alerts and capacity forecasting:
 
 ```terraform
 variable "org_id" {
@@ -61,61 +61,77 @@ variable "org_id" {
   description = "Rixl Organization ID"
 }
 
-variable "project_id" {
-  type        = string
-  description = "Rixl Project ID"
-}
-
-# Fetch real-time streaming metrics
-data "rixl_realtime_stats" "current" {
-  project_id = var.project_id
-}
-
-# Fetch historical bandwidth utilization for capacity forecasting
-data "rixl_bandwidth_usage_history" "monthly" {
-  org_id = var.org_id
-}
-
-# Fetch current storage quota consumption
+# Query current storage utilization
 data "rixl_storage_usage" "current" {
   org_id = var.org_id
+}
+
+# Query historical storage timeseries
+data "rixl_storage_usage_history" "history" {
+  org_id = var.org_id
+}
+
+# Query current bandwidth consumption
+data "rixl_bandwidth_usage" "bandwidth" {
+  org_id = var.org_id
+}
+
+output "total_bandwidth_consumed" {
+  value       = data.rixl_bandwidth_usage.bandwidth.total_bandwidth_bytes
+  description = "Total bytes delivered"
 }
 ```
 
 ---
 
-## 3. Video Engagement Heatmaps and Hot Segments
+## 3. Video Engagement Analytics & Retention Heatmaps
 
-Analyze which sections of your video library generate the highest viewer interest and replay frequency:
+Inspect audience drop-off and replayed intervals for individual video assets:
 
 ```terraform
 variable "video_id" {
   type        = string
-  description = "Rixl Video Asset ID"
+  description = "Target Video ID"
 }
 
-# Retrieve audience retention across video duration
+# Query video viewership statistics
+data "rixl_video_stats" "stats" {
+  video_id = var.video_id
+}
+
+# Query audience retention heatmap
 data "rixl_video_heatmap" "retention" {
   video_id = var.video_id
 }
 
-# Identify peak replayed timestamps
-data "rixl_video_hot_segments" "highlights" {
+# Query peak replayed video segments
+data "rixl_video_hot_segments" "hot_segments" {
   video_id = var.video_id
-}
-
-# Discover top-performing videos across the platform
-data "rixl_top_videos" "trending" {
-  project_id = var.project_id
 }
 ```
 
 ---
 
-## 4. Next Steps & Architecture Guides
+## 4. Real-Time Telemetry
+
+Query live streaming indicators across currently active viewer sessions:
+
+```terraform
+data "rixl_realtime_stats" "live_metrics" {
+  org_id = var.org_id
+}
+
+output "active_viewers" {
+  value       = data.rixl_realtime_stats.live_metrics
+  description = "Current real-time viewer count"
+}
+```
+
+---
+
+## Next Steps & Related Guides
 
 - [Getting Started with Rixl](getting-started) &mdash; Initial provider configuration and project provisioning.
 - [Automated Video Streaming Pipeline](video-streaming-pipeline) &mdash; Uploading videos, generating HLS streams, and adding subtitles.
-- [Custom CDN Streaming Domains and SSL Automation](custom-domains-and-cdn) &mdash; Vanity streaming domains and DNS verification.
-- [Content Feeds, Playlists, and Media Distribution](content-feeds-and-distribution) &mdash; Syndicating videos and posts across channels.
-- [IAM, RBAC, and Security Automation](iam-and-security) &mdash; Restrict video upload permissions with least-privilege IAM policies.
+- [Custom Domains and Auto-Join Management](custom-domains) &mdash; Organization domain verification, project domain associations, and corporate email auto-join policies.
+- [IAM, RBAC, and Security Automation](iam-and-security) &mdash; Managing API keys and access policies.

@@ -2,36 +2,39 @@
 page_title: "Content Feeds, Playlists, and Media Distribution - Terraform Provider for Rixl"
 subcategory: "Guides"
 description: |-
-  Architecture guide for structuring video content feeds, curated playlists, rich media posts, image publishing, and automated subscriber notifications using Rixl and Terraform.
+  Architecture guide for structuring video channels, syndication feeds, rich media posts, and subscriber notifications with Rixl using Terraform.
 ---
 
 # Content Feeds, Playlists, and Media Distribution
 
-Publishing video infrastructure is only half of modern streaming architecture; organizing content into structured feeds, curated playlists, and multimedia articles is essential for audience discovery and retention.
-
-The **Rixl Terraform Provider** allows you to declare content feeds, syndicate rich media posts, host responsive images, and manage subscriber preferences as code.
+Rixl enables platforms to organize media assets into logical channels, categorized playlists, and rich multimedia posts. Using the **Rixl Terraform Provider**, content operations teams can programmatically define feed hierarchies, enforce content moderation settings (allowing or disallowing videos and images), and manage blog subscriber notifications.
 
 ---
 
-## Media Syndication Architecture
+## Architecture Overview
 
 ```mermaid
-graph LR
-    TF[Terraform] -->|Provisions| Project[rixl_project]
-    Project -->|Contains| Feed[rixl_feed: Curated Channels]
-    Project -->|Contains| Vid[rixl_video: Transcoded HLS]
-    Project -->|Contains| Img[rixl_image: Assets & Posters]
-    Feed -->|Publishes| Post[rixl_post: Articles & Episode Drops]
-    Vid --> Post
-    Img --> Post
-    Post --> Sub[rixl_blog_subscription: Subscribers]
+graph TD
+    Project[rixl_project] --> Feed1[rixl_feed: Featured Channels]
+    Project --> Feed2[rixl_feed: Community UGC]
+    
+    Feed1 --> Post1[rixl_post: Keynote Video]
+    Feed1 --> Post2[rixl_post: Product Tour]
+    
+    Post1 --> Vid[rixl_video Asset]
+    Post2 --> Img[rixl_image Asset]
+    
+    Feed1 --> Sub[rixl_blog_subscription: Member Notifications]
+    
+    Post1 --> Stats[data.rixl_post_stats]
+    Feed1 --> FeedStats[data.rixl_feed_stats]
 ```
 
 ---
 
-## 1. Declaring Content Feeds & Channels
+## 1. Creating and Structuring Feeds
 
-Define feeds to organize video series, podcast channels, or community submissions:
+Feeds serve as the primary container for organizing and categorizing media content. You can restrict the types of media accepted by setting `allow_videos` and `allow_images`.
 
 ```terraform
 variable "project_id" {
@@ -39,53 +42,33 @@ variable "project_id" {
   description = "Rixl Project ID"
 }
 
-# Create a curated video feed
+# Editorial channel restricted to video content
 resource "rixl_feed" "featured_videos" {
   project_id   = var.project_id
-  name         = "featured-shows"
-  description  = "High-priority curated video series and documentaries"
+  name         = "featured-videos"
+  description  = "Curated high-production video showcase"
   allow_videos = true
   allow_images = false
-  has_likes    = true
-  has_shares   = true
-  has_comments = true
 }
 
-# Create a mixed-media social feed
-resource "rixl_feed" "community_feed" {
+# Mixed multimedia community feed
+resource "rixl_feed" "community_announcements" {
   project_id   = var.project_id
-  name         = "community-updates"
-  description  = "Product release announcements and developer demos"
+  name         = "community-announcements"
+  description  = "Community news, updates, and photo galleries"
   allow_videos = true
   allow_images = true
 }
 
-output "featured_feed_id" {
-  value       = rixl_feed.featured_videos.id
-  description = "Identifier of the featured video feed"
-}
-```
-
-### Inspecting Feed Analytics
-
-Retrieve feed engagement metrics, view counts, and top-performing feeds using data sources:
-
-```terraform
-# Query specific feed details
-data "rixl_feed" "selected" {
-  project_id = var.project_id
-  id         = rixl_feed.featured_videos.id
-}
-
-# Query top-performing feeds in the project
-data "rixl_top_feeds" "trending" {
-  project_id = var.project_id
+# Query metadata and performance for a feed
+data "rixl_feed_stats" "featured_stats" {
+  feed_id = rixl_feed.featured_videos.id
 }
 ```
 
 ---
 
-## 2. Publishing Rich Media Posts
+## 2. Publishing Media Posts
 
 Use `rixl_post` to publish articles, release notes, or multimedia announcements within a project feed:
 
@@ -94,7 +77,7 @@ resource "rixl_post" "launch_announcement" {
   project_id  = var.project_id
   feed_id     = rixl_feed.featured_videos.id
   video_id    = rixl_video.keynote.id
-  description = "Watch the keynote replay covering our automated transcoding pipeline and global CDN distribution."
+  description = "Watch the keynote replay covering our automated transcoding pipeline and media delivery."
 }
 
 # Query post statistics
@@ -112,21 +95,26 @@ In addition to video streaming, Rixl provides optimized image asset storage and 
 ```terraform
 resource "rixl_image" "hero_banner" {
   project_id = var.project_id
-  name       = "hero-architecture-diagram"
-  file_path  = "${path.module}/assets/hero-banner.png"
+  name       = "conference-hero-2026"
+  file_path  = "${path.module}/images/hero_banner.png"
 }
 
-output "hero_image_id" {
-  value       = rixl_image.hero_banner.id
-  description = "Identifier of the uploaded image asset"
+output "image_aspect_ratio" {
+  value       = rixl_image.hero_banner.aspect_ratio
+  description = "Computed aspect ratio of uploaded image"
+}
+
+output "image_blur_thumbhash" {
+  value       = rixl_image.hero_banner.thumbhash
+  description = "Instant blur-up placeholder hash for UI rendering"
 }
 ```
 
 ---
 
-## 4. Automating Subscriber Notifications
+## 4. Managing Blog & Content Subscriptions
 
-Manage platform notification preferences and blog updates using `rixl_blog_subscription`:
+Manage user notification preferences for content channels using `rixl_blog_subscription`:
 
 ```terraform
 variable "user_id" {
@@ -134,21 +122,17 @@ variable "user_id" {
   description = "Rixl User ID"
 }
 
-resource "rixl_blog_subscription" "newsletter" {
+resource "rixl_blog_subscription" "user_newsletter" {
   user_id    = var.user_id
   subscribed = true
-}
-
-data "rixl_blog_subscription" "newsletter_status" {
-  user_id = var.user_id
 }
 ```
 
 ---
 
-## Complete Media Distribution Pipeline
+## 5. Production Syndication Template
 
-The following configuration demonstrates an integrated media distribution environment with an isolated project, featured feed, rich post, and subscriber notifications:
+Below is a complete Terraform configuration combining a project, multiple categorized feeds, videos, images, and posts:
 
 ```terraform
 terraform {
@@ -156,7 +140,7 @@ terraform {
   required_providers {
     rixl = {
       source  = "rixlhq/rixl"
-      version = "~> 1.7"
+      version = "~> 1.8.0"
     }
   }
 }
@@ -166,61 +150,80 @@ provider "rixl" {
 }
 
 variable "rixl_api_key" {
-  type        = string
-  sensitive   = true
-  description = "Rixl API Key"
+  type      = string
+  sensitive = true
 }
 
 variable "org_id" {
-  type        = string
-  description = "Rixl Organization ID"
+  type = string
 }
 
-variable "user_id" {
-  type        = string
-  description = "Rixl User ID"
-}
-
-# 1. Project container
+# 1. Project environment
 resource "rixl_project" "media_hub" {
   org_id = var.org_id
-  name   = "media-hub-production"
+  name   = "media-syndication-hub"
 }
 
-# 2. Curated video channel
-resource "rixl_feed" "episodes" {
+# 2. Main video showcase feed
+resource "rixl_feed" "showcase" {
   project_id   = rixl_project.media_hub.id
-  name         = "season-1"
-  description  = "Season 1 full episodes in multi-bitrate HLS"
+  name         = "main-showcase"
+  description  = "Primary video showcase channel"
   allow_videos = true
   allow_images = false
 }
 
-# 3. Master video upload
-resource "rixl_video" "episode_one" {
+# 3. Photo & banner gallery feed
+resource "rixl_feed" "gallery" {
+  project_id   = rixl_project.media_hub.id
+  name         = "photo-gallery"
+  description  = "Photography and poster gallery"
+  allow_videos = false
+  allow_images = true
+}
+
+# 4. Upload featured media
+resource "rixl_video" "showcase_video" {
+  project_id       = rixl_project.media_hub.id
+  name             = "annual-highlights"
+  file_path        = "${path.module}/media/highlights.mp4"
+  poster_file_path = "${path.module}/media/highlights_poster.jpg"
+}
+
+resource "rixl_image" "gallery_cover" {
   project_id = rixl_project.media_hub.id
-  name       = "episode-01-master"
-  file_path  = "${path.module}/media/ep01.mp4"
+  name       = "annual-cover-art"
+  file_path  = "${path.module}/images/cover.jpg"
 }
 
-# 4. Accompanying post
-resource "rixl_post" "episode_one_notes" {
+# 5. Publish posts into feeds
+resource "rixl_post" "video_post" {
   project_id  = rixl_project.media_hub.id
-  feed_id     = rixl_feed.episodes.id
-  video_id    = rixl_video.episode_one.id
-  description = "Season 1, Episode 1: Cloud Transcoding Architecture deep dive."
+  feed_id     = rixl_feed.showcase.id
+  video_id    = rixl_video.showcase_video.id
+  description = "Watch the annual highlights recap video."
 }
 
-# 5. Audience notification preference
-resource "rixl_blog_subscription" "audience_hook" {
-  user_id    = var.user_id
-  subscribed = true
+resource "rixl_post" "image_post" {
+  project_id  = rixl_project.media_hub.id
+  feed_id     = rixl_feed.gallery.id
+  image_id    = rixl_image.gallery_cover.id
+  description = "Official cover artwork for the annual media release."
+}
+
+# 6. Outputs
+output "showcase_feed_id" {
+  value = rixl_feed.showcase.id
+}
+
+output "video_playback_url" {
+  value = rixl_video.showcase_video.playback_url
 }
 ```
 
 ---
 
-## Best Practices for Media Distribution
+## Best Practices
 
 1. **Feed Categorization**: Segregate high-volume user uploads from curated editorial channels using separate `rixl_feed` resources.
 2. **Media Type Constraints**: Enforce `allow_videos` and `allow_images` flags to ensure clients consume consistent payload types.
@@ -233,5 +236,5 @@ resource "rixl_blog_subscription" "audience_hook" {
 
 - [Getting Started with Rixl](getting-started) &mdash; Initial provider configuration and project provisioning.
 - [Automated Video Streaming Pipeline](video-streaming-pipeline) &mdash; Uploading videos, generating HLS streams, and adding subtitles.
-- [Custom CDN Streaming Domains and SSL Automation](custom-domains-and-cdn) &mdash; Vanity streaming domains and DNS verification.
-- [Observability, Telemetry, and Analytics](monitoring-and-analytics) &mdash; Tracking CDN bandwidth and viewer metrics.
+- [Custom Domains and Auto-Join Management](custom-domains) &mdash; Organization domain verification, project domain associations, and corporate email auto-join policies.
+- [Observability, Telemetry, and Analytics](monitoring-and-analytics) &mdash; Tracking media bandwidth and viewer metrics.

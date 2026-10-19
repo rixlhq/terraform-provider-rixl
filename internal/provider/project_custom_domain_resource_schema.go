@@ -11,8 +11,8 @@ import (
 
 func ProjectCustomDomainResourceSchema(_ context.Context) schema.Schema {
 	return schema.Schema{
-		Description:         "Configures and verifies a custom CDN streaming domain for a Rixl project.",
-		MarkdownDescription: "Configures and verifies a custom CDN streaming domain for a Rixl project.",
+		Description:         "Associates a verified custom domain with a Rixl project.",
+		MarkdownDescription: "Associates a verified custom domain with a Rixl project.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -47,10 +47,10 @@ func ProjectCustomDomainResourceSchema(_ context.Context) schema.Schema {
 }
 
 type ProjectCustomDomainModel struct {
-	CreatedAt    types.String `tfsdk:"created_at"`
-	CustomDomain types.String `tfsdk:"custom_domain"`
 	Id           types.String `tfsdk:"id"`
 	OrgId        types.String `tfsdk:"org_id"`
 	ProjectId    types.String `tfsdk:"project_id"`
+	CustomDomain types.String `tfsdk:"custom_domain"`
+	CreatedAt    types.String `tfsdk:"created_at"`
 	UpdatedAt    types.String `tfsdk:"updated_at"`
 }
