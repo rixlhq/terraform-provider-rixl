@@ -16,8 +16,8 @@ func ProjectCustomDomainResourceSchema(ctx context.Context) schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"created_at": schema.StringAttribute{
 				Computed:            true,
-				Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-				MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+				Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+				MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 			},
 			"custom_domain": schema.StringAttribute{
 				Required: true,
@@ -26,21 +26,25 @@ func ProjectCustomDomainResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"org_id": schema.StringAttribute{
-				Required: true,
+				Required:            true,
+				Description:         "The org_id path parameter.",
+				MarkdownDescription: "The org_id path parameter.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"project_id": schema.StringAttribute{
-				Required: true,
+				Required:            true,
+				Description:         "The project_id path parameter.",
+				MarkdownDescription: "The project_id path parameter.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"updated_at": schema.StringAttribute{
 				Computed:            true,
-				Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-				MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+				Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+				MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 			},
 		},
 	}

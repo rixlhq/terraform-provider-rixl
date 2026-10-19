@@ -21,8 +21,10 @@ func MembershipsDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"limit": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The limit query parameter.",
+				MarkdownDescription: "The limit query parameter.",
 			},
 			"memberships": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
@@ -32,8 +34,8 @@ func MembershipsDataSourceSchema(ctx context.Context) schema.Schema {
 						},
 						"joined_at": schema.StringAttribute{
 							Computed:            true,
-							Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-							MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 						},
 						"org_id": schema.StringAttribute{
 							Computed: true,
@@ -66,12 +68,16 @@ func MembershipsDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"offset": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The offset query parameter.",
+				MarkdownDescription: "The offset query parameter.",
 			},
 			"state": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The state query parameter.",
+				MarkdownDescription: "The state query parameter.",
 				Validators: []validator.String{
 					stringvalidator.OneOf(
 						"MEMBERSHIP_STATE_UNSPECIFIED",
@@ -83,8 +89,10 @@ func MembershipsDataSourceSchema(ctx context.Context) schema.Schema {
 				},
 			},
 			"user_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The user.user_id query parameter.",
+				MarkdownDescription: "The user.user_id query parameter.",
 			},
 		},
 	}

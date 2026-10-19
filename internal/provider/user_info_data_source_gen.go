@@ -4,7 +4,13 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
@@ -30,6 +36,9 @@ func UserInfoDataSourceSchema(ctx context.Context) schema.Schema {
 			"id": schema.StringAttribute{
 				Computed: true,
 			},
+			"image_id": schema.StringAttribute{
+				Computed: true,
+			},
 			"image_url": schema.StringAttribute{
 				Computed: true,
 			},
@@ -39,9 +48,56 @@ func UserInfoDataSourceSchema(ctx context.Context) schema.Schema {
 			"last_name": schema.StringAttribute{
 				Computed: true,
 			},
-			"user_id": schema.StringAttribute{
-				Optional: true,
+			"permissions": schema.ListAttribute{
+				ElementType: types.StringType,
+				Computed:    true,
+			},
+			"policies": schema.ListNestedAttribute{
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"created_at": schema.StringAttribute{
+							Computed:            true,
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+						},
+						"created_by": schema.StringAttribute{
+							Computed: true,
+						},
+						"description": schema.StringAttribute{
+							Computed: true,
+						},
+						"id": schema.StringAttribute{
+							Computed: true,
+						},
+						"name": schema.StringAttribute{
+							Computed: true,
+						},
+						"org_id": schema.StringAttribute{
+							Computed: true,
+						},
+						"permissions": schema.ListAttribute{
+							ElementType: types.StringType,
+							Computed:    true,
+						},
+						"updated_at": schema.StringAttribute{
+							Computed:            true,
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+						},
+					},
+					CustomType: UserInfoDataSourcePoliciesType{
+						ObjectType: types.ObjectType{
+							AttrTypes: UserInfoDataSourcePoliciesValue{}.AttributeTypes(ctx),
+						},
+					},
+				},
 				Computed: true,
+			},
+			"user_id": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "The user_id query parameter.",
+				MarkdownDescription: "The user_id query parameter.",
 			},
 			"username": schema.StringAttribute{
 				Computed: true,
@@ -57,9 +113,754 @@ type UserInfoDataSourceModel struct {
 	EmailVerified types.Bool   `tfsdk:"email_verified"`
 	FirstName     types.String `tfsdk:"first_name"`
 	Id            types.String `tfsdk:"id"`
+	ImageId       types.String `tfsdk:"image_id"`
 	ImageUrl      types.String `tfsdk:"image_url"`
 	LanguageCode  types.String `tfsdk:"language_code"`
 	LastName      types.String `tfsdk:"last_name"`
+	Permissions   types.List   `tfsdk:"permissions"`
+	Policies      types.List   `tfsdk:"policies"`
 	UserId        types.String `tfsdk:"user_id"`
 	Username      types.String `tfsdk:"username"`
+}
+
+var _ basetypes.ObjectTypable = UserInfoDataSourcePoliciesType{}
+
+type UserInfoDataSourcePoliciesType struct {
+	basetypes.ObjectType
+}
+
+func (t UserInfoDataSourcePoliciesType) Equal(o attr.Type) bool {
+	other, ok := o.(UserInfoDataSourcePoliciesType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t UserInfoDataSourcePoliciesType) String() string {
+	return "PoliciesType"
+}
+
+func (t UserInfoDataSourcePoliciesType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	createdAtAttribute, ok := attributes["created_at"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`created_at is missing from object`)
+
+		return nil, diags
+	}
+
+	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`created_at expected to be basetypes.StringValue, was: %T`, createdAtAttribute))
+	}
+
+	createdByAttribute, ok := attributes["created_by"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`created_by is missing from object`)
+
+		return nil, diags
+	}
+
+	createdByVal, ok := createdByAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`created_by expected to be basetypes.StringValue, was: %T`, createdByAttribute))
+	}
+
+	descriptionAttribute, ok := attributes["description"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`description is missing from object`)
+
+		return nil, diags
+	}
+
+	descriptionVal, ok := descriptionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`description expected to be basetypes.StringValue, was: %T`, descriptionAttribute))
+	}
+
+	idAttribute, ok := attributes["id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`id is missing from object`)
+
+		return nil, diags
+	}
+
+	idVal, ok := idAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`id expected to be basetypes.StringValue, was: %T`, idAttribute))
+	}
+
+	nameAttribute, ok := attributes["name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`name is missing from object`)
+
+		return nil, diags
+	}
+
+	nameVal, ok := nameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+	}
+
+	orgIdAttribute, ok := attributes["org_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`org_id is missing from object`)
+
+		return nil, diags
+	}
+
+	orgIdVal, ok := orgIdAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
+	}
+
+	permissionsAttribute, ok := attributes["permissions"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`permissions is missing from object`)
+
+		return nil, diags
+	}
+
+	permissionsVal, ok := permissionsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`permissions expected to be basetypes.ListValue, was: %T`, permissionsAttribute))
+	}
+
+	updatedAtAttribute, ok := attributes["updated_at"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`updated_at is missing from object`)
+
+		return nil, diags
+	}
+
+	updatedAtVal, ok := updatedAtAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`updated_at expected to be basetypes.StringValue, was: %T`, updatedAtAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return UserInfoDataSourcePoliciesValue{
+		CreatedAt:   createdAtVal,
+		CreatedBy:   createdByVal,
+		Description: descriptionVal,
+		Id:          idVal,
+		Name:        nameVal,
+		OrgId:       orgIdVal,
+		Permissions: permissionsVal,
+		UpdatedAt:   updatedAtVal,
+		state:       attr.ValueStateKnown,
+	}, diags
+}
+
+func NewUserInfoDataSourcePoliciesValueNull() UserInfoDataSourcePoliciesValue {
+	return UserInfoDataSourcePoliciesValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewUserInfoDataSourcePoliciesValueUnknown() UserInfoDataSourcePoliciesValue {
+	return UserInfoDataSourcePoliciesValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewUserInfoDataSourcePoliciesValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (UserInfoDataSourcePoliciesValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing PoliciesValue Attribute Value",
+				"While creating a PoliciesValue value, a missing attribute value was detected. "+
+					"A PoliciesValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("PoliciesValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid PoliciesValue Attribute Type",
+				"While creating a PoliciesValue value, an invalid attribute value was detected. "+
+					"A PoliciesValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("PoliciesValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("PoliciesValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra PoliciesValue Attribute Value",
+				"While creating a PoliciesValue value, an extra attribute value was detected. "+
+					"A PoliciesValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra PoliciesValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	createdAtAttribute, ok := attributes["created_at"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`created_at is missing from object`)
+
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	createdAtVal, ok := createdAtAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`created_at expected to be basetypes.StringValue, was: %T`, createdAtAttribute))
+	}
+
+	createdByAttribute, ok := attributes["created_by"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`created_by is missing from object`)
+
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	createdByVal, ok := createdByAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`created_by expected to be basetypes.StringValue, was: %T`, createdByAttribute))
+	}
+
+	descriptionAttribute, ok := attributes["description"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`description is missing from object`)
+
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	descriptionVal, ok := descriptionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`description expected to be basetypes.StringValue, was: %T`, descriptionAttribute))
+	}
+
+	idAttribute, ok := attributes["id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`id is missing from object`)
+
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	idVal, ok := idAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`id expected to be basetypes.StringValue, was: %T`, idAttribute))
+	}
+
+	nameAttribute, ok := attributes["name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`name is missing from object`)
+
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	nameVal, ok := nameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+	}
+
+	orgIdAttribute, ok := attributes["org_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`org_id is missing from object`)
+
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	orgIdVal, ok := orgIdAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
+	}
+
+	permissionsAttribute, ok := attributes["permissions"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`permissions is missing from object`)
+
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	permissionsVal, ok := permissionsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`permissions expected to be basetypes.ListValue, was: %T`, permissionsAttribute))
+	}
+
+	updatedAtAttribute, ok := attributes["updated_at"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`updated_at is missing from object`)
+
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	updatedAtVal, ok := updatedAtAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`updated_at expected to be basetypes.StringValue, was: %T`, updatedAtAttribute))
+	}
+
+	if diags.HasError() {
+		return NewUserInfoDataSourcePoliciesValueUnknown(), diags
+	}
+
+	return UserInfoDataSourcePoliciesValue{
+		CreatedAt:   createdAtVal,
+		CreatedBy:   createdByVal,
+		Description: descriptionVal,
+		Id:          idVal,
+		Name:        nameVal,
+		OrgId:       orgIdVal,
+		Permissions: permissionsVal,
+		UpdatedAt:   updatedAtVal,
+		state:       attr.ValueStateKnown,
+	}, diags
+}
+
+func NewUserInfoDataSourcePoliciesValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) UserInfoDataSourcePoliciesValue {
+	object, diags := NewUserInfoDataSourcePoliciesValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewPoliciesValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t UserInfoDataSourcePoliciesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewUserInfoDataSourcePoliciesValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewUserInfoDataSourcePoliciesValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewUserInfoDataSourcePoliciesValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewUserInfoDataSourcePoliciesValueMust(UserInfoDataSourcePoliciesValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t UserInfoDataSourcePoliciesType) ValueType(ctx context.Context) attr.Value {
+	return UserInfoDataSourcePoliciesValue{}
+}
+
+var _ basetypes.ObjectValuable = UserInfoDataSourcePoliciesValue{}
+
+type UserInfoDataSourcePoliciesValue struct {
+	CreatedAt   basetypes.StringValue `tfsdk:"created_at"`
+	CreatedBy   basetypes.StringValue `tfsdk:"created_by"`
+	Description basetypes.StringValue `tfsdk:"description"`
+	Id          basetypes.StringValue `tfsdk:"id"`
+	Name        basetypes.StringValue `tfsdk:"name"`
+	OrgId       basetypes.StringValue `tfsdk:"org_id"`
+	Permissions basetypes.ListValue   `tfsdk:"permissions"`
+	UpdatedAt   basetypes.StringValue `tfsdk:"updated_at"`
+	state       attr.ValueState
+}
+
+func (v UserInfoDataSourcePoliciesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 8)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["created_at"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["created_by"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["description"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["id"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["org_id"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["permissions"] = basetypes.ListType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["updated_at"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 8)
+
+		val, err = v.CreatedAt.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["created_at"] = val
+
+		val, err = v.CreatedBy.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["created_by"] = val
+
+		val, err = v.Description.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["description"] = val
+
+		val, err = v.Id.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["id"] = val
+
+		val, err = v.Name.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["name"] = val
+
+		val, err = v.OrgId.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["org_id"] = val
+
+		val, err = v.Permissions.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["permissions"] = val
+
+		val, err = v.UpdatedAt.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["updated_at"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v UserInfoDataSourcePoliciesValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v UserInfoDataSourcePoliciesValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v UserInfoDataSourcePoliciesValue) String() string {
+	return "PoliciesValue"
+}
+
+func (v UserInfoDataSourcePoliciesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	var permissionsVal basetypes.ListValue
+	switch {
+	case v.Permissions.IsUnknown():
+		permissionsVal = types.ListUnknown(types.StringType)
+	case v.Permissions.IsNull():
+		permissionsVal = types.ListNull(types.StringType)
+	default:
+		var d diag.Diagnostics
+		permissionsVal, d = types.ListValue(types.StringType, v.Permissions.Elements())
+		diags.Append(d...)
+	}
+
+	if diags.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"created_at":  basetypes.StringType{},
+			"created_by":  basetypes.StringType{},
+			"description": basetypes.StringType{},
+			"id":          basetypes.StringType{},
+			"name":        basetypes.StringType{},
+			"org_id":      basetypes.StringType{},
+			"permissions": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"updated_at": basetypes.StringType{},
+		}), diags
+	}
+
+	attributeTypes := map[string]attr.Type{
+		"created_at":  basetypes.StringType{},
+		"created_by":  basetypes.StringType{},
+		"description": basetypes.StringType{},
+		"id":          basetypes.StringType{},
+		"name":        basetypes.StringType{},
+		"org_id":      basetypes.StringType{},
+		"permissions": basetypes.ListType{
+			ElemType: types.StringType,
+		},
+		"updated_at": basetypes.StringType{},
+	}
+
+	if v.IsNull() {
+		return types.ObjectNull(attributeTypes), diags
+	}
+
+	if v.IsUnknown() {
+		return types.ObjectUnknown(attributeTypes), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		attributeTypes,
+		map[string]attr.Value{
+			"created_at":  v.CreatedAt,
+			"created_by":  v.CreatedBy,
+			"description": v.Description,
+			"id":          v.Id,
+			"name":        v.Name,
+			"org_id":      v.OrgId,
+			"permissions": permissionsVal,
+			"updated_at":  v.UpdatedAt,
+		})
+
+	return objVal, diags
+}
+
+func (v UserInfoDataSourcePoliciesValue) Equal(o attr.Value) bool {
+	other, ok := o.(UserInfoDataSourcePoliciesValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.CreatedAt.Equal(other.CreatedAt) {
+		return false
+	}
+
+	if !v.CreatedBy.Equal(other.CreatedBy) {
+		return false
+	}
+
+	if !v.Description.Equal(other.Description) {
+		return false
+	}
+
+	if !v.Id.Equal(other.Id) {
+		return false
+	}
+
+	if !v.Name.Equal(other.Name) {
+		return false
+	}
+
+	if !v.OrgId.Equal(other.OrgId) {
+		return false
+	}
+
+	if !v.Permissions.Equal(other.Permissions) {
+		return false
+	}
+
+	if !v.UpdatedAt.Equal(other.UpdatedAt) {
+		return false
+	}
+
+	return true
+}
+
+func (v UserInfoDataSourcePoliciesValue) Type(ctx context.Context) attr.Type {
+	return UserInfoDataSourcePoliciesType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v UserInfoDataSourcePoliciesValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"created_at":  basetypes.StringType{},
+		"created_by":  basetypes.StringType{},
+		"description": basetypes.StringType{},
+		"id":          basetypes.StringType{},
+		"name":        basetypes.StringType{},
+		"org_id":      basetypes.StringType{},
+		"permissions": basetypes.ListType{
+			ElemType: types.StringType,
+		},
+		"updated_at": basetypes.StringType{},
+	}
 }

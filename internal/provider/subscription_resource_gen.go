@@ -94,8 +94,8 @@ func SubscriptionResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"current_period_end": schema.StringAttribute{
 				Computed:            true,
-				Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-				MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+				Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+				MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 			},
 			"expiring_soon": schema.BoolAttribute{
 				Computed: true,
@@ -104,8 +104,10 @@ func SubscriptionResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"org_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The org_id query parameter.",
+				MarkdownDescription: "The org_id query parameter.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},

@@ -16,8 +16,10 @@ func PaymentMethodFromSetupIntentDataSourceSchema(ctx context.Context) schema.Sc
 				Computed: true,
 			},
 			"setup_intent_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The setup_intent_id query parameter.",
+				MarkdownDescription: "The setup_intent_id query parameter.",
 			},
 		},
 	}

@@ -150,12 +150,16 @@ func DashboardsDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"page": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The page query parameter.",
+				MarkdownDescription: "The page query parameter.",
 			},
 			"page_size": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The page_size query parameter.",
+				MarkdownDescription: "The page_size query parameter.",
 			},
 			"total": schema.StringAttribute{
 				Computed: true,

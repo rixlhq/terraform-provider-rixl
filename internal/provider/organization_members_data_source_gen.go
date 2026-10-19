@@ -19,8 +19,10 @@ func OrganizationMembersDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"limit": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The limit query parameter.",
+				MarkdownDescription: "The limit query parameter.",
 			},
 			"members": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
@@ -33,13 +35,13 @@ func OrganizationMembersDataSourceSchema(ctx context.Context) schema.Schema {
 						},
 						"invitation_expires_at": schema.StringAttribute{
 							Computed:            true,
-							Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-							MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 						},
 						"joined_at": schema.StringAttribute{
 							Computed:            true,
-							Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-							MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 						},
 						"last_name": schema.StringAttribute{
 							Computed: true,
@@ -69,17 +71,15 @@ func OrganizationMembersDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"offset": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The offset query parameter.",
+				MarkdownDescription: "The offset query parameter.",
 			},
 			"org_id": schema.StringAttribute{
 				Required:            true,
 				Description:         "",
 				MarkdownDescription: "",
-			},
-			"user_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
 			},
 		},
 	}
@@ -90,7 +90,6 @@ type OrganizationMembersDataSourceModel struct {
 	Members types.List   `tfsdk:"members"`
 	Offset  types.Int64  `tfsdk:"offset"`
 	OrgId   types.String `tfsdk:"org_id"`
-	UserId  types.String `tfsdk:"user_id"`
 }
 
 var _ basetypes.ObjectTypable = OrganizationMembersDataSourceMembersType{}

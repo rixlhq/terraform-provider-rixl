@@ -37,8 +37,8 @@ func UserPoliciesDataSourceSchema(ctx context.Context) schema.Schema {
 					Attributes: map[string]schema.Attribute{
 						"created_at": schema.StringAttribute{
 							Computed:            true,
-							Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-							MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 						},
 						"created_by": schema.StringAttribute{
 							Computed: true,
@@ -61,8 +61,8 @@ func UserPoliciesDataSourceSchema(ctx context.Context) schema.Schema {
 						},
 						"updated_at": schema.StringAttribute{
 							Computed:            true,
-							Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-							MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 						},
 					},
 					CustomType: UserPoliciesDataSourcePoliciesType{
@@ -71,10 +71,6 @@ func UserPoliciesDataSourceSchema(ctx context.Context) schema.Schema {
 						},
 					},
 				},
-				Computed: true,
-			},
-			"user_id": schema.StringAttribute{
-				Optional: true,
 				Computed: true,
 			},
 		},
@@ -86,7 +82,6 @@ type UserPoliciesDataSourceModel struct {
 	OrgId       types.String `tfsdk:"org_id"`
 	Permissions types.List   `tfsdk:"permissions"`
 	Policies    types.List   `tfsdk:"policies"`
-	UserId      types.String `tfsdk:"user_id"`
 }
 
 var _ basetypes.ObjectTypable = UserPoliciesDataSourcePoliciesType{}

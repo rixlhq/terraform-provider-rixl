@@ -13,8 +13,10 @@ func PaymentMethodFromPaymentIntentDataSourceSchema(ctx context.Context) schema.
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"payment_intent_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The payment_intent_id query parameter.",
+				MarkdownDescription: "The payment_intent_id query parameter.",
 			},
 			"payment_method_id": schema.StringAttribute{
 				Computed: true,

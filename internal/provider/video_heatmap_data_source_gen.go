@@ -15,20 +15,26 @@ func VideoHeatmapDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"buckets": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The buckets query parameter.",
+				MarkdownDescription: "The buckets query parameter.",
 			},
 			"data": schema.ListAttribute{
 				ElementType: types.Float64Type,
 				Computed:    true,
 			},
 			"rangeend": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.end query parameter.",
+				MarkdownDescription: "The range.end query parameter.",
 			},
 			"rangestart": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.start query parameter.",
+				MarkdownDescription: "The range.start query parameter.",
 			},
 			"total_duration_ms": schema.StringAttribute{
 				Computed: true,

@@ -56,8 +56,10 @@ func PasskeysDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"user_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The user_id query parameter.",
+				MarkdownDescription: "The user_id query parameter.",
 			},
 		},
 	}

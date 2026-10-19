@@ -14,8 +14,8 @@ func BandwidthUsageDataSourceSchema(ctx context.Context) schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"created_at": schema.StringAttribute{
 				Computed:            true,
-				Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-				MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+				Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+				MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 			},
 			"data_source": schema.StringAttribute{
 				Computed: true,
@@ -27,13 +27,15 @@ func BandwidthUsageDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"org_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The org_id query parameter.",
+				MarkdownDescription: "The org_id query parameter.",
 			},
 			"snapshot_date": schema.StringAttribute{
 				Computed:            true,
-				Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-				MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+				Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+				MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 			},
 			"snapshot_type": schema.StringAttribute{
 				Computed: true,

@@ -14,6 +14,9 @@ import (
 func PlanDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"active": schema.BoolAttribute{
+				Computed: true,
+			},
 			"currency": schema.StringAttribute{
 				Computed: true,
 			},
@@ -31,10 +34,28 @@ func PlanDataSourceSchema(ctx context.Context) schema.Schema {
 			"interval": schema.StringAttribute{
 				Computed: true,
 			},
+			"interval_count": schema.Int64Attribute{
+				Computed: true,
+			},
+			"is_public": schema.BoolAttribute{
+				Computed: true,
+			},
 			"name": schema.StringAttribute{
 				Computed: true,
 			},
+			"plan_type": schema.StringAttribute{
+				Computed: true,
+			},
 			"price": schema.StringAttribute{
+				Computed: true,
+			},
+			"sort_order": schema.Int64Attribute{
+				Computed: true,
+			},
+			"stripe_price_id": schema.StringAttribute{
+				Computed: true,
+			},
+			"stripe_product_id": schema.StringAttribute{
 				Computed: true,
 			},
 		},
@@ -42,10 +63,17 @@ func PlanDataSourceSchema(ctx context.Context) schema.Schema {
 }
 
 type PlanDataSourceModel struct {
-	Currency    types.String `tfsdk:"currency"`
-	Description types.String `tfsdk:"description"`
-	Id          types.String `tfsdk:"id"`
-	Interval    types.String `tfsdk:"interval"`
-	Name        types.String `tfsdk:"name"`
-	Price       types.String `tfsdk:"price"`
+	Active          types.Bool   `tfsdk:"active"`
+	Currency        types.String `tfsdk:"currency"`
+	Description     types.String `tfsdk:"description"`
+	Id              types.String `tfsdk:"id"`
+	Interval        types.String `tfsdk:"interval"`
+	IntervalCount   types.Int64  `tfsdk:"interval_count"`
+	IsPublic        types.Bool   `tfsdk:"is_public"`
+	Name            types.String `tfsdk:"name"`
+	PlanType        types.String `tfsdk:"plan_type"`
+	Price           types.String `tfsdk:"price"`
+	SortOrder       types.Int64  `tfsdk:"sort_order"`
+	StripePriceId   types.String `tfsdk:"stripe_price_id"`
+	StripeProductId types.String `tfsdk:"stripe_product_id"`
 }
