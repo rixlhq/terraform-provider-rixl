@@ -7,6 +7,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/rixlhq/terraform-provider-rixl/internal/provider"
+	providerversion "github.com/rixlhq/terraform-provider-rixl/internal/version"
+)
+
+var (
+	// version is populated at build time by ldflags (-X main.version=...) or falls back to internal/version.Version.
+	version = providerversion.Version
 )
 
 func main() {
@@ -19,7 +25,7 @@ func main() {
 		Debug:   debug,
 	}
 
-	err := providerserver.Serve(context.Background(), provider.New, opts)
+	err := providerserver.Serve(context.Background(), provider.New(version), opts)
 	if err != nil {
 		log.Fatal(err)
 	}
