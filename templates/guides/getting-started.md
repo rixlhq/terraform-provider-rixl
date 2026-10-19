@@ -2,7 +2,7 @@
 page_title: "Getting Started with Rixl - Terraform Provider for Rixl"
 subcategory: "Guides"
 description: |-
-  Step-by-step guide for setting up the Rixl Terraform provider, configuring authentication with API tokens or OAuth2 client credentials, and provisioning your first video streaming project.
+  Step-by-step guide for setting up the Rixl Terraform provider, configuring authentication with API keys or OAuth2 bearer tokens, and provisioning your first video streaming project.
 ---
 
 # Getting Started with the Rixl Terraform Provider
@@ -11,7 +11,7 @@ The **Rixl Terraform Provider** enables infrastructure teams, streaming platform
 
 This guide walks through:
 1. Installing and configuring the provider.
-2. Selecting an authentication method (API Token vs OAuth2 Client Credentials).
+2. Selecting an authentication method (Static API Key vs OAuth2 Bearer Token).
 3. Provisioning an organization project, custom domain, and media pipeline.
 
 ---
@@ -26,14 +26,14 @@ terraform {
   required_providers {
     rixl = {
       source  = "rixlhq/rixl"
-      version = "~> 1.7.0"
+      version = "~> 1.7"
     }
   }
 }
 
 provider "rixl" {
   # Authentication is typically provided via environment variables:
-  # RIXL_API_KEY or RIXL_CLIENT_ID + RIXL_CLIENT_SECRET
+  # RIXL_API_KEY or RIXL_BEARER_TOKEN
 }
 ```
 
@@ -43,7 +43,7 @@ provider "rixl" {
 
 The provider supports two production-ready authentication methods:
 
-### Option A: Static API Token (Recommended for CI/CD runners)
+### Option A: Static API Key (Recommended for CI/CD runners)
 
 Provide a personal or organization API key generated from the Rixl Console:
 
@@ -59,21 +59,19 @@ provider "rixl" {
 }
 ```
 
-### Option B: Machine-to-Machine OAuth2 Client Credentials
+### Option B: OAuth2 Bearer Token
 
-For zero-trust environments and enterprise automation, generate machine credentials:
+For zero-trust environments, workload identity federation, or temporary session tokens:
 
 ```bash
-export RIXL_CLIENT_ID="cc_01hxxxxxxxxxxxxxxxxxxxx"
-export RIXL_CLIENT_SECRET="secret_xxxxxxxxxxxxxxxxxxxxxxxx"
+export RIXL_BEARER_TOKEN="eyJhbGciOi..."
 ```
 
 Or configure directly in HCL:
 
 ```terraform
 provider "rixl" {
-  client_id     = var.rixl_client_id
-  client_secret = var.rixl_client_secret
+  bearer_token = var.rixl_bearer_token
 }
 ```
 
@@ -103,8 +101,9 @@ resource "rixl_custom_domain" "cdn" {
 
 # 3. Associate the custom domain with the project
 resource "rixl_project_custom_domain" "cdn_link" {
-  project_id = rixl_project.streaming_prod.id
-  domain_id  = rixl_custom_domain.cdn.id
+  org_id        = var.org_id
+  project_id    = rixl_project.streaming_prod.id
+  custom_domain = rixl_custom_domain.cdn.domain
 }
 
 # 4. Upload and process a video asset
@@ -122,24 +121,28 @@ resource "rixl_video_chapters" "welcome_chapters" {
 
   chapters = [
     {
-      title      = "Introduction"
-      start_time = 0.0
+      title          = "Introduction"
+      start_time_sec = 0.0
     },
     {
-      title      = "Platform Walkthrough"
-      start_time = 45.2
+      title          = "Platform Walkthrough"
+      start_time_sec = 45.2
     },
     {
-      title      = "Next Steps"
-      start_time = 120.0
-    }
+      title          = "Next Steps"
+      start_time_sec = 120.0
+    },
   ]
 }
 ```
 
 ---
 
-## 4. Next Steps
+## 4. Next Steps & Architecture Guides
 
-- Explore the [Automated Video Streaming Pipeline Guide](video-streaming-pipeline) to learn about multi-language subtitles and audio tracks.
-- Learn how to implement least-privilege RBAC using the [IAM and Security Guide](iam-and-security).
+Explore in-depth architectural guides for production deployment:
+- [Automated Video Streaming Pipeline](video-streaming-pipeline) &mdash; End-to-end multi-bitrate HLS encoding, multi-track audio, localized subtitles, and chapters.
+- [Custom CDN Streaming Domains and SSL Automation](custom-domains-and-cdn) &mdash; Vanity streaming domains, DNS verification, and project routing.
+- [Content Feeds, Playlists, and Media Distribution](content-feeds-and-distribution) &mdash; Curated video channels, rich media posts, and subscriber notifications.
+- [IAM, RBAC, and Security Automation](iam-and-security) &mdash; Least-privilege access policies, machine-to-machine OAuth2 credentials, and enterprise SSO.
+- [Observability, Telemetry, and Analytics](monitoring-and-analytics) &mdash; Dashboards, playback sessions, bandwidth/storage metrics, and heatmaps.

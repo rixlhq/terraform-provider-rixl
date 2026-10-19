@@ -66,8 +66,9 @@ resource "rixl_custom_domain" "cdn" {
 }
 
 resource "rixl_project_custom_domain" "cdn_mapping" {
-  project_id = rixl_project.prod.id
-  domain_id  = rixl_custom_domain.cdn.id
+  org_id        = var.rixl_org_id
+  project_id    = rixl_project.prod.id
+  custom_domain = rixl_custom_domain.cdn.domain
 }
 
 # 3. Create a content feed
@@ -94,16 +95,16 @@ resource "rixl_video_chapters" "intro_chapters" {
 
   chapters = [
     {
-      title      = "Introduction"
-      start_time = 0.0
+      title          = "Introduction"
+      start_time_sec = 0.0
     },
     {
-      title      = "Features Walkthrough"
-      start_time = 45.5
+      title          = "Features Walkthrough"
+      start_time_sec = 45.5
     },
     {
-      title      = "Conclusion"
-      start_time = 120.0
+      title          = "Conclusion"
+      start_time_sec = 120.0
     },
   ]
 }

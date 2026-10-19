@@ -4,16 +4,16 @@ resource "rixl_video_chapters" "chapters" {
 
   chapters = [
     {
-      title      = "Opening Remarks"
-      start_time = 0.0
+      title          = "Opening Remarks"
+      start_time_sec = 0.0
     },
     {
-      title      = "Architecture Overview"
-      start_time = 180.5
+      title          = "Architecture Overview"
+      start_time_sec = 180.5
     },
     {
-      title      = "Demo & Closing"
-      start_time = 620.0
+      title          = "Demo & Closing"
+      start_time_sec = 620.0
     },
   ]
 }
