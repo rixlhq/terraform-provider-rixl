@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.3.0...v1.3.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **generator:** clean timestamp docs and integrate codegen tools into mise ([#24](https://github.com/rixlhq/terraform-provider-rixl/issues/24)) ([a3e7a08](https://github.com/rixlhq/terraform-provider-rixl/commit/a3e7a08cabe5163b8284a559f795e8bdc02b8ce6))
+
 ## [1.3.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.2.0...v1.3.0) (2026-10-19)
 
 
