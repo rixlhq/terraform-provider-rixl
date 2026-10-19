@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.1.0...v1.2.0) (2026-10-19)
+
+
+### Features
+
+* **provider:** wire version into framework metadata and user-agent ([#20](https://github.com/rixlhq/terraform-provider-rixl/issues/20)) ([3d6d006](https://github.com/rixlhq/terraform-provider-rixl/commit/3d6d006ab956ae368352b15da8d6d2c0387f1c78))
+
 ## [1.1.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.0.0...v1.1.0) (2026-10-19)
 
 
