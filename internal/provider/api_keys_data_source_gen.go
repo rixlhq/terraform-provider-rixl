@@ -25,27 +25,35 @@ func ApiKeysDataSourceSchema(ctx context.Context) schema.Schema {
 					Attributes: map[string]schema.Attribute{
 						"created_at": schema.StringAttribute{
 							Computed:            true,
-							Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-							MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 						},
 						"expiring_at": schema.StringAttribute{
 							Computed:            true,
-							Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-							MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 						},
 						"id": schema.StringAttribute{
 							Computed: true,
 						},
 						"last_used": schema.StringAttribute{
 							Computed:            true,
-							Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-							MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 						},
 						"name": schema.StringAttribute{
 							Computed: true,
 						},
 						"org_id": schema.StringAttribute{
 							Computed: true,
+						},
+						"permissions": schema.ListAttribute{
+							ElementType: types.StringType,
+							Computed:    true,
+						},
+						"policy_ids": schema.ListAttribute{
+							ElementType: types.StringType,
+							Computed:    true,
 						},
 						"project_id": schema.StringAttribute{
 							Computed: true,
@@ -230,6 +238,42 @@ func (t ApiKeysDataSourceType) ValueFromObject(ctx context.Context, in basetypes
 			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
 	}
 
+	permissionsAttribute, ok := attributes["permissions"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`permissions is missing from object`)
+
+		return nil, diags
+	}
+
+	permissionsVal, ok := permissionsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`permissions expected to be basetypes.ListValue, was: %T`, permissionsAttribute))
+	}
+
+	policyIdsAttribute, ok := attributes["policy_ids"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`policy_ids is missing from object`)
+
+		return nil, diags
+	}
+
+	policyIdsVal, ok := policyIdsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`policy_ids expected to be basetypes.ListValue, was: %T`, policyIdsAttribute))
+	}
+
 	projectIdAttribute, ok := attributes["project_id"]
 
 	if !ok {
@@ -277,6 +321,8 @@ func (t ApiKeysDataSourceType) ValueFromObject(ctx context.Context, in basetypes
 		LastUsed:    lastUsedVal,
 		Name:        nameVal,
 		OrgId:       orgIdVal,
+		Permissions: permissionsVal,
+		PolicyIds:   policyIdsVal,
 		ProjectId:   projectIdVal,
 		ProjectName: projectNameVal,
 		state:       attr.ValueStateKnown,
@@ -454,6 +500,42 @@ func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes m
 			fmt.Sprintf(`org_id expected to be basetypes.StringValue, was: %T`, orgIdAttribute))
 	}
 
+	permissionsAttribute, ok := attributes["permissions"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`permissions is missing from object`)
+
+		return NewApiKeysDataSourceValueUnknown(), diags
+	}
+
+	permissionsVal, ok := permissionsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`permissions expected to be basetypes.ListValue, was: %T`, permissionsAttribute))
+	}
+
+	policyIdsAttribute, ok := attributes["policy_ids"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`policy_ids is missing from object`)
+
+		return NewApiKeysDataSourceValueUnknown(), diags
+	}
+
+	policyIdsVal, ok := policyIdsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`policy_ids expected to be basetypes.ListValue, was: %T`, policyIdsAttribute))
+	}
+
 	projectIdAttribute, ok := attributes["project_id"]
 
 	if !ok {
@@ -501,6 +583,8 @@ func NewApiKeysDataSourceValue(attributeTypes map[string]attr.Type, attributes m
 		LastUsed:    lastUsedVal,
 		Name:        nameVal,
 		OrgId:       orgIdVal,
+		Permissions: permissionsVal,
+		PolicyIds:   policyIdsVal,
 		ProjectId:   projectIdVal,
 		ProjectName: projectNameVal,
 		state:       attr.ValueStateKnown,
@@ -581,13 +665,15 @@ type ApiKeysDataSourceValue struct {
 	LastUsed    basetypes.StringValue `tfsdk:"last_used"`
 	Name        basetypes.StringValue `tfsdk:"name"`
 	OrgId       basetypes.StringValue `tfsdk:"org_id"`
+	Permissions basetypes.ListValue   `tfsdk:"permissions"`
+	PolicyIds   basetypes.ListValue   `tfsdk:"policy_ids"`
 	ProjectId   basetypes.StringValue `tfsdk:"project_id"`
 	ProjectName basetypes.StringValue `tfsdk:"project_name"`
 	state       attr.ValueState
 }
 
 func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 8)
+	attrTypes := make(map[string]tftypes.Type, 10)
 
 	var val tftypes.Value
 	var err error
@@ -598,6 +684,12 @@ func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.V
 	attrTypes["last_used"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["org_id"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["permissions"] = basetypes.ListType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["policy_ids"] = basetypes.ListType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
 	attrTypes["project_id"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["project_name"] = basetypes.StringType{}.TerraformType(ctx)
 
@@ -605,7 +697,7 @@ func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.V
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 8)
+		vals := make(map[string]tftypes.Value, 10)
 
 		val, err = v.CreatedAt.ToTerraformValue(ctx)
 
@@ -655,6 +747,22 @@ func (v ApiKeysDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.V
 
 		vals["org_id"] = val
 
+		val, err = v.Permissions.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["permissions"] = val
+
+		val, err = v.PolicyIds.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["policy_ids"] = val
+
 		val, err = v.ProjectId.ToTerraformValue(ctx)
 
 		if err != nil {
@@ -700,13 +808,81 @@ func (v ApiKeysDataSourceValue) String() string {
 func (v ApiKeysDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
+	var permissionsVal basetypes.ListValue
+	switch {
+	case v.Permissions.IsUnknown():
+		permissionsVal = types.ListUnknown(types.StringType)
+	case v.Permissions.IsNull():
+		permissionsVal = types.ListNull(types.StringType)
+	default:
+		var d diag.Diagnostics
+		permissionsVal, d = types.ListValue(types.StringType, v.Permissions.Elements())
+		diags.Append(d...)
+	}
+
+	if diags.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"created_at":  basetypes.StringType{},
+			"expiring_at": basetypes.StringType{},
+			"id":          basetypes.StringType{},
+			"last_used":   basetypes.StringType{},
+			"name":        basetypes.StringType{},
+			"org_id":      basetypes.StringType{},
+			"permissions": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"policy_ids": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"project_id":   basetypes.StringType{},
+			"project_name": basetypes.StringType{},
+		}), diags
+	}
+
+	var policyIdsVal basetypes.ListValue
+	switch {
+	case v.PolicyIds.IsUnknown():
+		policyIdsVal = types.ListUnknown(types.StringType)
+	case v.PolicyIds.IsNull():
+		policyIdsVal = types.ListNull(types.StringType)
+	default:
+		var d diag.Diagnostics
+		policyIdsVal, d = types.ListValue(types.StringType, v.PolicyIds.Elements())
+		diags.Append(d...)
+	}
+
+	if diags.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"created_at":  basetypes.StringType{},
+			"expiring_at": basetypes.StringType{},
+			"id":          basetypes.StringType{},
+			"last_used":   basetypes.StringType{},
+			"name":        basetypes.StringType{},
+			"org_id":      basetypes.StringType{},
+			"permissions": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"policy_ids": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"project_id":   basetypes.StringType{},
+			"project_name": basetypes.StringType{},
+		}), diags
+	}
+
 	attributeTypes := map[string]attr.Type{
-		"created_at":   basetypes.StringType{},
-		"expiring_at":  basetypes.StringType{},
-		"id":           basetypes.StringType{},
-		"last_used":    basetypes.StringType{},
-		"name":         basetypes.StringType{},
-		"org_id":       basetypes.StringType{},
+		"created_at":  basetypes.StringType{},
+		"expiring_at": basetypes.StringType{},
+		"id":          basetypes.StringType{},
+		"last_used":   basetypes.StringType{},
+		"name":        basetypes.StringType{},
+		"org_id":      basetypes.StringType{},
+		"permissions": basetypes.ListType{
+			ElemType: types.StringType,
+		},
+		"policy_ids": basetypes.ListType{
+			ElemType: types.StringType,
+		},
 		"project_id":   basetypes.StringType{},
 		"project_name": basetypes.StringType{},
 	}
@@ -728,6 +904,8 @@ func (v ApiKeysDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.Ob
 			"last_used":    v.LastUsed,
 			"name":         v.Name,
 			"org_id":       v.OrgId,
+			"permissions":  permissionsVal,
+			"policy_ids":   policyIdsVal,
 			"project_id":   v.ProjectId,
 			"project_name": v.ProjectName,
 		})
@@ -774,6 +952,14 @@ func (v ApiKeysDataSourceValue) Equal(o attr.Value) bool {
 		return false
 	}
 
+	if !v.Permissions.Equal(other.Permissions) {
+		return false
+	}
+
+	if !v.PolicyIds.Equal(other.PolicyIds) {
+		return false
+	}
+
 	if !v.ProjectId.Equal(other.ProjectId) {
 		return false
 	}
@@ -795,12 +981,18 @@ func (v ApiKeysDataSourceValue) Type(ctx context.Context) attr.Type {
 
 func (v ApiKeysDataSourceValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"created_at":   basetypes.StringType{},
-		"expiring_at":  basetypes.StringType{},
-		"id":           basetypes.StringType{},
-		"last_used":    basetypes.StringType{},
-		"name":         basetypes.StringType{},
-		"org_id":       basetypes.StringType{},
+		"created_at":  basetypes.StringType{},
+		"expiring_at": basetypes.StringType{},
+		"id":          basetypes.StringType{},
+		"last_used":   basetypes.StringType{},
+		"name":        basetypes.StringType{},
+		"org_id":      basetypes.StringType{},
+		"permissions": basetypes.ListType{
+			ElemType: types.StringType,
+		},
+		"policy_ids": basetypes.ListType{
+			ElemType: types.StringType,
+		},
 		"project_id":   basetypes.StringType{},
 		"project_name": basetypes.StringType{},
 	}

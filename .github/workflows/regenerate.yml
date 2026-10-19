@@ -26,6 +26,7 @@ jobs:
         run: |
           go install github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@v0.3.0
           go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework@v0.4.1
+          pip install --break-system-packages pyyaml || pip install pyyaml
 
       - name: Regenerate provider code
         run: ./gen.sh

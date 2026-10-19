@@ -19,20 +19,29 @@ func PlansDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"currency": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The currency query parameter.",
+				MarkdownDescription: "The currency query parameter.",
 			},
 			"free": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The free query parameter.",
+				MarkdownDescription: "The free query parameter.",
 			},
 			"interval": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The interval query parameter.",
+				MarkdownDescription: "The interval query parameter.",
 			},
 			"plans": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"active": schema.BoolAttribute{
+							Computed: true,
+						},
 						"currency": schema.StringAttribute{
 							Computed: true,
 						},
@@ -48,6 +57,9 @@ func PlansDataSourceSchema(ctx context.Context) schema.Schema {
 						"interval_count": schema.Int64Attribute{
 							Computed: true,
 						},
+						"is_public": schema.BoolAttribute{
+							Computed: true,
+						},
 						"name": schema.StringAttribute{
 							Computed: true,
 						},
@@ -58,6 +70,12 @@ func PlansDataSourceSchema(ctx context.Context) schema.Schema {
 							Computed: true,
 						},
 						"sort_order": schema.Int64Attribute{
+							Computed: true,
+						},
+						"stripe_price_id": schema.StringAttribute{
+							Computed: true,
+						},
+						"stripe_product_id": schema.StringAttribute{
 							Computed: true,
 						},
 					},
@@ -104,6 +122,24 @@ func (t PlansDataSourceType) ValueFromObject(ctx context.Context, in basetypes.O
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
+
+	activeAttribute, ok := attributes["active"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`active is missing from object`)
+
+		return nil, diags
+	}
+
+	activeVal, ok := activeAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`active expected to be basetypes.BoolValue, was: %T`, activeAttribute))
+	}
 
 	currencyAttribute, ok := attributes["currency"]
 
@@ -195,6 +231,24 @@ func (t PlansDataSourceType) ValueFromObject(ctx context.Context, in basetypes.O
 			fmt.Sprintf(`interval_count expected to be basetypes.Int64Value, was: %T`, intervalCountAttribute))
 	}
 
+	isPublicAttribute, ok := attributes["is_public"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_public is missing from object`)
+
+		return nil, diags
+	}
+
+	isPublicVal, ok := isPublicAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_public expected to be basetypes.BoolValue, was: %T`, isPublicAttribute))
+	}
+
 	nameAttribute, ok := attributes["name"]
 
 	if !ok {
@@ -267,21 +321,61 @@ func (t PlansDataSourceType) ValueFromObject(ctx context.Context, in basetypes.O
 			fmt.Sprintf(`sort_order expected to be basetypes.Int64Value, was: %T`, sortOrderAttribute))
 	}
 
+	stripePriceIdAttribute, ok := attributes["stripe_price_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`stripe_price_id is missing from object`)
+
+		return nil, diags
+	}
+
+	stripePriceIdVal, ok := stripePriceIdAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`stripe_price_id expected to be basetypes.StringValue, was: %T`, stripePriceIdAttribute))
+	}
+
+	stripeProductIdAttribute, ok := attributes["stripe_product_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`stripe_product_id is missing from object`)
+
+		return nil, diags
+	}
+
+	stripeProductIdVal, ok := stripeProductIdAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`stripe_product_id expected to be basetypes.StringValue, was: %T`, stripeProductIdAttribute))
+	}
+
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return PlansDataSourceValue{
-		Currency:      currencyVal,
-		Description:   descriptionVal,
-		Id:            idVal,
-		Interval:      intervalVal,
-		IntervalCount: intervalCountVal,
-		Name:          nameVal,
-		PlanType:      planTypeVal,
-		Price:         priceVal,
-		SortOrder:     sortOrderVal,
-		state:         attr.ValueStateKnown,
+		Active:          activeVal,
+		Currency:        currencyVal,
+		Description:     descriptionVal,
+		Id:              idVal,
+		Interval:        intervalVal,
+		IntervalCount:   intervalCountVal,
+		IsPublic:        isPublicVal,
+		Name:            nameVal,
+		PlanType:        planTypeVal,
+		Price:           priceVal,
+		SortOrder:       sortOrderVal,
+		StripePriceId:   stripePriceIdVal,
+		StripeProductId: stripeProductIdVal,
+		state:           attr.ValueStateKnown,
 	}, diags
 }
 
@@ -348,6 +442,24 @@ func NewPlansDataSourceValue(attributeTypes map[string]attr.Type, attributes map
 		return NewPlansDataSourceValueUnknown(), diags
 	}
 
+	activeAttribute, ok := attributes["active"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`active is missing from object`)
+
+		return NewPlansDataSourceValueUnknown(), diags
+	}
+
+	activeVal, ok := activeAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`active expected to be basetypes.BoolValue, was: %T`, activeAttribute))
+	}
+
 	currencyAttribute, ok := attributes["currency"]
 
 	if !ok {
@@ -438,6 +550,24 @@ func NewPlansDataSourceValue(attributeTypes map[string]attr.Type, attributes map
 			fmt.Sprintf(`interval_count expected to be basetypes.Int64Value, was: %T`, intervalCountAttribute))
 	}
 
+	isPublicAttribute, ok := attributes["is_public"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_public is missing from object`)
+
+		return NewPlansDataSourceValueUnknown(), diags
+	}
+
+	isPublicVal, ok := isPublicAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_public expected to be basetypes.BoolValue, was: %T`, isPublicAttribute))
+	}
+
 	nameAttribute, ok := attributes["name"]
 
 	if !ok {
@@ -510,21 +640,61 @@ func NewPlansDataSourceValue(attributeTypes map[string]attr.Type, attributes map
 			fmt.Sprintf(`sort_order expected to be basetypes.Int64Value, was: %T`, sortOrderAttribute))
 	}
 
+	stripePriceIdAttribute, ok := attributes["stripe_price_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`stripe_price_id is missing from object`)
+
+		return NewPlansDataSourceValueUnknown(), diags
+	}
+
+	stripePriceIdVal, ok := stripePriceIdAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`stripe_price_id expected to be basetypes.StringValue, was: %T`, stripePriceIdAttribute))
+	}
+
+	stripeProductIdAttribute, ok := attributes["stripe_product_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`stripe_product_id is missing from object`)
+
+		return NewPlansDataSourceValueUnknown(), diags
+	}
+
+	stripeProductIdVal, ok := stripeProductIdAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`stripe_product_id expected to be basetypes.StringValue, was: %T`, stripeProductIdAttribute))
+	}
+
 	if diags.HasError() {
 		return NewPlansDataSourceValueUnknown(), diags
 	}
 
 	return PlansDataSourceValue{
-		Currency:      currencyVal,
-		Description:   descriptionVal,
-		Id:            idVal,
-		Interval:      intervalVal,
-		IntervalCount: intervalCountVal,
-		Name:          nameVal,
-		PlanType:      planTypeVal,
-		Price:         priceVal,
-		SortOrder:     sortOrderVal,
-		state:         attr.ValueStateKnown,
+		Active:          activeVal,
+		Currency:        currencyVal,
+		Description:     descriptionVal,
+		Id:              idVal,
+		Interval:        intervalVal,
+		IntervalCount:   intervalCountVal,
+		IsPublic:        isPublicVal,
+		Name:            nameVal,
+		PlanType:        planTypeVal,
+		Price:           priceVal,
+		SortOrder:       sortOrderVal,
+		StripePriceId:   stripePriceIdVal,
+		StripeProductId: stripeProductIdVal,
+		state:           attr.ValueStateKnown,
 	}, diags
 }
 
@@ -596,39 +766,55 @@ func (t PlansDataSourceType) ValueType(ctx context.Context) attr.Value {
 var _ basetypes.ObjectValuable = PlansDataSourceValue{}
 
 type PlansDataSourceValue struct {
-	Currency      basetypes.StringValue `tfsdk:"currency"`
-	Description   basetypes.StringValue `tfsdk:"description"`
-	Id            basetypes.StringValue `tfsdk:"id"`
-	Interval      basetypes.StringValue `tfsdk:"interval"`
-	IntervalCount basetypes.Int64Value  `tfsdk:"interval_count"`
-	Name          basetypes.StringValue `tfsdk:"name"`
-	PlanType      basetypes.StringValue `tfsdk:"plan_type"`
-	Price         basetypes.StringValue `tfsdk:"price"`
-	SortOrder     basetypes.Int64Value  `tfsdk:"sort_order"`
-	state         attr.ValueState
+	Active          basetypes.BoolValue   `tfsdk:"active"`
+	Currency        basetypes.StringValue `tfsdk:"currency"`
+	Description     basetypes.StringValue `tfsdk:"description"`
+	Id              basetypes.StringValue `tfsdk:"id"`
+	Interval        basetypes.StringValue `tfsdk:"interval"`
+	IntervalCount   basetypes.Int64Value  `tfsdk:"interval_count"`
+	IsPublic        basetypes.BoolValue   `tfsdk:"is_public"`
+	Name            basetypes.StringValue `tfsdk:"name"`
+	PlanType        basetypes.StringValue `tfsdk:"plan_type"`
+	Price           basetypes.StringValue `tfsdk:"price"`
+	SortOrder       basetypes.Int64Value  `tfsdk:"sort_order"`
+	StripePriceId   basetypes.StringValue `tfsdk:"stripe_price_id"`
+	StripeProductId basetypes.StringValue `tfsdk:"stripe_product_id"`
+	state           attr.ValueState
 }
 
 func (v PlansDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 9)
+	attrTypes := make(map[string]tftypes.Type, 13)
 
 	var val tftypes.Value
 	var err error
 
+	attrTypes["active"] = basetypes.BoolType{}.TerraformType(ctx)
 	attrTypes["currency"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["description"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["id"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["interval"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["interval_count"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["is_public"] = basetypes.BoolType{}.TerraformType(ctx)
 	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["plan_type"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["price"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["sort_order"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["stripe_price_id"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["stripe_product_id"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 9)
+		vals := make(map[string]tftypes.Value, 13)
+
+		val, err = v.Active.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["active"] = val
 
 		val, err = v.Currency.ToTerraformValue(ctx)
 
@@ -670,6 +856,14 @@ func (v PlansDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Val
 
 		vals["interval_count"] = val
 
+		val, err = v.IsPublic.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_public"] = val
+
 		val, err = v.Name.ToTerraformValue(ctx)
 
 		if err != nil {
@@ -702,6 +896,22 @@ func (v PlansDataSourceValue) ToTerraformValue(ctx context.Context) (tftypes.Val
 
 		vals["sort_order"] = val
 
+		val, err = v.StripePriceId.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["stripe_price_id"] = val
+
+		val, err = v.StripeProductId.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["stripe_product_id"] = val
+
 		if err := tftypes.ValidateValue(objectType, vals); err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
@@ -732,15 +942,19 @@ func (v PlansDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.Obje
 	var diags diag.Diagnostics
 
 	attributeTypes := map[string]attr.Type{
-		"currency":       basetypes.StringType{},
-		"description":    basetypes.StringType{},
-		"id":             basetypes.StringType{},
-		"interval":       basetypes.StringType{},
-		"interval_count": basetypes.Int64Type{},
-		"name":           basetypes.StringType{},
-		"plan_type":      basetypes.StringType{},
-		"price":          basetypes.StringType{},
-		"sort_order":     basetypes.Int64Type{},
+		"active":            basetypes.BoolType{},
+		"currency":          basetypes.StringType{},
+		"description":       basetypes.StringType{},
+		"id":                basetypes.StringType{},
+		"interval":          basetypes.StringType{},
+		"interval_count":    basetypes.Int64Type{},
+		"is_public":         basetypes.BoolType{},
+		"name":              basetypes.StringType{},
+		"plan_type":         basetypes.StringType{},
+		"price":             basetypes.StringType{},
+		"sort_order":        basetypes.Int64Type{},
+		"stripe_price_id":   basetypes.StringType{},
+		"stripe_product_id": basetypes.StringType{},
 	}
 
 	if v.IsNull() {
@@ -754,15 +968,19 @@ func (v PlansDataSourceValue) ToObjectValue(ctx context.Context) (basetypes.Obje
 	objVal, diags := types.ObjectValue(
 		attributeTypes,
 		map[string]attr.Value{
-			"currency":       v.Currency,
-			"description":    v.Description,
-			"id":             v.Id,
-			"interval":       v.Interval,
-			"interval_count": v.IntervalCount,
-			"name":           v.Name,
-			"plan_type":      v.PlanType,
-			"price":          v.Price,
-			"sort_order":     v.SortOrder,
+			"active":            v.Active,
+			"currency":          v.Currency,
+			"description":       v.Description,
+			"id":                v.Id,
+			"interval":          v.Interval,
+			"interval_count":    v.IntervalCount,
+			"is_public":         v.IsPublic,
+			"name":              v.Name,
+			"plan_type":         v.PlanType,
+			"price":             v.Price,
+			"sort_order":        v.SortOrder,
+			"stripe_price_id":   v.StripePriceId,
+			"stripe_product_id": v.StripeProductId,
 		})
 
 	return objVal, diags
@@ -781,6 +999,10 @@ func (v PlansDataSourceValue) Equal(o attr.Value) bool {
 
 	if v.state != attr.ValueStateKnown {
 		return true
+	}
+
+	if !v.Active.Equal(other.Active) {
+		return false
 	}
 
 	if !v.Currency.Equal(other.Currency) {
@@ -803,6 +1025,10 @@ func (v PlansDataSourceValue) Equal(o attr.Value) bool {
 		return false
 	}
 
+	if !v.IsPublic.Equal(other.IsPublic) {
+		return false
+	}
+
 	if !v.Name.Equal(other.Name) {
 		return false
 	}
@@ -819,6 +1045,14 @@ func (v PlansDataSourceValue) Equal(o attr.Value) bool {
 		return false
 	}
 
+	if !v.StripePriceId.Equal(other.StripePriceId) {
+		return false
+	}
+
+	if !v.StripeProductId.Equal(other.StripeProductId) {
+		return false
+	}
+
 	return true
 }
 
@@ -832,14 +1066,18 @@ func (v PlansDataSourceValue) Type(ctx context.Context) attr.Type {
 
 func (v PlansDataSourceValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"currency":       basetypes.StringType{},
-		"description":    basetypes.StringType{},
-		"id":             basetypes.StringType{},
-		"interval":       basetypes.StringType{},
-		"interval_count": basetypes.Int64Type{},
-		"name":           basetypes.StringType{},
-		"plan_type":      basetypes.StringType{},
-		"price":          basetypes.StringType{},
-		"sort_order":     basetypes.Int64Type{},
+		"active":            basetypes.BoolType{},
+		"currency":          basetypes.StringType{},
+		"description":       basetypes.StringType{},
+		"id":                basetypes.StringType{},
+		"interval":          basetypes.StringType{},
+		"interval_count":    basetypes.Int64Type{},
+		"is_public":         basetypes.BoolType{},
+		"name":              basetypes.StringType{},
+		"plan_type":         basetypes.StringType{},
+		"price":             basetypes.StringType{},
+		"sort_order":        basetypes.Int64Type{},
+		"stripe_price_id":   basetypes.StringType{},
+		"stripe_product_id": basetypes.StringType{},
 	}
 }

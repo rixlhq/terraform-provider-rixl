@@ -19,12 +19,16 @@ func TopPostsDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"feed_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The feed_id query parameter.",
+				MarkdownDescription: "The feed_id query parameter.",
 			},
 			"limit": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The limit query parameter.",
+				MarkdownDescription: "The limit query parameter.",
 			},
 			"posts": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
@@ -73,12 +77,16 @@ func TopPostsDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"rangeend": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.end query parameter.",
+				MarkdownDescription: "The range.end query parameter.",
 			},
 			"rangestart": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.start query parameter.",
+				MarkdownDescription: "The range.start query parameter.",
 			},
 		},
 	}

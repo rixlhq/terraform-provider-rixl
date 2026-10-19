@@ -19,16 +19,22 @@ func TopVideosDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"limit": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The limit query parameter.",
+				MarkdownDescription: "The limit query parameter.",
 			},
 			"rangeend": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.end query parameter.",
+				MarkdownDescription: "The range.end query parameter.",
 			},
 			"rangestart": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.start query parameter.",
+				MarkdownDescription: "The range.start query parameter.",
 			},
 			"videos": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{

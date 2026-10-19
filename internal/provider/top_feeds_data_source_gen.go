@@ -49,16 +49,22 @@ func TopFeedsDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"limit": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The limit query parameter.",
+				MarkdownDescription: "The limit query parameter.",
 			},
 			"rangeend": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.end query parameter.",
+				MarkdownDescription: "The range.end query parameter.",
 			},
 			"rangestart": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.start query parameter.",
+				MarkdownDescription: "The range.start query parameter.",
 			},
 		},
 	}

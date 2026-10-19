@@ -26,12 +26,16 @@ func FeedStatsDataSourceSchema(ctx context.Context) schema.Schema {
 				},
 			},
 			"rangeend": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.end query parameter.",
+				MarkdownDescription: "The range.end query parameter.",
 			},
 			"rangestart": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The range.start query parameter.",
+				MarkdownDescription: "The range.start query parameter.",
 			},
 			"total_posts": schema.StringAttribute{
 				Computed: true,

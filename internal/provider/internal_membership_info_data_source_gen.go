@@ -21,8 +21,10 @@ func InternalMembershipInfoDataSourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "",
 			},
 			"user_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The user_id query parameter.",
+				MarkdownDescription: "The user_id query parameter.",
 			},
 		},
 	}

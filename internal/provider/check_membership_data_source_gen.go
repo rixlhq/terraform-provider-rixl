@@ -12,6 +12,9 @@ import (
 func CheckMembershipDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"is_internal_org": schema.BoolAttribute{
+				Computed: true,
+			},
 			"is_member": schema.BoolAttribute{
 				Computed: true,
 			},
@@ -21,15 +24,18 @@ func CheckMembershipDataSourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "",
 			},
 			"user_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The user_id query parameter.",
+				MarkdownDescription: "The user_id query parameter.",
 			},
 		},
 	}
 }
 
 type CheckMembershipDataSourceModel struct {
-	IsMember types.Bool   `tfsdk:"is_member"`
-	OrgId    types.String `tfsdk:"org_id"`
-	UserId   types.String `tfsdk:"user_id"`
+	IsInternalOrg types.Bool   `tfsdk:"is_internal_org"`
+	IsMember      types.Bool   `tfsdk:"is_member"`
+	OrgId         types.String `tfsdk:"org_id"`
+	UserId        types.String `tfsdk:"user_id"`
 }

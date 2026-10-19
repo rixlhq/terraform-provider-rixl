@@ -42,7 +42,11 @@ echo "Renaming generated data source types..."
 go run ./tools/dsrename -dir internal/provider
 
 echo "Updating registry and provider registration..."
-python3 tools/generate_registry.py
+if command -v uv >/dev/null 2>&1; then
+  uv run --with pyyaml python3 tools/generate_registry.py
+else
+  python3 tools/generate_registry.py
+fi
 
 echo "Formatting and building..."
 gofmt -s -w internal/provider/*.go

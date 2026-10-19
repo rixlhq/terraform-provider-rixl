@@ -26,9 +26,9 @@ resources:
       method: DELETE
     schema:
       ignores:
-        - name
-        - regions
-        - video_quality
+      - name
+      - regions
+      - video_quality
 data_sources:
   dashboard_stats:
     read:
@@ -326,6 +326,9 @@ data_sources:
       method: GET
     schema:
       attributes: {}
+      ignores:
+      - plans.features
+      - features
   plan:
     read:
       path: /billing/v1/plans/{plan_id}
@@ -337,6 +340,8 @@ data_sources:
         overrides:
           id:
             computed_optional_required: required
+      ignores:
+      - features
   subscription:
     read:
       path: /billing/v1/subscription

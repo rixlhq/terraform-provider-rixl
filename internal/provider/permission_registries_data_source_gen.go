@@ -19,12 +19,16 @@ func PermissionRegistriesDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"limit": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The limit query parameter.",
+				MarkdownDescription: "The limit query parameter.",
 			},
 			"offset": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The offset query parameter.",
+				MarkdownDescription: "The offset query parameter.",
 			},
 			"org_id": schema.StringAttribute{
 				Required:            true,
@@ -53,13 +57,11 @@ func PermissionRegistriesDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"types": schema.ListAttribute{
-				ElementType: types.StringType,
-				Optional:    true,
-				Computed:    true,
-			},
-			"user_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				ElementType:         types.StringType,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The types query parameter.",
+				MarkdownDescription: "The types query parameter.",
 			},
 		},
 	}
@@ -72,7 +74,6 @@ type PermissionRegistriesDataSourceModel struct {
 	Permissions types.List   `tfsdk:"permissions"`
 	Total       types.Int64  `tfsdk:"total"`
 	Types       types.List   `tfsdk:"types"`
-	UserId      types.String `tfsdk:"user_id"`
 }
 
 var _ basetypes.ObjectTypable = PermissionRegistriesDataSourcePermissionsType{}

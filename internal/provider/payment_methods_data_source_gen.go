@@ -19,16 +19,18 @@ func PaymentMethodsDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"org_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The org_id query parameter.",
+				MarkdownDescription: "The org_id query parameter.",
 			},
 			"payment_methods": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"created_at": schema.StringAttribute{
 							Computed:            true,
-							Description:         "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
-							MarkdownDescription: "RFC 3339 timestamp, e.g. \"2024-12-25T12:00:00Z\".",
+							Description:         "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
+							MarkdownDescription: "A point in time in RFC 3339 format, with up to nanosecond precision. Output uses UTC (`Z`); input may use an offset from UTC.",
 						},
 						"details": schema.StringAttribute{
 							Computed: true,
@@ -58,8 +60,10 @@ func PaymentMethodsDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"refresh": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The refresh query parameter.",
+				MarkdownDescription: "The refresh query parameter.",
 			},
 		},
 	}

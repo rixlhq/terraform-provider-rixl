@@ -31,8 +31,10 @@ func BillingAddressDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"org_id": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "The org_id query parameter.",
+				MarkdownDescription: "The org_id query parameter.",
 			},
 			"phone": schema.StringAttribute{
 				Computed: true,
