@@ -32,10 +32,10 @@ func TestPaymentMethodPriorSchema(t *testing.T) {
 	}
 }
 
-func TestManagedResourceUpgradeStateWiring(t *testing.T) {
+func TestPaymentMethodUpgradeStateWiring(t *testing.T) {
 	ctx := context.Background()
 
-	payment := &managedResource{descriptor: ResourceDescriptor{TypeName: "payment_method"}}
+	payment := &paymentMethodResource{}
 	upgrades := payment.UpgradeState(ctx)
 	upgrader, ok := upgrades[0]
 	if !ok {
@@ -49,10 +49,5 @@ func TestManagedResourceUpgradeStateWiring(t *testing.T) {
 	}
 	if _, ok := upgrader.PriorSchema.Attributes["provider"]; !ok {
 		t.Fatalf("prior schema must contain provider attribute")
-	}
-
-	other := &managedResource{descriptor: ResourceDescriptor{TypeName: "subscription"}}
-	if upgrades := other.UpgradeState(ctx); upgrades != nil {
-		t.Fatalf("expected no state upgraders for unrelated resource, got %v", upgrades)
 	}
 }

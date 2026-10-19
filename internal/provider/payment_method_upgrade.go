@@ -74,13 +74,10 @@ func upgradePaymentMethodStateV0toV1(ctx context.Context, req resource.UpgradeSt
 	resp.Diagnostics.Append(resp.State.Set(ctx, upgraded)...)
 }
 
-// Ensure managedResource supports state upgrades for renamed attributes.
-var _ resource.ResourceWithUpgradeState = (*managedResource)(nil)
+// Ensure paymentMethodResource supports state upgrades for renamed attributes.
+var _ resource.ResourceWithUpgradeState = (*paymentMethodResource)(nil)
 
-func (r *managedResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
-	if r.descriptor.TypeName != "payment_method" {
-		return nil
-	}
+func (r *paymentMethodResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
 	prior := paymentMethodSchemaV0(ctx)
 	return map[int64]resource.StateUpgrader{
 		0: {

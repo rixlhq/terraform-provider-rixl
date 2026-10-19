@@ -51,12 +51,3 @@ func hasRequiresReplace(attr rschema.StringAttribute) bool {
 	}
 	return false
 }
-
-func TestAuthProviderConnectionUpgradeWiringNil(t *testing.T) {
-	ctx := context.Background()
-
-	r := &managedResource{descriptor: ResourceDescriptor{TypeName: "auth_provider_connection"}}
-	if upgrades := r.UpgradeState(ctx); upgrades != nil {
-		t.Fatalf("expected no state upgraders for auth_provider_connection, got %v", upgrades)
-	}
-}

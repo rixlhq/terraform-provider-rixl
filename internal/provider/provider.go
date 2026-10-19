@@ -118,11 +118,14 @@ func (p *rixlProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 }
 
 func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
-	return append([]func() resource.Resource{
+	return []func() resource.Resource{
 		NewAccessPolicyResource,
+		NewApiKeyResource,
 		NewAudioTrackResource,
+		NewAuthProviderConnectionResource,
 		NewBillingAddressResource,
 		NewBlogSubscriptionResource,
+		NewClientCredentialResource,
 		NewCustomDomainResource,
 		NewDashboardResource,
 		NewDashboardWidgetResource,
@@ -132,12 +135,16 @@ func (p *rixlProvider) Resources(_ context.Context) []func() resource.Resource {
 		NewOrganizationInvitationResource,
 		NewOrganizationMemberResource,
 		NewOrganizationResource,
+		NewPaymentMethodResource,
+		NewPolicyAttachmentResource,
 		NewPostResource,
+		NewProjectCustomDomainResource,
 		NewProjectResource,
+		NewSubscriptionResource,
 		NewSubtitleResource,
 		NewVideoChaptersResource,
 		NewVideoResource,
-	}, genericResourceConstructors()...)
+	}
 }
 
 func (p *rixlProvider) DataSources(_ context.Context) []func() datasource.DataSource {
