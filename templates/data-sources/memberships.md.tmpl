@@ -1,0 +1,18 @@
+---
+subcategory: "Organizations & Collaboration"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+description: |-
+  {{ if .Description }}{{ .Description | plainmarkdown | trimspace }}{{ else }}Lists organization memberships associated with the authenticated account.{{ end }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ if .Description }}{{ .Description | trimspace }}{{ else }}Lists organization memberships associated with the authenticated account.{{ end }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{ tffile .ExampleFile }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}

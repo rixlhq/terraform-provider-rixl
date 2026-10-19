@@ -1,0 +1,18 @@
+---
+subcategory: "Dashboards & Analytics"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+description: |-
+  {{ if .Description }}{{ .Description | plainmarkdown | trimspace }}{{ else }}Lists all customized telemetry dashboards in an organization.{{ end }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ if .Description }}{{ .Description | trimspace }}{{ else }}Lists all customized telemetry dashboards in an organization.{{ end }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{ tffile .ExampleFile }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}

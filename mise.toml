@@ -50,6 +50,10 @@ run = "golangci-lint run ./..."
 description = "Generate Terraform Registry docs"
 run = "tfplugindocs generate --provider-name rixl"
 
+[tasks.docs-check]
+description = "Validate Terraform Registry docs"
+run = 'tfplugindocs validate --provider-name rixl --allowed-guide-subcategories "Guides" --allowed-resource-subcategories "Video & Media,Projects & Content,Custom Domains,Identity & Access Management (IAM),Organizations & Collaboration,Dashboards & Analytics,Billing & Subscriptions"'
+
 [tasks.default]
 description = "Default local development check"
 run = [

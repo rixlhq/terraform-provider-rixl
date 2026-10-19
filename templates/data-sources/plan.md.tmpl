@@ -1,0 +1,18 @@
+---
+subcategory: "Billing & Subscriptions"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+description: |-
+  {{ if .Description }}{{ .Description | plainmarkdown | trimspace }}{{ else }}Retrieves features, quotas, and pricing details for a specific Rixl plan.{{ end }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ if .Description }}{{ .Description | trimspace }}{{ else }}Retrieves features, quotas, and pricing details for a specific Rixl plan.{{ end }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{ tffile .ExampleFile }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}

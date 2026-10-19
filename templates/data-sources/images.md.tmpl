@@ -1,0 +1,18 @@
+---
+subcategory: "Video & Media"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+description: |-
+  {{ if .Description }}{{ .Description | plainmarkdown | trimspace }}{{ else }}Lists images stored within a Rixl project with pagination and filter criteria.{{ end }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ if .Description }}{{ .Description | trimspace }}{{ else }}Lists images stored within a Rixl project with pagination and filter criteria.{{ end }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{ tffile .ExampleFile }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}

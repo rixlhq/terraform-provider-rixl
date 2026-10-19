@@ -1,0 +1,18 @@
+---
+subcategory: "Projects & Content"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+description: |-
+  {{ if .Description }}{{ .Description | plainmarkdown | trimspace }}{{ else }}Fetches details of a blog or feed notification subscription.{{ end }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ if .Description }}{{ .Description | trimspace }}{{ else }}Fetches details of a blog or feed notification subscription.{{ end }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{ tffile .ExampleFile }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
