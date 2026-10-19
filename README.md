@@ -72,12 +72,13 @@ mise run test
 mise run lint
 mise run fmt
 mise run docs
+mise run generate
 ```
 
 Regenerate the provider from the OpenAPI specification with:
 
 ```bash
-./gen.sh
+mise run generate
 ```
 
 ## Publishing to the Terraform Registry
