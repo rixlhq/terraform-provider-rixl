@@ -31,6 +31,8 @@ func (d *videosDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 
 func (d *videosDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = VideosDataSourceSchema(ctx)
+	resp.Schema.MarkdownDescription = dataSourceDescription("videos")
+	resp.Schema.Description = resp.Schema.MarkdownDescription
 }
 
 func (d *videosDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {

@@ -41,6 +41,8 @@ func (d *imageDataSource) Metadata(_ context.Context, req datasource.MetadataReq
 
 func (d *imageDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = ImageDataSourceSchema(ctx)
+	resp.Schema.MarkdownDescription = dataSourceDescription("image")
+	resp.Schema.Description = resp.Schema.MarkdownDescription
 }
 
 func (d *imageDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -88,6 +90,8 @@ func (d *imagesDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 
 func (d *imagesDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = ImagesDataSourceSchema(ctx)
+	resp.Schema.MarkdownDescription = dataSourceDescription("images")
+	resp.Schema.Description = resp.Schema.MarkdownDescription
 }
 
 func (d *imagesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
