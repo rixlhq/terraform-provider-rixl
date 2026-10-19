@@ -44,7 +44,7 @@ release:
   use_existing_draft: true
   mode: keep-existing
   name_template: "v{{ .Version }}"
-  draft: false
+  draft: true
   replace_existing_artifacts: true
   extra_files:
     - glob: 'terraform-registry-manifest.json'

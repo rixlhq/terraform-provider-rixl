@@ -63,7 +63,7 @@ jobs:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
 
       - name: Publish release
-        if: ${{ needs.release-please.outputs.release_created == 'true' }}
-        run: gh release edit "${{ needs.release-please.outputs.tag_name }}" --draft=false
+        if: ${{ needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch' }}
+        run: gh release edit "${{ inputs.tag || needs.release-please.outputs.tag_name }}" --draft=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
