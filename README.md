@@ -72,13 +72,6 @@ mise run test
 mise run lint
 mise run fmt
 mise run docs
-mise run generate
-```
-
-Regenerate the provider from the OpenAPI specification with:
-
-```bash
-mise run generate
 ```
 
 ## Publishing to the Terraform Registry
@@ -90,7 +83,3 @@ The repository is set up to publish releases that the Terraform Registry can con
 - `.goreleaser.yml` builds cross-platform archives, a SHA256 checksum file, a detached GPG signature, and renames the manifest to the required asset name.
 - `.github/workflows/ci.yml` runs lint, test, and build in parallel steps on every push and pull request.
 - `.github/workflows/release.yml` runs release-please on successful CI on `main` to create draft releases, then runs `goreleaser/goreleaser-action` to upload signed release artifacts, and finally publishes the release atomically for the Terraform Registry.
-
-## OpenAPI-driven updates
-
-When `rixlhq/openapi` changes, it dispatches a `regenerate-sdk` event to this repository, which runs `./gen.sh` and commits the regenerated provider code.
