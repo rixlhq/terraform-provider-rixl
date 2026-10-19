@@ -3,12 +3,12 @@
 page_title: "rixl_feed Resource - rixl"
 subcategory: ""
 description: |-
-  
+  Manages a content feed within a Rixl project, defining allowed media types and engagement settings.
 ---
 
 # rixl_feed (Resource)
 
-
+Manages a content feed within a Rixl project, defining allowed media types and engagement settings.
 
 ## Example Usage
 

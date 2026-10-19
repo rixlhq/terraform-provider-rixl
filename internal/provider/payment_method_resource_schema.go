@@ -14,7 +14,9 @@ import (
 
 func PaymentMethodResourceSchema(_ context.Context) rschema.Schema {
 	return rschema.Schema{
-		Version: 1,
+		Version:             1,
+		Description:         "Attaches and manages a payment method for an organization.",
+		MarkdownDescription: "Attaches and manages a payment method for an organization.",
 		Attributes: map[string]rschema.Attribute{
 			"id": rschema.StringAttribute{
 				Computed: true,

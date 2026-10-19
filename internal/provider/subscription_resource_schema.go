@@ -11,6 +11,8 @@ import (
 
 func SubscriptionResourceSchema(_ context.Context) schema.Schema {
 	return schema.Schema{
+		Description:         "Manages an organization billing subscription tier and Stripe payment plan.",
+		MarkdownDescription: "Manages an organization billing subscription tier and Stripe payment plan.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

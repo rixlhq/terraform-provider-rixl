@@ -11,6 +11,8 @@ import (
 
 func ApiKeyResourceSchema(_ context.Context) schema.Schema {
 	return schema.Schema{
+		Description:         "Manages a Rixl API key for authenticating API requests and CI/CD automation.",
+		MarkdownDescription: "Manages a Rixl API key for authenticating API requests and CI/CD automation.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

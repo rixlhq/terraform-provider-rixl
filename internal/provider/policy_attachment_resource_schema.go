@@ -13,6 +13,8 @@ import (
 
 func PolicyAttachmentResourceSchema(_ context.Context) rschema.Schema {
 	return rschema.Schema{
+		Description:         "Attaches an IAM access policy to a user within a Rixl organization.",
+		MarkdownDescription: "Attaches an IAM access policy to a user within a Rixl organization.",
 		Attributes: map[string]rschema.Attribute{
 			"id": rschema.StringAttribute{
 				Computed: true,

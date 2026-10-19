@@ -11,6 +11,8 @@ import (
 
 func PostResourceSchema(_ context.Context) rschema.Schema {
 	return rschema.Schema{
+		Description:         "Publishes and manages a media post within a Rixl content feed.",
+		MarkdownDescription: "Publishes and manages a media post within a Rixl content feed.",
 		Attributes: map[string]rschema.Attribute{
 			"project_id": rschema.StringAttribute{
 				Required: true,

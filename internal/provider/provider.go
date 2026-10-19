@@ -46,22 +46,25 @@ func (p *rixlProvider) Metadata(_ context.Context, _ provider.MetadataRequest, r
 
 func (p *rixlProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "The Rixl provider allows Terraform to manage Rixl platform resources.",
-		MarkdownDescription: "The Rixl provider allows Terraform to manage Rixl platform resources.",
+		Description:         "Terraform provider for managing Rixl video streaming, media infrastructure, and cloud platform resources via the Rixl REST API.",
+		MarkdownDescription: "Terraform provider for managing Rixl video streaming, media infrastructure, and cloud platform resources via the Rixl REST API. Supports video hosting and adaptive HLS transcoding, chapters, subtitles, audio tracks, image processing, content feeds, custom domains, IAM access policies, API keys, OAuth client credentials, analytics dashboards, and billing subscriptions under Terraform Plugin Framework protocol version 6.",
 		Attributes: map[string]schema.Attribute{
 			providerAPIKey: schema.StringAttribute{
-				Optional:    true,
-				Sensitive:   true,
-				Description: "Rixl API key. May also be set via the RIXL_API_KEY environment variable.",
+				Optional:            true,
+				Sensitive:           true,
+				Description:         "Rixl API key for authenticating requests. May also be set via the RIXL_API_KEY environment variable.",
+				MarkdownDescription: "Rixl API key for authenticating requests. May also be set via the `RIXL_API_KEY` environment variable.",
 			},
 			"bearer_token": schema.StringAttribute{
-				Optional:    true,
-				Sensitive:   true,
-				Description: "Rixl bearer token. May also be set via the RIXL_BEARER_TOKEN environment variable.",
+				Optional:            true,
+				Sensitive:           true,
+				Description:         "Rixl OAuth / Bearer token for authenticating requests. May also be set via the RIXL_BEARER_TOKEN environment variable.",
+				MarkdownDescription: "Rixl OAuth / Bearer token for authenticating requests. May also be set via the `RIXL_BEARER_TOKEN` environment variable.",
 			},
 			"base_url": schema.StringAttribute{
-				Optional:    true,
-				Description: "Rixl API base URL. Defaults to https://api.rixl.com. May also be set via the RIXL_BASE_URL environment variable.",
+				Optional:            true,
+				Description:         "Rixl API base URL. Defaults to https://api.rixl.com. May also be set via the RIXL_BASE_URL environment variable.",
+				MarkdownDescription: "Rixl API base URL. Defaults to `https://api.rixl.com`. May also be set via the `RIXL_BASE_URL` environment variable.",
 			},
 		},
 	}

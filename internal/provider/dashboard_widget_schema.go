@@ -18,6 +18,8 @@ func DashboardWidgetResourceSchema() schema.Schema {
 	}
 
 	return schema.Schema{
+		Description:         "Manages an analytics or monitoring widget inside a Rixl dashboard.",
+		MarkdownDescription: "Manages an analytics or monitoring widget inside a Rixl dashboard.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

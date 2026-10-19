@@ -9,6 +9,8 @@ import (
 
 func OrganizationResourceSchema() schema.Schema {
 	return schema.Schema{
+		Description:         "Manages a Rixl organization tenant.",
+		MarkdownDescription: "Manages a Rixl organization tenant.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
