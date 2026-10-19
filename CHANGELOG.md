@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.6.0...v1.7.0) (2026-10-19)
+
+
+### Features
+
+* **docs:** enhance registry documentation, add resource examples, and optimize SEO ([#33](https://github.com/rixlhq/terraform-provider-rixl/issues/33)) ([00bd7cf](https://github.com/rixlhq/terraform-provider-rixl/commit/00bd7cf9c60ee029a29c794006bc4bc4be70ae44))
+
 ## [1.6.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.5.0...v1.6.0) (2026-10-19)
 
 
