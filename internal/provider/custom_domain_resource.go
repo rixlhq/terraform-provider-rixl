@@ -2,21 +2,23 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
-	"github.com/rixlhq/rixl-go/sdk/customdomains"
 )
 
 func NewCustomDomainResource() resource.Resource {
 	return &customDomainResource{}
 }
 
-var _ resource.Resource = (*customDomainResource)(nil)
+var (
+	_ resource.Resource                = (*customDomainResource)(nil)
+	_ resource.ResourceWithImportState = (*customDomainResource)(nil)
+)
 
 type customDomainResource struct {
 	client *sdk.Client
@@ -67,14 +69,10 @@ func (r *customDomainResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	if data.OrgId.IsNull() || data.OrgId.IsUnknown() {
-		data.OrgId = types.StringValue(orgID)
-	}
-	if data.Domain.IsNull() || data.Domain.IsUnknown() {
-		data.Domain = types.StringValue(domainName)
-	}
+	data.OrgId = types.StringValue(orgID)
+	data.Domain = types.StringValue(domainName)
 	if data.Id.IsNull() || data.Id.IsUnknown() {
-		data.Id = data.Domain
+		data.Id = types.StringValue(domainName)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -89,8 +87,7 @@ func (r *customDomainResource) Read(ctx context.Context, req resource.ReadReques
 
 	domain, err := r.client.CustomDomains.GetDomainStatus(ctx, data.OrgId.ValueString(), nil)
 	if err != nil {
-		var httpErr *customdomains.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -142,11 +139,22 @@ func (r *customDomainResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	if _, err := r.client.CustomDomains.RemoveDomain(ctx, data.OrgId.ValueString(), nil); err != nil {
-		var httpErr *customdomains.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Failed to remove custom domain", err.Error())
 	}
+}
+
+func (r *customDomainResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.Split(req.ID, "/")
+	if len(parts) == 2 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("org_id"), parts[0])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("domain"), parts[1])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("org_id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 }

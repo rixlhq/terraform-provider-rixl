@@ -2,10 +2,9 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
@@ -13,7 +12,10 @@ import (
 	"github.com/rixlhq/rixl-go/sdk/models"
 )
 
-var _ resource.Resource = (*dashboardResource)(nil)
+var (
+	_ resource.Resource                = (*dashboardResource)(nil)
+	_ resource.ResourceWithImportState = (*dashboardResource)(nil)
+)
 
 func NewDashboardResource() resource.Resource {
 	return &dashboardResource{}
@@ -79,8 +81,7 @@ func (r *dashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	id := data.Id.ValueString()
 	dashboard, err := r.client.Dashboards.GetDashboard(ctx, id)
 	if err != nil {
-		var httpErr *dashboards.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -137,6 +138,10 @@ func (r *dashboardResource) Update(ctx context.Context, req resource.UpdateReque
 
 	dashboard, err := r.client.Dashboards.UpdateDashboard(ctx, data.Id.ValueString(), updateBody)
 	if err != nil {
+		if isNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to update dashboard", err.Error())
 		return
 	}
@@ -176,13 +181,16 @@ func (r *dashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 
 	if _, err := r.client.Dashboards.DeleteDashboard(ctx, data.Id.ValueString(), params); err != nil {
-		var httpErr *dashboards.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Failed to delete dashboard", err.Error())
 	}
+}
+
+func (r *dashboardResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 }
 
 // resolveRevision returns the dashboard revision from state when it is known.

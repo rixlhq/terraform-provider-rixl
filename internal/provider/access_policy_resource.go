@@ -2,17 +2,19 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
-	"github.com/rixlhq/rixl-go/sdk/accesspolicies"
 )
 
-var _ resource.Resource = (*accessPolicyResource)(nil)
+var (
+	_ resource.Resource                = (*accessPolicyResource)(nil)
+	_ resource.ResourceWithImportState = (*accessPolicyResource)(nil)
+)
 
 func NewAccessPolicyResource() resource.Resource {
 	return &accessPolicyResource{}
@@ -58,9 +60,6 @@ func (r *accessPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	}
 	delete(body, "id")
 	delete(body, "org_id")
-	delete(body, "created_by")
-	delete(body, "created_at")
-	delete(body, "updated_at")
 
 	policy, err := r.client.AccessPolicies.CreatePolicy(ctx, orgID, body)
 	if err != nil {
@@ -73,9 +72,7 @@ func (r *accessPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	if data.OrgId.IsNull() || data.OrgId.IsUnknown() {
-		data.OrgId = types.StringValue(orgID)
-	}
+	data.OrgId = types.StringValue(orgID)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -92,8 +89,7 @@ func (r *accessPolicyResource) Read(ctx context.Context, req resource.ReadReques
 
 	policy, err := r.client.AccessPolicies.GetPolicy(ctx, orgID, policyID, nil)
 	if err != nil {
-		var httpErr *accesspolicies.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -144,8 +140,7 @@ func (r *accessPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 
 	policy, err := r.client.AccessPolicies.UpdatePolicy(ctx, data.OrgId.ValueString(), data.Id.ValueString(), body)
 	if err != nil {
-		var httpErr *accesspolicies.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -176,11 +171,23 @@ func (r *accessPolicyResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	if _, err := r.client.AccessPolicies.DeletePolicy(ctx, data.OrgId.ValueString(), data.Id.ValueString(), nil); err != nil {
-		var httpErr *accesspolicies.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Failed to delete access policy", err.Error())
 	}
+}
+
+func (r *accessPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.Split(req.ID, "/")
+	if len(parts) == 2 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("org_id"), parts[0])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+		return
+	}
+	resp.Diagnostics.AddError(
+		"Unexpected Import Identifier",
+		fmt.Sprintf("Expected import identifier with format: org_id/id. Got: %q", req.ID),
+	)
 }
