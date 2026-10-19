@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.2.0...v1.3.0) (2026-10-19)
+
+
+### Features
+
+* **provider:** sync schemas with latest openapi spec and fix generator pipeline ([#22](https://github.com/rixlhq/terraform-provider-rixl/issues/22)) ([e297504](https://github.com/rixlhq/terraform-provider-rixl/commit/e297504093a8dd66e5b06e4b22289294d2f942a5))
+
 ## [1.2.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.1.0...v1.2.0) (2026-10-19)
 
 
