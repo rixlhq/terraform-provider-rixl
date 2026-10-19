@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	_ resource.Resource                = (*subscriptionResource)(nil)
-	_ resource.ResourceWithImportState = (*subscriptionResource)(nil)
+	_ resource.Resource                = &subscriptionResource{}
+	_ resource.ResourceWithConfigure   = &subscriptionResource{}
+	_ resource.ResourceWithImportState = &subscriptionResource{}
 )
 
 func NewSubscriptionResource() resource.Resource {
@@ -40,28 +41,28 @@ func (r *subscriptionResource) Configure(_ context.Context, req resource.Configu
 	}
 	client, ok := req.ProviderData.(*sdk.Client)
 	if !ok {
-		resp.Diagnostics.AddError("Unexpected provider data type", fmt.Sprintf("expected *sdk.Client, got %T", req.ProviderData))
+		resp.Diagnostics.AddError("Unexpected Resource Configure Type", "Expected *sdk.Client")
 		return
 	}
 	r.client = client
 }
 
 func (r *subscriptionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data SubscriptionModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	var plan SubscriptionModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	body := models.BillingV1CreateSubscriptionRequest{
-		StripePriceID: data.StripePriceId.ValueString(),
+		StripePriceID: plan.StripePriceId.ValueString(),
 	}
-	if !data.OrgId.IsNull() && !data.OrgId.IsUnknown() {
-		org := data.OrgId.ValueString()
+	if !plan.OrgId.IsNull() && !plan.OrgId.IsUnknown() {
+		org := plan.OrgId.ValueString()
 		body.OrgID = &org
 	}
-	if !data.PaymentMethodId.IsNull() && !data.PaymentMethodId.IsUnknown() {
-		pm := data.PaymentMethodId.ValueString()
+	if !plan.PaymentMethodId.IsNull() && !plan.PaymentMethodId.IsUnknown() {
+		pm := plan.PaymentMethodId.ValueString()
 		body.PaymentMethodID = &pm
 	}
 
@@ -71,11 +72,11 @@ func (r *subscriptionResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+	var data SubscriptionModel
 	resp.Diagnostics.Append(mapResponseToModel(ctx, res, &data, SubscriptionResourceSchema(ctx).Attributes)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	if data.Id.IsNull() || data.Id.IsUnknown() {
 		if res.ID != nil {
 			data.Id = types.StringValue(*res.ID)
@@ -83,8 +84,14 @@ func (r *subscriptionResource) Create(ctx context.Context, req resource.CreateRe
 			data.Id = data.OrgId
 		}
 	}
+	data.StripePriceId = plan.StripePriceId
+	data.OrgId = plan.OrgId
 
 	r.readSubscriptionIntoState(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -124,7 +131,29 @@ func (r *subscriptionResource) readSubscriptionIntoState(ctx context.Context, da
 
 func (r *subscriptionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan SubscriptionModel
+	var state SubscriptionModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if !plan.StripePriceId.Equal(state.StripePriceId) {
+		body := models.BillingV1UpgradeSubscriptionRequest{
+			StripePriceID: plan.StripePriceId.ValueString(),
+		}
+		if !plan.OrgId.IsNull() && !plan.OrgId.IsUnknown() {
+			org := plan.OrgId.ValueString()
+			body.OrgID = &org
+		}
+		_, err := r.client.Payments.UpgradeSubscription(ctx, body)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to upgrade subscription", err.Error())
+			return
+		}
+	}
+
+	r.readSubscriptionIntoState(ctx, &plan, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -151,6 +180,11 @@ func (r *subscriptionResource) Delete(ctx context.Context, req resource.DeleteRe
 }
 
 func (r *subscriptionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.Split(req.ID, "/")
+	if len(parts) == 2 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("org_id"), parts[0])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+		return
+	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("org_id"), req.ID)...)
 }
