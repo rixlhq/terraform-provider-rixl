@@ -17,7 +17,7 @@ description: |-
 
 ### Required
 
-- `chapters` (Attributes List) (see [below for nested schema](#nestedatt--chapters))
+- `chapters` (Attributes List) List of chapters for the video, sorted ascending by `start_time_sec` with unique start times. (see [below for nested schema](#nestedatt--chapters))
 - `project_id` (String)
 - `video_id` (String)
 

@@ -34,9 +34,10 @@ import (
 // Delete semantics:
 //   - Resource Delete is delete-all: the API offers no delete-all endpoint for
 //     chapters, so Delete iterates over the chapters in state and removes each
-//     one via DeleteVideoChapter (DELETE .../chapters/{start_time_sec}).
+//     one via UpdateVideoChapters (DELETE .../chapters?chapters.start_time_sec=...)
+//     which accepts float64 and preserves fractional positions (e.g. 12.5).
 //   - Resource Update diffs desired vs prior state: chapters present in state
-//     but absent from plan are removed via DeleteVideoChapter, then every
+//     but absent from plan are removed via UpdateVideoChapters DELETE, then every
 //     planned chapter is upserted via UpdateVideoChapters.
 //   - An empty chapters list is valid and converges to zero remote chapters
 //     while keeping the (empty) resource in state.
@@ -89,20 +90,28 @@ func (r *videoChaptersResource) Create(ctx context.Context, req resource.CreateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	var createdStarts []float64
 	for i := range planned {
 		if _, err := r.upsertVideoChapter(ctx, projectID, videoID, planned[i]); err != nil {
 			resp.Diagnostics.AddError("Failed to create video chapters", err.Error())
+			r.cleanupChapters(ctx, projectID, videoID, createdStarts)
 			return
+		}
+		if planned[i].StartTimeSec != nil {
+			createdStarts = append(createdStarts, *planned[i].StartTimeSec)
 		}
 	}
 
 	got, err := r.client.Chapters.GetVideoChapters(ctx, projectID, videoID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read video chapters after create", err.Error())
+		r.cleanupChapters(ctx, projectID, videoID, createdStarts)
 		return
 	}
 	resp.Diagnostics.Append(mapResponseToModel(ctx, got, &data, VideoChaptersResourceSchema().Attributes)...)
 	if resp.Diagnostics.HasError() {
+		r.cleanupChapters(ctx, projectID, videoID, createdStarts)
 		return
 	}
 
@@ -115,6 +124,12 @@ func (r *videoChaptersResource) Create(ctx context.Context, req resource.CreateR
 	}
 	resp.Diagnostics.Append(normalizeVideoChapters(ctx, &data)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *videoChaptersResource) cleanupChapters(ctx context.Context, projectID, videoID string, starts []float64) {
+	for _, start := range starts {
+		_ = r.deleteVideoChapter(ctx, projectID, videoID, start)
+	}
 }
 
 func (r *videoChaptersResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -260,10 +275,13 @@ func (r *videoChaptersResource) upsertVideoChapter(ctx context.Context, projectI
 }
 
 func (r *videoChaptersResource) deleteVideoChapter(ctx context.Context, projectID, videoID string, startTimeSec float64) error {
-	// DeleteVideoChapter addresses a chapter by integer seconds in the path
-	// while chapter positions are doubles; truncate toward zero to satisfy the
-	// API's int64 path parameter.
-	_, err := r.client.Chapters.DeleteVideoChapter(ctx, projectID, videoID, int64(startTimeSec))
+	// UpdateVideoChapters is a DELETE request on the collection path
+	// (/media/v1/projects/{project_id}/videos/{video_id}/chapters) that accepts
+	// ChaptersStartTimeSec as float64, preserving fractional positions (such as 12.5).
+	params := &chapters.UpdateVideoChaptersParams{
+		ChaptersStartTimeSec: &startTimeSec,
+	}
+	_, err := r.client.Chapters.UpdateVideoChapters(ctx, projectID, videoID, params)
 	return err
 }
 
