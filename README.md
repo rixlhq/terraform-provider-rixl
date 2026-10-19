@@ -3,7 +3,7 @@
 [![Terraform Registry](https://img.shields.io/badge/Terraform%20Registry-rixlhq%2Frixl-844FBA?logo=terraform&logoColor=white)](https://registry.terraform.io/providers/rixlhq/rixl/latest)
 [![Release](https://img.shields.io/github/v/release/rixlhq/terraform-provider-rixl?sort=semver)](https://github.com/rixlhq/terraform-provider-rixl/releases)
 [![CI](https://github.com/rixlhq/terraform-provider-rixl/actions/workflows/ci.yml/badge.svg)](https://github.com/rixlhq/terraform-provider-rixl/actions/workflows/ci.yml)
-[![License: MPL-2.0](https://img.shields.io/github/license/rixlhq/terraform-provider-rixl)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A [Terraform](https://www.terraform.io) provider for managing cloud media infrastructure and developer services at [Rixl](https://rixl.com) via official Rixl REST APIs:
 
@@ -182,4 +182,4 @@ mise run docs-check
 
 ## License
 
-Mozilla Public License v2.0 &mdash; see [LICENSE](LICENSE) for details.
+MIT &mdash; see [LICENSE](LICENSE) for details.
