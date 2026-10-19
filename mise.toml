@@ -1,22 +1,14 @@
 [tools]
-jactionlint = "2.0.2"
-go = "1.27"
-golangci-lint = "2.13.1"
-lefthook = "2.1.11"
-terraform = "1.15.8"
-"ubi:goreleaser/goreleaser" = "2.17.1"
+jactionlint = "2.2.0"
+go = "1.26"
+terraform = "1.16.6"
+golangci-lint = "2.15.0"
+lefthook = "2.2.2"
+"ubi:goreleaser/goreleaser" = "2.18.3"
 "go:github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs" = "v0.25.0"
 
 [hooks]
 postinstall = "lefthook install"
-
-[tasks.fmt]
-description = "Format Go source files"
-run = "gofmt -w -s ."
-
-[tasks.lint]
-description = "Run golangci-lint"
-run = "golangci-lint run"
 
 [tasks.build]
 description = "Build the provider"
@@ -29,16 +21,30 @@ run = "go install -v ./..."
 
 [tasks.test]
 description = "Run unit tests"
-run = "go test -v -race ./..."
+usage = 'arg "<pkg>" default="./..."'
+run = "go test -v -cover -timeout=120s -parallel=10 ${usage_pkg?}"
 
 [tasks.testacc]
-description = "Run acceptance tests (requires real credentials)"
+description = "Run acceptance tests with TF_ACC=1"
+usage = 'arg "<pkg>" default="./..."'
 env = { TF_ACC = "1" }
-run = "go test -v -cover -timeout=120m ./..."
+run = "go test -v -race -cover -timeout=120m -parallel=10 ${usage_pkg?}"
 
 [tasks.bench]
 description = "Run benchmarks"
 run = "go test -bench=. -benchmem ./..."
+
+[tasks.fmt]
+description = "Format Go source files"
+run = "gofmt -s -w -e ."
+
+[tasks.fmt-check]
+description = "Check Go formatting"
+run = "gofmt -s -l -e ."
+
+[tasks.lint]
+description = "Run golangci-lint"
+run = "golangci-lint run ./..."
 
 [tasks.docs]
 description = "Generate Terraform Registry docs"

@@ -2,6 +2,8 @@
 terraform-provider-rixl
 /build/
 /dist/
+bin/
+dist/
 *.exe
 
 # Generation artifacts
@@ -9,7 +11,6 @@ openapi.json
 openapi.yaml
 provider_code_spec.json
 __pycache__/
-
 
 # Terraform artifacts
 *.tfstate
@@ -27,7 +28,10 @@ override.tf.json
 
 # Go
 vendor/
+coverage.out
 /coverage.out
+go.work
+go.work.sum
 
 # IDE
 .idea/
@@ -35,6 +39,7 @@ vendor/
 *.swp
 *.swo
 *~
+.omo/
 
 # Devin
 .agents/
