@@ -111,7 +111,10 @@ def sanitize_timestamp_descriptions(attributes: list) -> None:
             if not isinstance(container, dict):
                 continue
             desc = container.get("description")
-            if isinstance(desc, str) and desc.startswith("A Timestamp represents"):
+            if isinstance(desc, str) and (
+                desc.startswith("A Timestamp represents")
+                or desc.startswith("A point in time in RFC 3339 format")
+            ):
                 container["description"] = TIMESTAMP_REPLACEMENT
 
     walk_attributes(attributes, fn)
