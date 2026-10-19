@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.4.0...v1.5.0) (2026-10-19)
+
+
+### Features
+
+* **provider:** implement strongly typed terraform plugin framework resources ([#29](https://github.com/rixlhq/terraform-provider-rixl/issues/29)) ([58f6276](https://github.com/rixlhq/terraform-provider-rixl/commit/58f62760989590b2b1c9accb26d9618517ab5820))
+
 ## [1.4.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.3.1...v1.4.0) (2026-10-19)
 
 
