@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	tfprovider "github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/rixlhq/rixl-go/sdk"
 )
 
@@ -17,6 +18,30 @@ type roundTripperFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
+}
+
+func TestProviderMetadataVersion(t *testing.T) {
+	p := New("1.2.3")()
+	var resp tfprovider.MetadataResponse
+	p.Metadata(context.Background(), tfprovider.MetadataRequest{}, &resp)
+
+	if resp.TypeName != "rixl" {
+		t.Fatalf("expected TypeName %q, got %q", "rixl", resp.TypeName)
+	}
+	if resp.Version != "1.2.3" {
+		t.Fatalf("expected Version %q, got %q", "1.2.3", resp.Version)
+	}
+}
+
+func TestUserAgentWithVersion(t *testing.T) {
+	client := newHTTPClient("2.0.0")
+	transport, ok := client.Transport.(*userAgentTransport)
+	if !ok {
+		t.Fatalf("expected *userAgentTransport, got %T", client.Transport)
+	}
+	if transport.ua != "terraform-provider-rixl/2.0.0" {
+		t.Fatalf("expected User-Agent %q, got %q", "terraform-provider-rixl/2.0.0", transport.ua)
+	}
 }
 
 func TestUserAgentTransportDoesNotRewriteURL(t *testing.T) {
