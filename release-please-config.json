@@ -8,6 +8,8 @@
   "packages": {
     ".": {
       "package-name": "terraform-provider-rixl",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
       "extra-files": [
         "internal/version/version.go"
       ]
