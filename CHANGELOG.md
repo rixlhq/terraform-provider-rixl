@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.5.0...v1.6.0) (2026-10-19)
+
+
+### Features
+
+* **provider:** replace legacy generated resource schemas with typed definitions and implement updates ([#31](https://github.com/rixlhq/terraform-provider-rixl/issues/31)) ([cd714f1](https://github.com/rixlhq/terraform-provider-rixl/commit/cd714f1121c988dae7f0f0348cb1d3f7ec3bbbf8))
+
 ## [1.5.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.4.0...v1.5.0) (2026-10-19)
 
 
