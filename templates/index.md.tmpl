@@ -1,28 +1,36 @@
 ---
 page_title: "Provider: Rixl"
 description: |-
-  Terraform provider for Rixl: manage video streaming, transcoding, media feeds, custom domains, IAM access policies, API keys, OAuth client credentials, analytics dashboards, and billing subscriptions via the Rixl REST API.
+  Terraform provider for Rixl: declare and manage video streaming pipelines, automated HLS transcoding, media feeds, custom domains, IAM access policies, API keys, OAuth client credentials, analytics dashboards, and billing subscriptions via the Rixl REST API.
 ---
 
 # Rixl Provider
 
-The Rixl provider enables you to manage your infrastructure and media platform resources on [Rixl](https://rixl.com) declaratively as code using Terraform.
+The **Rixl Terraform Provider** enables platform engineers, media architects, and developers to manage video streaming infrastructure, media assets, identity, and observability declaratively as code on [Rixl](https://rixl.com).
 
-Rixl provides high-performance, developer-friendly video streaming, multi-bitrate transcoding, adaptive HLS delivery, image processing, content feeds, granular IAM policies, and real-time observability.
+Rixl provides high-performance, developer-friendly video streaming, multi-bitrate HLS transcoding, adaptive bitrate delivery, image processing, content feeds, granular IAM policies, and real-time observability telemetry.
 
-Built with the modern **Terraform Plugin Framework** (protocol version 6), supporting strongly typed models, robust schema validation, sensitive attribute masking, and automatic retry handling for asynchronous media processing.
+Built on the modern **Terraform Plugin Framework** (protocol version 6), supporting strongly typed models, robust schema validation, sensitive credential masking, and automatic retry handling for asynchronous media processing.
+
+## Guides
+
+Explore our architectural and operational walkthroughs:
+- [Getting Started with Rixl](guides/getting-started): Installation, provider configuration, authentication options, and initial setup.
+- [Automated Video Streaming Pipeline](guides/video-streaming-pipeline): Step-by-step pipeline with automated HLS transcoding, multi-track audio, localized subtitles, chapters, and custom CDN delivery.
+- [IAM, RBAC, and Security Automation](guides/iam-and-security): Least-privilege access policies, machine-to-machine OAuth2 credentials, and enterprise SSO.
+- [Observability, Telemetry, and Analytics](guides/monitoring-and-analytics): Custom monitoring dashboards, telemetry widgets, bandwidth and storage tracking, and viewer retention heatmaps.
 
 ## Overview of Resources & Data Sources
 
 | Category | Description | Resources | Data Sources |
 | :--- | :--- | :--- | :--- |
-| **Media & Video Streaming** | Video asset uploading, multi-bitrate HLS transcoding, chapters, multi-language subtitles, and audio tracks | `rixl_video`, `rixl_video_chapters`, `rixl_subtitle`, `rixl_audio_track`, `rixl_image` | `rixl_video`, `rixl_videos`, `rixl_video_stats`, `rixl_video_heatmap`, `rixl_video_hot_segments`, `rixl_top_videos`, `rixl_image`, `rixl_images`, `rixl_image_stats`, `rixl_top_images`, `rixl_chapters`, `rixl_subtitles`, `rixl_audio_tracks` |
-| **Feeds & Content Posts** | Media feeds, post publishing, and blog subscriptions | `rixl_feed`, `rixl_post`, `rixl_blog_subscription` | `rixl_feed`, `rixl_feeds`, `rixl_feed_stats`, `rixl_top_feeds`, `rixl_post`, `rixl_posts`, `rixl_post_stats`, `rixl_top_posts`, `rixl_blog_subscription` |
-| **Projects & Custom Domains** | Environment segregation, custom CDN domains, and automated domain verification | `rixl_project`, `rixl_custom_domain`, `rixl_project_custom_domain`, `rixl_domain_auto_join` | `rixl_project`, `rixl_projects`, `rixl_domain`, `rixl_domain_auto_join` |
-| **Identity & Access Management (IAM)** | Granular RBAC access policies, policy attachments, API keys, and OAuth client credentials | `rixl_access_policy`, `rixl_policy_attachment`, `rixl_api_key`, `rixl_client_credential`, `rixl_auth_provider_connection` | `rixl_policy`, `rixl_policies`, `rixl_policy_attachments`, `rixl_user_policies`, `rixl_api_keys`, `rixl_client_credentials`, `rixl_providers`, `rixl_passkeys`, `rixl_permission_registries` |
-| **Organizations & Members** | Multi-tenant organization structure, invitations, and member access | `rixl_organization`, `rixl_organization_invitation`, `rixl_organization_member` | `rixl_organization_members`, `rixl_memberships`, `rixl_membership_applications`, `rixl_check_membership`, `rixl_internal_membership_info`, `rixl_user`, `rixl_user_info` |
-| **Analytics & Dashboards** | Custom observability dashboards, widgets, bandwidth usage, and storage tracking | `rixl_dashboard`, `rixl_dashboard_widget` | `rixl_dashboard`, `rixl_dashboards`, `rixl_dashboard_datasets`, `rixl_dashboard_stats`, `rixl_realtime_stats`, `rixl_storage_usage`, `rixl_storage_usage_history`, `rixl_bandwidth_usage`, `rixl_bandwidth_usage_history` |
-| **Billing & Payments** | Subscription plan management, payment methods, and billing addresses | `rixl_subscription`, `rixl_payment_method`, `rixl_billing_address` | `rixl_subscription`, `rixl_subscription_history`, `rixl_plan`, `rixl_plans`, `rixl_invoices`, `rixl_payment_methods`, `rixl_payment_method_from_payment_intent`, `rixl_payment_method_from_setup_intent`, `rixl_billing_address` |
+| **Video & Media** | Video asset uploading, multi-bitrate HLS transcoding, chapters, multi-language subtitles, alternative audio tracks, and optimized images | `rixl_video`, `rixl_video_chapters`, `rixl_subtitle`, `rixl_audio_track`, `rixl_image` | `rixl_video`, `rixl_videos`, `rixl_video_stats`, `rixl_video_heatmap`, `rixl_video_hot_segments`, `rixl_top_videos`, `rixl_image`, `rixl_images`, `rixl_image_stats`, `rixl_top_images`, `rixl_chapters`, `rixl_subtitles`, `rixl_audio_tracks`, `rixl_languages` |
+| **Projects & Content** | Isolated environments, content feeds (channels, playlists), posts, and blog subscriptions | `rixl_project`, `rixl_feed`, `rixl_post`, `rixl_blog_subscription` | `rixl_project`, `rixl_projects`, `rixl_feed`, `rixl_feeds`, `rixl_feed_stats`, `rixl_top_feeds`, `rixl_post`, `rixl_posts`, `rixl_post_stats`, `rixl_top_posts`, `rixl_blog_subscription` |
+| **Custom Domains** | Custom streaming CDN domains, project domain mappings, and domain auto-join rules | `rixl_custom_domain`, `rixl_project_custom_domain`, `rixl_domain_auto_join` | `rixl_domain`, `rixl_domain_auto_join` |
+| **Identity & Access Management (IAM)** | Granular RBAC access policies, policy attachments, API keys, OAuth client credentials, and SSO | `rixl_access_policy`, `rixl_policy_attachment`, `rixl_api_key`, `rixl_client_credential`, `rixl_auth_provider_connection` | `rixl_policy`, `rixl_policies`, `rixl_policy_attachments`, `rixl_user_policies`, `rixl_api_keys`, `rixl_client_credentials`, `rixl_providers`, `rixl_passkeys`, `rixl_permission_registries` |
+| **Organizations & Collaboration** | Multi-tenant organization structure, invitations, and member access | `rixl_organization`, `rixl_organization_invitation`, `rixl_organization_member` | `rixl_organization_members`, `rixl_memberships`, `rixl_membership_applications`, `rixl_check_membership`, `rixl_internal_membership_info`, `rixl_user`, `rixl_user_info` |
+| **Dashboards & Analytics** | Custom observability dashboards, widgets, bandwidth usage, and storage tracking | `rixl_dashboard`, `rixl_dashboard_widget` | `rixl_dashboard`, `rixl_dashboards`, `rixl_dashboard_datasets`, `rixl_dashboard_stats`, `rixl_realtime_stats`, `rixl_storage_usage`, `rixl_storage_usage_history`, `rixl_bandwidth_usage`, `rixl_bandwidth_usage_history` |
+| **Billing & Subscriptions** | Subscription plan management, payment methods, and billing addresses | `rixl_subscription`, `rixl_payment_method`, `rixl_billing_address` | `rixl_subscription`, `rixl_subscription_history`, `rixl_plan`, `rixl_plans`, `rixl_invoices`, `rixl_payment_methods`, `rixl_payment_method_from_payment_intent`, `rixl_payment_method_from_setup_intent`, `rixl_billing_address` |
 
 ## Example Usage
 
@@ -33,7 +41,7 @@ terraform {
   required_providers {
     rixl = {
       source  = "rixlhq/rixl"
-      version = "~> 1.0"
+      version = "~> 1.7"
     }
   }
 }
@@ -49,10 +57,14 @@ resource "rixl_project" "prod" {
 }
 
 # 2. Configure a custom CDN streaming domain
-resource "rixl_project_custom_domain" "cdn" {
-  org_id        = var.rixl_org_id
-  project_id    = rixl_project.prod.id
-  custom_domain = "video.example.com"
+resource "rixl_custom_domain" "cdn" {
+  org_id = var.rixl_org_id
+  domain = "video.example.com"
+}
+
+resource "rixl_project_custom_domain" "cdn_mapping" {
+  project_id = rixl_project.prod.id
+  domain_id  = rixl_custom_domain.cdn.id
 }
 
 # 3. Create a content feed
@@ -66,14 +78,16 @@ resource "rixl_feed" "main" {
 
 # 4. Upload and transcode a video
 resource "rixl_video" "intro" {
-  project_id = rixl_project.prod.id
-  name       = "Product Intro"
-  file_path  = "/path/to/intro.mp4"
+  project_id       = rixl_project.prod.id
+  name             = "Product Intro"
+  file_path        = "${path.module}/media/intro.mp4"
+  poster_file_path = "${path.module}/media/poster.jpg"
 }
 
 # 5. Attach navigation chapters to the video
 resource "rixl_video_chapters" "intro_chapters" {
-  video_id = rixl_video.intro.id
+  project_id = rixl_project.prod.id
+  video_id   = rixl_video.intro.id
 
   chapters = [
     {

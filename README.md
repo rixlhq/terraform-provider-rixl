@@ -23,17 +23,26 @@ Built with the modern **Terraform Plugin Framework** (protocol version 6), featu
 - [Go](https://go.dev/doc/install) >= 1.26
 - [mise](https://mise.jdx.dev/) (recommended for task execution and toolchain management)
 
+## Guides & Architecture Walkthroughs
+
+Explore step-by-step guides on the [Terraform Registry](https://registry.terraform.io/providers/rixlhq/rixl/latest):
+
+- [Getting Started with Rixl](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/getting-started) &mdash; Installation, authentication options, and provisioning your first project.
+- [Automated Video Streaming Pipeline](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/video-streaming-pipeline) &mdash; End-to-end HLS video transcoding, custom CDN domain, multi-language subtitles, and audio tracks.
+- [IAM, RBAC, and Security Automation](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/iam-and-security) &mdash; Access policies, machine-to-machine OAuth2 credentials, and enterprise SSO connections.
+- [Observability, Telemetry, and Analytics](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/monitoring-and-analytics) &mdash; Dashboards, playback sessions, bandwidth/storage metrics, and heatmaps.
+
 ## Overview of Resources & Data Sources
 
 | Category | Resources | Data Sources |
 | :--- | :--- | :--- |
-| **Media & Video Streaming** | `rixl_video`, `rixl_video_chapters`, `rixl_subtitle`, `rixl_audio_track`, `rixl_image` | `rixl_video`, `rixl_videos`, `rixl_video_stats`, `rixl_video_heatmap`, `rixl_video_hot_segments`, `rixl_top_videos`, `rixl_image`, `rixl_images`, `rixl_image_stats`, `rixl_top_images`, `rixl_chapters`, `rixl_subtitles`, `rixl_audio_tracks` |
-| **Feeds & Content Posts** | `rixl_feed`, `rixl_post`, `rixl_blog_subscription` | `rixl_feed`, `rixl_feeds`, `rixl_feed_stats`, `rixl_top_feeds`, `rixl_post`, `rixl_posts`, `rixl_post_stats`, `rixl_top_posts`, `rixl_blog_subscription` |
-| **Projects & Custom Domains** | `rixl_project`, `rixl_custom_domain`, `rixl_project_custom_domain`, `rixl_domain_auto_join` | `rixl_project`, `rixl_projects`, `rixl_domain`, `rixl_domain_auto_join` |
+| **Video & Media** | `rixl_video`, `rixl_video_chapters`, `rixl_subtitle`, `rixl_audio_track`, `rixl_image` | `rixl_video`, `rixl_videos`, `rixl_video_stats`, `rixl_video_heatmap`, `rixl_video_hot_segments`, `rixl_top_videos`, `rixl_image`, `rixl_images`, `rixl_image_stats`, `rixl_top_images`, `rixl_chapters`, `rixl_subtitles`, `rixl_audio_tracks`, `rixl_languages` |
+| **Projects & Content** | `rixl_project`, `rixl_feed`, `rixl_post`, `rixl_blog_subscription` | `rixl_project`, `rixl_projects`, `rixl_feed`, `rixl_feeds`, `rixl_feed_stats`, `rixl_top_feeds`, `rixl_post`, `rixl_posts`, `rixl_post_stats`, `rixl_top_posts`, `rixl_blog_subscription` |
+| **Custom Domains** | `rixl_custom_domain`, `rixl_project_custom_domain`, `rixl_domain_auto_join` | `rixl_domain`, `rixl_domain_auto_join` |
 | **Identity & Access Management (IAM)** | `rixl_access_policy`, `rixl_policy_attachment`, `rixl_api_key`, `rixl_client_credential`, `rixl_auth_provider_connection` | `rixl_policy`, `rixl_policies`, `rixl_policy_attachments`, `rixl_user_policies`, `rixl_api_keys`, `rixl_client_credentials`, `rixl_providers`, `rixl_passkeys`, `rixl_permission_registries` |
-| **Organizations & Members** | `rixl_organization`, `rixl_organization_invitation`, `rixl_organization_member` | `rixl_organization_members`, `rixl_memberships`, `rixl_membership_applications`, `rixl_check_membership`, `rixl_internal_membership_info`, `rixl_user`, `rixl_user_info` |
-| **Analytics & Dashboards** | `rixl_dashboard`, `rixl_dashboard_widget` | `rixl_dashboard`, `rixl_dashboards`, `rixl_dashboard_datasets`, `rixl_dashboard_stats`, `rixl_realtime_stats`, `rixl_storage_usage`, `rixl_storage_usage_history`, `rixl_bandwidth_usage`, `rixl_bandwidth_usage_history` |
-| **Billing & Payments** | `rixl_subscription`, `rixl_payment_method`, `rixl_billing_address` | `rixl_subscription`, `rixl_subscription_history`, `rixl_plan`, `rixl_plans`, `rixl_invoices`, `rixl_payment_methods`, `rixl_payment_method_from_payment_intent`, `rixl_payment_method_from_setup_intent`, `rixl_billing_address` |
+| **Organizations & Collaboration** | `rixl_organization`, `rixl_organization_invitation`, `rixl_organization_member` | `rixl_organization_members`, `rixl_memberships`, `rixl_membership_applications`, `rixl_check_membership`, `rixl_internal_membership_info`, `rixl_user`, `rixl_user_info` |
+| **Dashboards & Analytics** | `rixl_dashboard`, `rixl_dashboard_widget` | `rixl_dashboard`, `rixl_dashboards`, `rixl_dashboard_datasets`, `rixl_dashboard_stats`, `rixl_realtime_stats`, `rixl_storage_usage`, `rixl_storage_usage_history`, `rixl_bandwidth_usage`, `rixl_bandwidth_usage_history` |
+| **Billing & Subscriptions** | `rixl_subscription`, `rixl_payment_method`, `rixl_billing_address` | `rixl_subscription`, `rixl_subscription_history`, `rixl_plan`, `rixl_plans`, `rixl_invoices`, `rixl_payment_methods`, `rixl_payment_method_from_payment_intent`, `rixl_payment_method_from_setup_intent`, `rixl_billing_address` |
 
 ## Provider Configuration
 
@@ -44,7 +53,7 @@ terraform {
   required_providers {
     rixl = {
       source  = "rixlhq/rixl"
-      version = "~> 1.0"
+      version = "~> 1.7"
     }
   }
 }
@@ -86,11 +95,15 @@ resource "rixl_project" "prod" {
   name   = "production-streaming"
 }
 
-# 2. Configure a verified custom CDN streaming domain
-resource "rixl_project_custom_domain" "cdn" {
-  org_id        = var.rixl_org_id
-  project_id    = rixl_project.prod.id
-  custom_domain = "video.example.com"
+# 2. Register custom streaming domain and map to project
+resource "rixl_custom_domain" "cdn" {
+  org_id = var.rixl_org_id
+  domain = "video.example.com"
+}
+
+resource "rixl_project_custom_domain" "cdn_mapping" {
+  project_id = rixl_project.prod.id
+  domain_id  = rixl_custom_domain.cdn.id
 }
 
 # 3. Create a content feed
@@ -104,14 +117,16 @@ resource "rixl_feed" "main" {
 
 # 4. Upload a video asset and initiate transcoding
 resource "rixl_video" "keynote" {
-  project_id = rixl_project.prod.id
-  name       = "Annual Keynote"
-  file_path  = "/media/keynote.mp4"
+  project_id       = rixl_project.prod.id
+  name             = "Annual Keynote"
+  file_path        = "/media/keynote.mp4"
+  poster_file_path = "/media/poster.jpg"
 }
 
 # 5. Attach navigation chapters to the transcoded video
 resource "rixl_video_chapters" "keynote_chapters" {
-  video_id = rixl_video.keynote.id
+  project_id = rixl_project.prod.id
+  video_id   = rixl_video.keynote.id
 
   chapters = [
     {
@@ -119,82 +134,52 @@ resource "rixl_video_chapters" "keynote_chapters" {
       start_time = 0.0
     },
     {
-      title      = "Platform Architecture"
-      start_time = 320.5
+      title      = "Product Demo"
+      start_time = 62.5
     },
     {
-      title      = "Q&A"
-      start_time = 1800.0
-    },
+      title      = "Roadmap & Closing"
+      start_time = 184.0
+    }
   ]
 }
 ```
 
-### IAM & Service Automation
+## Importing Existing Resources
 
-Provision an IAM policy and issue an automation API key scoped to a specific project:
+Existing Rixl infrastructure can be imported into Terraform state using `terraform import`:
 
-```terraform
-resource "rixl_access_policy" "editor_policy" {
-  org_id      = var.rixl_org_id
-  name        = "media-editor"
-  description = "Grants write permissions to videos and feeds"
-}
+```bash
+# Import a project by its unique ID
+terraform import rixl_project.example "proj_01hxxxxxxxxx"
 
-resource "rixl_api_key" "ci_uploader" {
-  org_id     = var.rixl_org_id
-  project_id = rixl_project.prod.id
-  name       = "github-actions-uploader"
-}
+# Import a video by its unique ID
+terraform import rixl_video.example "vid_01hxxxxxxxxx"
 
-output "api_key_secret" {
-  value     = rixl_api_key.ci_uploader.secret
-  sensitive = true
-}
+# Import a custom domain
+terraform import rixl_custom_domain.example "dom_01hxxxxxxxxx"
+
+# Import an access policy
+terraform import rixl_access_policy.example "pol_01hxxxxxxxxx"
 ```
 
-## Importing Existing Infrastructure
+## Contributing & Development
 
-Existing Rixl resources can be imported into Terraform state using standard Terraform import syntax:
+```bash
+# Run formatting check
+mise run fmt-check
 
-```shell
-# Import a video by its ID
-terraform import rixl_video.keynote video_01h7abc123def
+# Run unit tests
+mise run test
 
-# Import a project by its ID
-terraform import rixl_project.prod proj_01h7abc456ghi
+# Run linter
+mise run lint
 
-# Import an API key with org_id/key_id
-terraform import rixl_api_key.ci_uploader org_123/key_456
-
-# Import a project custom domain with org_id/project_id
-terraform import rixl_project_custom_domain.cdn org_123/proj_456
+# Generate and validate documentation
+mise run docs
+mise run docs-check
 ```
 
-## Development
+## License
 
-This repository uses [mise](https://mise.jdx.dev/) for toolchain version pinning and task running. Git hooks are managed by [lefthook](https://github.com/evilmartians/lefthook).
-
-```shell
-# Install tools and git hooks
-mise install
-
-# Run full local checks (formatting, compilation, unit tests, and linting)
-mise run
-
-# Run individual workflows
-mise run fmt       # format Go source code
-mise run build     # compile provider binary
-mise run test      # execute unit tests with coverage
-mise run lint      # run golangci-lint
-mise run docs      # generate Terraform Registry documentation
-```
-
-## Publishing to the Terraform Registry
-
-The repository is configured for automated release publishing to the [Terraform Registry](https://registry.terraform.io/providers/rixlhq/rixl):
-
-- The provider address is `registry.terraform.io/rixlhq/rixl`.
-- `terraform-registry-manifest.json` specifies protocol version `6.0`.
-- Continuous Integration (`.github/workflows/ci.yml`) runs tests, formatting, and lint checks against Go 1.26.
-- Release workflows (`.github/workflows/release.yml`) automate semantic versioning via `release-please` and cross-platform binary signing with GoReleaser.
+Mozilla Public License v2.0 &mdash; see [LICENSE](LICENSE) for details.
