@@ -2,118 +2,214 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	rschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/rixlhq/rixl-go/sdk"
+	"github.com/rixlhq/rixl-go/sdk/models"
+	"github.com/rixlhq/rixl-go/sdk/payments"
 )
 
-func PaymentMethodResourceSchema(_ context.Context) rschema.Schema {
-	return rschema.Schema{
-		Version: 1,
-		Attributes: map[string]rschema.Attribute{
-			"id": rschema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"org_id": rschema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-			"payment_method_id": rschema.StringAttribute{
-				Required: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
-				},
-			},
-			"set_as_default": rschema.BoolAttribute{
-				Optional: true,
-			},
-			"type": rschema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"provider_name": rschema.StringAttribute{
-				Computed: true,
-				Description: "Payment provider (e.g. stripe). Named provider_name because " +
-					"\"provider\" is reserved by Terraform for provider selection.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"details": rschema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"is_default": rschema.BoolAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"brand": rschema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"last4": rschema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"exp_month": rschema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"exp_year": rschema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"created_at": rschema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-		},
+var (
+	_ resource.Resource                = (*paymentMethodResource)(nil)
+	_ resource.ResourceWithImportState = (*paymentMethodResource)(nil)
+)
+
+func NewPaymentMethodResource() resource.Resource {
+	return &paymentMethodResource{}
+}
+
+type paymentMethodResource struct {
+	client *sdk.Client
+}
+
+func (r *paymentMethodResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_payment_method"
+}
+
+func (r *paymentMethodResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = PaymentMethodResourceSchema(ctx)
+}
+
+func (r *paymentMethodResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	client, ok := req.ProviderData.(*sdk.Client)
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected provider data type", fmt.Sprintf("expected *sdk.Client, got %T", req.ProviderData))
+		return
+	}
+	r.client = client
+}
+
+func (r *paymentMethodResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data PaymentMethodModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	pmID := data.PaymentMethodId.ValueString()
+	body := models.BillingV1UpsertPaymentMethodRequest{
+		PaymentMethodID: &pmID,
+	}
+	if !data.OrgId.IsNull() && !data.OrgId.IsUnknown() {
+		org := data.OrgId.ValueString()
+		body.OrgID = &org
+	}
+	if !data.SetAsDefault.IsNull() && !data.SetAsDefault.IsUnknown() {
+		def := data.SetAsDefault.ValueBool()
+		body.SetAsDefault = &def
+	}
+
+	res, err := r.client.Payments.UpsertPaymentMethod(ctx, body)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to upsert payment method", err.Error())
+		return
+	}
+
+	data.Id = data.PaymentMethodId
+	resp.Diagnostics.Append(mapResponseToModel(ctx, res, &data, PaymentMethodResourceSchema(ctx).Attributes)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Id = data.PaymentMethodId
+
+	r.populateDetails(ctx, &data, &resp.Diagnostics)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *paymentMethodResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data PaymentMethodModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var params payments.ListPaymentMethodsParams
+	if !data.OrgId.IsNull() && !data.OrgId.IsUnknown() {
+		org := data.OrgId.ValueString()
+		params.OrgId = &org
+	}
+
+	res, err := r.client.Payments.ListPaymentMethods(ctx, &params)
+	if err != nil {
+		if isNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError("Failed to list payment methods", err.Error())
+		return
+	}
+
+	var found any
+	targetID := data.PaymentMethodId.ValueString()
+	for _, pm := range res.PaymentMethods {
+		if pm.ID != nil && *pm.ID == targetID {
+			found = pm
+			break
+		}
+	}
+	if found == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	resp.Diagnostics.Append(mapResponseToModel(ctx, found, &data, PaymentMethodResourceSchema(ctx).Attributes)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Id = data.PaymentMethodId
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *paymentMethodResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data PaymentMethodModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	pmID := data.PaymentMethodId.ValueString()
+	body := models.BillingV1UpsertPaymentMethodRequest{
+		PaymentMethodID: &pmID,
+	}
+	if !data.OrgId.IsNull() && !data.OrgId.IsUnknown() {
+		org := data.OrgId.ValueString()
+		body.OrgID = &org
+	}
+	if !data.SetAsDefault.IsNull() && !data.SetAsDefault.IsUnknown() {
+		def := data.SetAsDefault.ValueBool()
+		body.SetAsDefault = &def
+	}
+
+	res, err := r.client.Payments.UpsertPaymentMethod(ctx, body)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to update payment method", err.Error())
+		return
+	}
+
+	data.Id = data.PaymentMethodId
+	resp.Diagnostics.Append(mapResponseToModel(ctx, res, &data, PaymentMethodResourceSchema(ctx).Attributes)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Id = data.PaymentMethodId
+
+	r.populateDetails(ctx, &data, &resp.Diagnostics)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *paymentMethodResource) populateDetails(ctx context.Context, data *PaymentMethodModel, diags *diag.Diagnostics) {
+	var params payments.ListPaymentMethodsParams
+	if !data.OrgId.IsNull() && !data.OrgId.IsUnknown() {
+		org := data.OrgId.ValueString()
+		params.OrgId = &org
+	}
+
+	res, err := r.client.Payments.ListPaymentMethods(ctx, &params)
+	if err != nil {
+		return
+	}
+
+	targetID := data.PaymentMethodId.ValueString()
+	for _, pm := range res.PaymentMethods {
+		if pm.ID != nil && *pm.ID == targetID {
+			diags.Append(mapResponseToModel(ctx, pm, data, PaymentMethodResourceSchema(ctx).Attributes)...)
+			if pm.Provider != nil {
+				data.ProviderName = types.StringValue(*pm.Provider)
+			}
+			data.Id = data.PaymentMethodId
+			break
+		}
 	}
 }
 
-type PaymentMethodModel struct {
-	Id              types.String `tfsdk:"id"`
-	OrgId           types.String `tfsdk:"org_id"`
-	PaymentMethodId types.String `tfsdk:"payment_method_id"`
-	SetAsDefault    types.Bool   `tfsdk:"set_as_default"`
-	Type            types.String `tfsdk:"type"`
-	ProviderName    types.String `tfsdk:"provider_name"`
-	Details         types.String `tfsdk:"details"`
-	IsDefault       types.Bool   `tfsdk:"is_default"`
-	Brand           types.String `tfsdk:"brand"`
-	Last4           types.String `tfsdk:"last4"`
-	ExpMonth        types.String `tfsdk:"exp_month"`
-	ExpYear         types.String `tfsdk:"exp_year"`
-	CreatedAt       types.String `tfsdk:"created_at"`
+func (r *paymentMethodResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data PaymentMethodModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var params payments.DeletePaymentMethodParams
+	if !data.OrgId.IsNull() && !data.OrgId.IsUnknown() {
+		org := data.OrgId.ValueString()
+		params.OrgId = &org
+	}
+
+	_, err := r.client.Payments.DeletePaymentMethod(ctx, data.PaymentMethodId.ValueString(), &params)
+	if err != nil && !isNotFound(err) {
+		resp.Diagnostics.AddError("Failed to delete payment method", err.Error())
+	}
+}
+
+func (r *paymentMethodResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("payment_method_id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 }
