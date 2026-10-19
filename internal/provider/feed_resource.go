@@ -2,17 +2,19 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
-	"github.com/rixlhq/rixl-go/sdk/feeds"
 )
 
-var _ resource.Resource = (*feedResource)(nil)
+var (
+	_ resource.Resource                = (*feedResource)(nil)
+	_ resource.ResourceWithImportState = (*feedResource)(nil)
+)
 
 func NewFeedResource() resource.Resource {
 	return &feedResource{}
@@ -58,8 +60,6 @@ func (r *feedResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 	delete(body, "id")
 	delete(body, "project_id")
-	delete(body, "created_at")
-	delete(body, "updated_at")
 
 	feed, err := r.client.Feeds.CreateFeed(ctx, projectID, body)
 	if err != nil {
@@ -72,9 +72,7 @@ func (r *feedResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	if data.ProjectId.IsNull() || data.ProjectId.IsUnknown() {
-		data.ProjectId = types.StringValue(projectID)
-	}
+	data.ProjectId = types.StringValue(projectID)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -91,8 +89,7 @@ func (r *feedResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	feed, err := r.client.Feeds.GetFeed(ctx, projectID, feedID)
 	if err != nil {
-		var httpErr *feeds.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -139,13 +136,13 @@ func (r *feedResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	delete(body, "created_at")
 	delete(body, "updated_at")
 	// The API body identifies the resource by feed_id rather than id.
-	body["feed_id"] = data.Id.ValueString()
+	tbodyFeedID := data.Id.ValueString()
+	body["feed_id"] = tbodyFeedID
 	body["project_id"] = data.ProjectId.ValueString()
 
 	feed, err := r.client.Feeds.UpdateFeed(ctx, data.ProjectId.ValueString(), data.Id.ValueString(), body)
 	if err != nil {
-		var httpErr *feeds.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -176,11 +173,23 @@ func (r *feedResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	}
 
 	if _, err := r.client.Feeds.DeleteFeed(ctx, data.ProjectId.ValueString(), data.Id.ValueString()); err != nil {
-		var httpErr *feeds.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Failed to delete feed", err.Error())
 	}
+}
+
+func (r *feedResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.Split(req.ID, "/")
+	if len(parts) == 2 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_id"), parts[0])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+		return
+	}
+	resp.Diagnostics.AddError(
+		"Unexpected Import Identifier",
+		fmt.Sprintf("Expected import identifier with format: project_id/id. Got: %q", req.ID),
+	)
 }

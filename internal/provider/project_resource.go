@@ -2,17 +2,19 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/rixlhq/rixl-go/sdk"
 	"github.com/rixlhq/rixl-go/sdk/models"
-	"github.com/rixlhq/rixl-go/sdk/projects"
 )
 
-var _ resource.Resource = (*projectResource)(nil)
+var (
+	_ resource.Resource                = (*projectResource)(nil)
+	_ resource.ResourceWithImportState = (*projectResource)(nil)
+)
 
 func NewProjectResource() resource.Resource {
 	return &projectResource{}
@@ -90,8 +92,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	project, err := r.client.Projects.GetProject(ctx, orgID.ValueString(), projectID.ValueString())
 	if err != nil {
-		var httpErr *projects.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -138,8 +139,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 			Name:      new(plan.Name.ValueString()),
 		}
 		if _, err := r.client.Projects.UpdateProjectName(ctx, orgID, projectID, body); err != nil {
-			var httpErr *projects.ClientHttpError[struct{}]
-			if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			if isNotFound(err) {
 				resp.State.RemoveResource(ctx)
 				return
 			}
@@ -155,8 +155,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 			VideoQuality: models.CommonV1VideoQuality(plan.VideoQuality.ValueString()),
 		}
 		if _, err := r.client.Projects.UpdateVideoQuality(ctx, orgID, projectID, body); err != nil {
-			var httpErr *projects.ClientHttpError[struct{}]
-			if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			if isNotFound(err) {
 				resp.State.RemoveResource(ctx)
 				return
 			}
@@ -167,8 +166,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	project, err := r.client.Projects.GetProject(ctx, orgID, projectID)
 	if err != nil {
-		var httpErr *projects.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -200,12 +198,24 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 
 	if _, err := r.client.Projects.DeleteProject(ctx, data.OrgId.ValueString(), data.Id.ValueString()); err != nil {
-		var httpErr *projects.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Failed to delete project", err.Error())
 		return
 	}
+}
+
+func (r *projectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.Split(req.ID, "/")
+	if len(parts) == 2 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("org_id"), parts[0])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+		return
+	}
+	resp.Diagnostics.AddError(
+		"Unexpected Import Identifier",
+		fmt.Sprintf("Expected import identifier with format: org_id/id. Got: %q", req.ID),
+	)
 }

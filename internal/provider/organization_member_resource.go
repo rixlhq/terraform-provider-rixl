@@ -2,17 +2,19 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
-	"github.com/rixlhq/rixl-go/sdk/memberships"
 )
 
-var _ resource.Resource = (*organizationMemberResource)(nil)
+var (
+	_ resource.Resource                = (*organizationMemberResource)(nil)
+	_ resource.ResourceWithImportState = (*organizationMemberResource)(nil)
+)
 
 func NewOrganizationMemberResource() resource.Resource {
 	return &organizationMemberResource{}
@@ -61,40 +63,38 @@ func (r *organizationMemberResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 	if member == nil {
-		resp.Diagnostics.AddError("Organization member not found", fmt.Sprintf("User %s is not a member of organization %s", userID, orgID))
+		resp.Diagnostics.AddError(
+			"Organization member not found",
+			fmt.Sprintf("User %s is not a member of organization %s. Members must join via invitation first.", userID, orgID),
+		)
 		return
 	}
 
-	// Set the desired role if it differs from the current one.
+	// Update role if different from desired.
 	if !data.Role.IsNull() && !data.Role.IsUnknown() {
-		role := data.Role.ValueString()
 		body := map[string]any{
 			"user":    map[string]any{"org_id": orgID},
 			"user_id": userID,
-			"role":    role,
+			"role":    data.Role.ValueString(),
 		}
 		if _, err := r.client.Memberships.UpdateMemberRole(ctx, orgID, userID, body); err != nil {
-			resp.Diagnostics.AddError("Failed to set member role", err.Error())
+			resp.Diagnostics.AddError("Failed to update member role", err.Error())
 			return
 		}
 	}
 
-	// Set the desired state (suspend/reactivate).
+	// Update state if specified.
 	if !data.State.IsNull() && !data.State.IsUnknown() {
 		if err := r.applyState(ctx, orgID, userID, data.State.ValueString()); err != nil {
-			resp.Diagnostics.AddError("Failed to set member state", err.Error())
+			resp.Diagnostics.AddError("Failed to update member state", err.Error())
 			return
 		}
 	}
 
-	// Re-read to get the final state.
+	// Re-read to populate all computed fields.
 	member, err = r.findMember(ctx, orgID, userID)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to read organization member after create", err.Error())
-		return
-	}
-	if member == nil {
-		resp.State.RemoveResource(ctx)
+		resp.Diagnostics.AddError("Failed to read member after creation", err.Error())
 		return
 	}
 
@@ -121,8 +121,7 @@ func (r *organizationMemberResource) Read(ctx context.Context, req resource.Read
 
 	member, err := r.findMember(ctx, orgID, userID)
 	if err != nil {
-		var httpErr *memberships.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -208,12 +207,25 @@ func (r *organizationMemberResource) Delete(ctx context.Context, req resource.De
 
 	_, err := r.client.Memberships.RemoveMember(ctx, data.OrgId.ValueString(), data.UserId.ValueString(), nil)
 	if err != nil {
-		var httpErr *memberships.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Failed to remove organization member", err.Error())
 		return
 	}
+}
+
+func (r *organizationMemberResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.Split(req.ID, "/")
+	if len(parts) == 2 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("org_id"), parts[0])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("user_id"), parts[1])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+		return
+	}
+	resp.Diagnostics.AddError(
+		"Unexpected Import Identifier",
+		fmt.Sprintf("Expected import identifier with format: org_id/user_id. Got: %q", req.ID),
+	)
 }

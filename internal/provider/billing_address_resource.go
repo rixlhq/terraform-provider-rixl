@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
@@ -12,7 +13,10 @@ import (
 	rttypes "github.com/rixlhq/rixl-go/sdk/runtime/types"
 )
 
-var _ resource.Resource = (*billingAddressResource)(nil)
+var (
+	_ resource.Resource                = (*billingAddressResource)(nil)
+	_ resource.ResourceWithImportState = (*billingAddressResource)(nil)
+)
 
 func NewBillingAddressResource() resource.Resource {
 	return &billingAddressResource{}
@@ -85,6 +89,10 @@ func (r *billingAddressResource) Read(ctx context.Context, req resource.ReadRequ
 
 	address, err := r.client.Payments.GetBillingAddress(ctx, params)
 	if err != nil {
+		if isNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to read billing address", err.Error())
 		return
 	}
@@ -152,6 +160,13 @@ func (r *billingAddressResource) Delete(ctx context.Context, _ resource.DeleteRe
 		"The Rixl API does not support deleting billing addresses. The resource has been removed from Terraform state, but the billing address may still exist in the platform.",
 	)
 	resp.State.RemoveResource(ctx)
+}
+
+func (r *billingAddressResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	if req.ID != "" && req.ID != "default" {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("org_id"), req.ID)...)
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 }
 
 func (r *billingAddressResource) buildRequest(data BillingAddressResourceModel) models.BillingV1UpsertBillingAddressRequest {

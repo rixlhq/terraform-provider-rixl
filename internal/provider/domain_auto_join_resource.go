@@ -2,17 +2,18 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
-	"github.com/rixlhq/rixl-go/sdk/customdomains"
 )
 
-var _ resource.Resource = (*domainAutoJoinResource)(nil)
+var (
+	_ resource.Resource                = (*domainAutoJoinResource)(nil)
+	_ resource.ResourceWithImportState = (*domainAutoJoinResource)(nil)
+)
 
 func NewDomainAutoJoinResource() resource.Resource {
 	return &domainAutoJoinResource{}
@@ -82,8 +83,7 @@ func (r *domainAutoJoinResource) Read(ctx context.Context, req resource.ReadRequ
 
 	setting, err := r.client.CustomDomains.GetDomainAutoJoin(ctx, orgID, nil)
 	if err != nil {
-		var httpErr *customdomains.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -146,6 +146,11 @@ func (r *domainAutoJoinResource) Delete(ctx context.Context, _ resource.DeleteRe
 		"The Rixl API does not support deleting domain auto-join settings. The resource has been removed from Terraform state, but the setting may still exist in the platform.",
 	)
 	resp.State.RemoveResource(ctx)
+}
+
+func (r *domainAutoJoinResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("org_id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 }
 
 func (r *domainAutoJoinResource) buildRequest(data DomainAutoJoinResourceModel) map[string]any {

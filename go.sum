@@ -52,6 +52,8 @@ github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRI
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rixlhq/rixl-go v0.8.0 h1:A0A0VYg43jSHoxLLcujvWMF2R73b1pYSJg7g+yVAjDM=
 github.com/rixlhq/rixl-go v0.8.0/go.mod h1:fLpEejO5tQe0Nm1vEZlVDlDBxOvOAUeAqIQzAPCzS3E=
+github.com/rixlhq/rixl-go v0.9.0 h1:5jwYoK9R+3HnC5bmdx9OqozGuifc7AISoZ121Y7tMac=
+github.com/rixlhq/rixl-go v0.9.0/go.mod h1:fLpEejO5tQe0Nm1vEZlVDlDBxOvOAUeAqIQzAPCzS3E=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.7.2/go.mod h1:R6va5+xMeoiuVRoj+gSkQ7d3FALtqAAGI1FQKckRals=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=

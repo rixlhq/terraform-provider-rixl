@@ -2,18 +2,20 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
 	"github.com/rixlhq/rixl-go/sdk/dashboards"
-	"github.com/rixlhq/rixl-go/sdk/models"
 )
 
-var _ resource.Resource = (*dashboardWidgetResource)(nil)
+var (
+	_ resource.Resource                = (*dashboardWidgetResource)(nil)
+	_ resource.ResourceWithImportState = (*dashboardWidgetResource)(nil)
+)
 
 func NewDashboardWidgetResource() resource.Resource {
 	return &dashboardWidgetResource{}
@@ -85,8 +87,7 @@ func (r *dashboardWidgetResource) Read(ctx context.Context, req resource.ReadReq
 
 	dashboard, err := r.client.Dashboards.GetDashboard(ctx, dashboardID)
 	if err != nil {
-		var httpErr *dashboards.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -141,8 +142,7 @@ func (r *dashboardWidgetResource) Update(ctx context.Context, req resource.Updat
 
 	widget, err := r.client.Dashboards.UpdateWidget(ctx, widgetID, body)
 	if err != nil {
-		var httpErr *dashboards.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -170,8 +170,7 @@ func (r *dashboardWidgetResource) Delete(ctx context.Context, req resource.Delet
 	dashboardID := data.DashboardId.ValueString()
 	revision, err := r.fetchRevision(ctx, dashboardID)
 	if err != nil {
-		var httpErr *dashboards.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -182,14 +181,26 @@ func (r *dashboardWidgetResource) Delete(ctx context.Context, req resource.Delet
 	params := &dashboards.DeleteWidgetParams{ExpectedRevision: revision}
 	_, err = r.client.Dashboards.DeleteWidget(ctx, widgetID, params)
 	if err != nil {
-		var httpErr *dashboards.ClientHttpError[struct{}]
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Failed to delete dashboard widget", err.Error())
 		return
 	}
+}
+
+func (r *dashboardWidgetResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.Split(req.ID, "/")
+	if len(parts) == 2 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("dashboard_id"), parts[0])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+		return
+	}
+	resp.Diagnostics.AddError(
+		"Unexpected Import Identifier",
+		fmt.Sprintf("Expected import identifier with format: dashboard_id/widget_id. Got: %q", req.ID),
+	)
 }
 
 func (r *dashboardWidgetResource) fetchRevision(ctx context.Context, dashboardID string) (int32, error) {
@@ -201,63 +212,4 @@ func (r *dashboardWidgetResource) fetchRevision(ctx context.Context, dashboardID
 		return 0, fmt.Errorf("dashboard %s has no revision", dashboardID)
 	}
 	return *dashboard.Revision, nil
-}
-
-func buildWidgetInput(data DashboardWidgetResourceModel) models.AnalyticsV1WidgetInput {
-	input := models.AnalyticsV1WidgetInput{
-		Title:     data.Title.ValueString(),
-		ChartType: data.ChartType.ValueString(),
-		Dataset:   data.Dataset.ValueString(),
-		Metric:    data.Metric.ValueString(),
-		Interval:  tfStringPtr(data.Interval),
-		Limit:     tfInt32Ptr(data.Limit),
-		PosX:      tfInt32Ptr(data.PosX),
-		PosY:      tfInt32Ptr(data.PosY),
-		Width:     tfInt32Ptr(data.Width),
-		Height:    tfInt32Ptr(data.Height),
-		SortOrder: tfInt32Ptr(data.SortOrder),
-		GroupBy:   stringListValue(data.GroupBy),
-		Filters:   buildChartFilters(data.Filters),
-	}
-	return input
-}
-
-func buildChartFilters(list types.List) []models.AnalyticsV1ChartFilter {
-	if list.IsNull() || list.IsUnknown() {
-		return nil
-	}
-	filters := make([]models.AnalyticsV1ChartFilter, 0, len(list.Elements()))
-	for _, e := range list.Elements() {
-		obj, ok := e.(types.Object)
-		if !ok {
-			continue
-		}
-		attrs := obj.Attributes()
-		f := models.AnalyticsV1ChartFilter{}
-		if v, ok := attrs["field"].(types.String); ok && !v.IsNull() {
-			f.Field = v.ValueString()
-		}
-		if v, ok := attrs["operator"].(types.String); ok && !v.IsNull() {
-			op := v.ValueString()
-			f.Operator = &op
-		}
-		if v, ok := attrs["values"].(types.List); ok && !v.IsNull() {
-			f.Values = stringListValue(v)
-		}
-		filters = append(filters, f)
-	}
-	return filters
-}
-
-func stringListValue(list types.List) []string {
-	if list.IsNull() || list.IsUnknown() {
-		return nil
-	}
-	elements := make([]string, 0, len(list.Elements()))
-	for _, e := range list.Elements() {
-		if s, ok := e.(types.String); ok {
-			elements = append(elements, s.ValueString())
-		}
-	}
-	return elements
 }
