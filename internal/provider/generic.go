@@ -24,7 +24,8 @@ var _ datasource.DataSource = (*managedDataSource)(nil)
 
 // DataSourceDescriptor defines how a Terraform data source maps to the Rixl SDK.
 type DataSourceDescriptor struct {
-	TypeName string
+	TypeName    string
+	Description string
 
 	// SchemaFn returns the data source schema. It must be a function with
 	// signature func(context.Context) datasource/schema.Schema.
@@ -69,6 +70,16 @@ func (d *managedDataSource) Metadata(_ context.Context, req datasource.MetadataR
 
 func (d *managedDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = d.dataSourceSchema(ctx)
+	if resp.Schema.MarkdownDescription == "" {
+		desc := d.descriptor.Description
+		if desc == "" {
+			desc = dataSourceDescription(d.descriptor.TypeName)
+		}
+		if desc != "" {
+			resp.Schema.MarkdownDescription = desc
+			resp.Schema.Description = desc
+		}
+	}
 }
 
 func (d *managedDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {

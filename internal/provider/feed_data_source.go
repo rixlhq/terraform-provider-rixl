@@ -25,6 +25,8 @@ func (d *feedDataSource) Metadata(_ context.Context, req datasource.MetadataRequ
 
 func (d *feedDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = FeedDataSourceSchema(ctx)
+	resp.Schema.MarkdownDescription = dataSourceDescription("feed")
+	resp.Schema.Description = resp.Schema.MarkdownDescription
 }
 
 func (d *feedDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -73,6 +75,8 @@ func (d *feedsDataSource) Metadata(_ context.Context, req datasource.MetadataReq
 
 func (d *feedsDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = FeedsDataSourceSchema(ctx)
+	resp.Schema.MarkdownDescription = dataSourceDescription("feeds")
+	resp.Schema.Description = resp.Schema.MarkdownDescription
 }
 
 func (d *feedsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {

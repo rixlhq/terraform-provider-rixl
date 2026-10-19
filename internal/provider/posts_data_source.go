@@ -26,6 +26,8 @@ func (d *postsDataSource) Metadata(_ context.Context, req datasource.MetadataReq
 
 func (d *postsDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = PostsDataSourceSchema(ctx)
+	resp.Schema.MarkdownDescription = dataSourceDescription("posts")
+	resp.Schema.Description = resp.Schema.MarkdownDescription
 }
 
 func (d *postsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
