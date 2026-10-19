@@ -13,24 +13,24 @@ The **Rixl Terraform Provider** provides native resources for managing enterpris
 
 ## 1. Declarative Access Policies
 
-Define fine-grained IAM policies following the principle of least privilege. Policies support explicit `allow` or `deny` effects on specific actions and resources:
+Define fine-grained IAM policies following the principle of least privilege. Policies assign explicit permission strings to identities:
 
 ```terraform
+variable "org_id" {
+  type        = string
+  description = "Rixl Organization ID"
+}
+
 # Read-only policy for media consumers
 resource "rixl_access_policy" "read_only" {
   org_id      = var.org_id
   name        = "media-read-only"
   description = "Allows viewing and listing videos and content feeds without write access"
-  statement   = jsonencode({
-    Effect   = "Allow"
-    Action   = [
-      "videos:GetVideo",
-      "videos:ListVideos",
-      "feeds:GetFeed",
-      "feeds:ListFeeds"
-    ]
-    Resource = "arn:rixl:project:*"
-  })
+  permissions = [
+    "video:read",
+    "feed:read",
+    "image:read",
+  ]
 }
 
 # Full administrator policy for video ingestion pipelines
@@ -38,15 +38,13 @@ resource "rixl_access_policy" "media_publisher" {
   org_id      = var.org_id
   name        = "media-publisher"
   description = "Permits video upload, transcoding trigger, and subtitle management"
-  statement   = jsonencode({
-    Effect   = "Allow"
-    Action   = [
-      "videos:*",
-      "subtitles:*",
-      "audio_tracks:*"
-    ]
-    Resource = "arn:rixl:project:${rixl_project.vod.id}"
-  })
+  permissions = [
+    "video:read",
+    "video:write",
+    "subtitle:write",
+    "audio_track:write",
+    "feed:write",
+  ]
 }
 ```
 
@@ -54,12 +52,14 @@ resource "rixl_access_policy" "media_publisher" {
 
 ## 2. Attaching Policies
 
-Bind access policies to users, service principals, or roles:
+Bind access policies to users, service principals, or roles using `rixl_policy_attachment`:
 
 ```terraform
 resource "rixl_policy_attachment" "publisher_binding" {
-  policy_id = rixl_access_policy.media_publisher.id
-  user_id   = var.service_user_id
+  org_id        = var.org_id
+  policy_id     = rixl_access_policy.media_publisher.id
+  identity_id   = var.service_user_id
+  identity_type = "POLICY_IDENTITY_TYPE_USER"
 }
 ```
 
@@ -95,28 +95,36 @@ For systems that do not support dynamic OAuth token exchanges, generate static A
 
 ```terraform
 resource "rixl_api_key" "webhook_receiver" {
-  org_id = var.org_id
-  name   = "webhook-dispatcher-key"
+  org_id     = var.org_id
+  project_id = var.project_id
+  name       = "webhook-dispatcher-key"
 }
 
 output "api_key" {
-  value       = rixl_api_key.webhook_receiver.key
+  value       = rixl_api_key.webhook_receiver.secret
   sensitive   = true
-  description = "The generated API Key secret"
+  description = "The generated API Key secret token"
 }
 ```
 
 ---
 
-## 5. Enterprise Identity Provider (IdP) SSO
+## 5. Enterprise Identity Provider Connections
 
-Federate authentication with enterprise identity providers (Okta, Entra ID, Google Workspace, GitHub):
+Connect enterprise identity providers (Google, Apple, Microsoft) for seamless authentication:
 
 ```terraform
-resource "rixl_auth_provider_connection" "okta_sso" {
-  org_id    = var.org_id
-  provider_type  = "oidc"
-  client_id      = var.okta_client_id
-  client_secret  = var.okta_client_secret
+resource "rixl_auth_provider_connection" "google_oauth" {
+  id    = "EXTERNAL_ACCOUNT_PROVIDER_GOOGLE"
+  token = var.google_oauth_provider_token
 }
 ```
+
+---
+
+## 6. Next Steps & Architecture Guides
+
+- [Getting Started with Rixl](getting-started) &mdash; Initial provider configuration and project provisioning.
+- [Automated Video Streaming Pipeline](video-streaming-pipeline) &mdash; Uploading videos, generating HLS streams, and adding subtitles.
+- [Custom CDN Streaming Domains and SSL Automation](custom-domains-and-cdn) &mdash; Vanity streaming domains and DNS verification.
+- [Observability, Telemetry, and Analytics](monitoring-and-analytics) &mdash; Tracking CDN bandwidth and viewer metrics.

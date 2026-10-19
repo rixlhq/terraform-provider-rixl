@@ -56,8 +56,9 @@ resource "rixl_custom_domain" "vod_cdn" {
 }
 
 resource "rixl_project_custom_domain" "vod_cdn_mapping" {
-  project_id = rixl_project.vod.id
-  domain_id  = rixl_custom_domain.vod_cdn.id
+  org_id        = var.org_id
+  project_id    = rixl_project.vod.id
+  custom_domain = rixl_custom_domain.vod_cdn.domain
 }
 ```
 
@@ -86,29 +87,29 @@ Attach localized WebVTT subtitle files for international audiences and accessibi
 ```terraform
 # English Subtitles (Default)
 resource "rixl_subtitle" "sub_en" {
-  project_id = rixl_project.vod.id
-  video_id   = rixl_video.masterclass.id
-  name       = "English Captions"
-  language   = "en"
-  file_path  = "${path.module}/media/subtitles/en.vtt"
+  project_id    = rixl_project.vod.id
+  video_id      = rixl_video.masterclass.id
+  label         = "English Captions"
+  language_code = "en"
+  file_path     = "${path.module}/media/subtitles/en.vtt"
 }
 
 # Spanish Subtitles
 resource "rixl_subtitle" "sub_es" {
-  project_id = rixl_project.vod.id
-  video_id   = rixl_video.masterclass.id
-  name       = "Subtítulos en Español"
-  language   = "es"
-  file_path  = "${path.module}/media/subtitles/es.vtt"
+  project_id    = rixl_project.vod.id
+  video_id      = rixl_video.masterclass.id
+  label         = "Subtítulos en Español"
+  language_code = "es"
+  file_path     = "${path.module}/media/subtitles/es.vtt"
 }
 
 # German Subtitles
 resource "rixl_subtitle" "sub_de" {
-  project_id = rixl_project.vod.id
-  video_id   = rixl_video.masterclass.id
-  name       = "Deutsche Untertitel"
-  language   = "de"
-  file_path  = "${path.module}/media/subtitles/de.vtt"
+  project_id    = rixl_project.vod.id
+  video_id      = rixl_video.masterclass.id
+  label         = "Deutsche Untertitel"
+  language_code = "de"
+  file_path     = "${path.module}/media/subtitles/de.vtt"
 }
 ```
 
@@ -120,11 +121,11 @@ Provide multi-lingual audio tracks or director commentary:
 
 ```terraform
 resource "rixl_audio_track" "dub_es" {
-  project_id = rixl_project.vod.id
-  video_id   = rixl_video.masterclass.id
-  name       = "Spanish Audio Dub"
-  language   = "es"
-  file_path  = "${path.module}/media/audio/dub_es.m4a"
+  project_id    = rixl_project.vod.id
+  video_id      = rixl_video.masterclass.id
+  label         = "Spanish Audio Dub"
+  language_code = "es"
+  file_path     = "${path.module}/media/audio/dub_es.m4a"
 }
 ```
 
@@ -141,20 +142,20 @@ resource "rixl_video_chapters" "masterclass_chapters" {
 
   chapters = [
     {
-      title      = "Welcome & Overview"
-      start_time = 0.0
+      title          = "Welcome & Overview"
+      start_time_sec = 0.0
     },
     {
-      title      = "Foundational Concepts"
-      start_time = 145.0
+      title          = "Foundational Concepts"
+      start_time_sec = 145.0
     },
     {
-      title      = "Hands-On Implementation"
-      start_time = 420.5
+      title          = "Hands-On Implementation"
+      start_time_sec = 420.5
     },
     {
-      title      = "Q&A and Key Takeaways"
-      start_time = 980.0
+      title          = "Q&A and Key Takeaways"
+      start_time_sec = 980.0
     }
   ]
 }
@@ -182,3 +183,12 @@ output "video_resolution" {
   description = "Source resolution dimensions"
 }
 ```
+
+---
+
+## 7. Next Steps & Architecture Guides
+
+- [Custom CDN Streaming Domains and SSL Automation](custom-domains-and-cdn) &mdash; Set up branded playback domains and automated SSL.
+- [Content Feeds, Playlists, and Media Distribution](content-feeds-and-distribution) &mdash; Organize videos into channels and playlists.
+- [Observability, Telemetry, and Analytics](monitoring-and-analytics) &mdash; Monitor video engagement heatmaps and real-time playback sessions.
+- [IAM, RBAC, and Security Automation](iam-and-security) &mdash; Restrict video upload permissions with least-privilege IAM policies.

@@ -7,118 +7,109 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-registry-blue?logo=read-the-docs&logoColor=white)](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs)
 
-The official **Rixl Terraform Provider** enables platform engineers, media architects, and DevOps teams to declare, provision, and automate video streaming pipelines, media asset workflows, and cloud infrastructure as code (IaC) on [Rixl](https://rixl.com).
+The **Rixl Terraform Provider** enables platform engineers, media architects, and DevOps teams to declare, deploy, and manage video streaming pipelines and media infrastructure as code on [Rixl](https://rixl.com).
 
-Rixl delivers a developer-first media platform featuring automated multi-bitrate HLS (HTTP Live Streaming) and DASH transcoding, adaptive bitrate delivery, custom CDN streaming domains, timecoded video navigation chapters, multi-language subtitles (WebVTT / SRT), alternative audio tracks, responsive image processing, content syndication feeds, granular IAM policies, and real-time observability telemetry.
+Automate video ingestion, multi-bitrate HLS (HTTP Live Streaming) transcoding ladders, multi-track audio, localized subtitles (WebVTT/SRT), timecoded chapters, image processing, custom CDN streaming domains, fine-grained IAM policies, and real-time observability telemetry.
 
 ---
 
 ## Table of Contents
 
-- [Why Rixl with Terraform?](#why-rixl-with-terraform)
-- [Architecture Overview](#architecture-overview)
+- [Architecture Diagram](#architecture-diagram)
 - [Key Capabilities](#key-capabilities)
-- [Guides & Architectural Walkthroughs](#guides--architectural-walkthroughs)
-- [Overview of Resources & Data Sources](#overview-of-resources--data-sources)
-- [Quickstart & Provider Configuration](#quickstart--provider-configuration)
-  - [API Key Authentication (Recommended)](#api-key-authentication-recommended)
-  - [OAuth2 / Bearer Token Authentication](#oauth2--bearer-token-authentication)
-  - [Environment Variables Reference](#environment-variables-reference)
+- [Official Architectural Guides](#official-architectural-guides)
+- [Provider Installation & Quickstart](#provider-installation--quickstart)
+- [Authentication Options](#authentication-options)
 - [Production Terraform Recipes](#production-terraform-recipes)
   - [1. End-to-End Automated Video Streaming Pipeline](#1-end-to-end-automated-video-streaming-pipeline)
   - [2. Custom CDN Streaming Domain & SSL Setup](#2-custom-cdn-streaming-domain--ssl-setup)
   - [3. Content Feeds, Playlists & Media Posts](#3-content-feeds-playlists--media-posts)
   - [4. Least-Privilege IAM Access Policies & API Keys](#4-least-privilege-iam-access-policies--api-keys)
-  - [5. Observability Dashboard & Viewer Retention Heatmaps](#5-observability-dashboard--viewer-retention-heatmaps)
+  - [5. Observability Dashboard & Viewer Telemetry](#5-observability-dashboard--viewer-telemetry)
+- [Resource & Data Source Reference](#resource--data-source-reference)
 - [Importing Existing Infrastructure](#importing-existing-infrastructure)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Development & Contributing](#development--contributing)
-- [License](#license)
 
 ---
 
-## Why Rixl with Terraform?
-
-- **Infrastructure as Code for Video**: Replace manual web console clicking with repeatable, auditable, and version-controlled Terraform modules.
-- **Automated Multi-Bitrate HLS Transcoding**: Upload source video files and automatically generate adaptive bitrate profiles (1080p, 720p, 480p, 360p) optimized for global mobile and desktop playback.
-- **Zero-Drift Environments**: Keep production, staging, and development media projects identical and detect unauthorized configuration drift.
-- **Enterprise Security & Compliance**: Manage granular role-based access control (RBAC), machine-to-machine OAuth2 client credentials, and enterprise SSO connections natively.
-- **Observability as Code**: Provision operational telemetry dashboards and viewer engagement metrics alongside your streaming infrastructure.
-
----
-
-## Architecture Overview
+## Architecture Diagram
 
 ```mermaid
 graph TD
-    TF[Terraform Configuration] -->|Applies HCL| Provider[Rixl Terraform Provider]
-    Provider -->|REST API v1| RixlAPI[Rixl Cloud API Engine]
-
-    subgraph Video Pipeline
-        RixlAPI -->|Ingest| Ingest[Video Asset Upload]
-        Ingest -->|Transcode| Engine[Multi-Bitrate HLS / DASH Transcoder]
-        Engine -->|Adaptive Streams| CDN[Global CDN Video Edge]
-        RixlAPI -->|Attach| Subs[Localized Subtitles VTT/SRT]
-        RixlAPI -->|Attach| Audio[Multi-Language Audio Tracks]
-        RixlAPI -->|Attach| Chaps[Navigation Chapters]
+    subgraph Infrastructure_as_Code [Infrastructure as Code]
+        TF[Terraform CLI / Cloud / OpenTofu]
+        PRV[Terraform Provider for Rixl]
+        TF -->|Declares HCL| PRV
     end
 
-    subgraph Custom Delivery
-        RixlAPI -->|Provision| Domain[Custom CDN Vanity Domain]
-        Domain -->|Auto TLS| SSL[Automated SSL/TLS Certificates]
-        SSL --> CDN
+    subgraph Rixl_Cloud_Platform [Rixl Video Cloud Platform]
+        API[Rixl Control Plane API]
+        PRV -->|HTTPS REST API| API
+        
+        subgraph Media_Pipeline [Video Streaming Engine]
+            Ingest[Video Upload / Ingestion]
+            Transcoder[Multi-Bitrate HLS Transcoding Ladder]
+            Subtitles[Localized Subtitles VTT/SRT]
+            AudioTracks[Alternate Audio Dubs & Commentary]
+            Chapters[Navigation Chapters]
+            Ingest --> Transcoder
+            Transcoder --> Subtitles
+            Transcoder --> AudioTracks
+            Transcoder --> Chapters
+        end
+
+        subgraph Edge_Delivery [Global CDN & Custom Domains]
+            CDN[Edge CDN Distribution]
+            Domain[Custom Branded Vanity URLs & SSL]
+            Transcoder --> CDN
+            Domain --> CDN
+        end
+
+        subgraph Security_Observability [IAM & Telemetry]
+            IAM[Role-Based Access Policies & API Keys]
+            Dashboards[Observability Dashboards & Realtime Stats]
+        end
+
+        API --> Media_Pipeline
+        API --> Edge_Delivery
+        API --> Security_Observability
     end
 
-    CDN -->|Smooth Playback| Player[Web, iOS, Android, OTT Players]
-    Player -->|Telemetry| Analytics[Viewer Retention & Telemetry Analytics]
+    subgraph Client_Players [Video Playback]
+        HLSPlayer[Web & Mobile Players: Video.js, HLS.js, AVPlayer, ExoPlayer]
+        CDN -->|Adaptive Bitrate HLS Stream| HLSPlayer
+    end
 ```
 
 ---
 
 ## Key Capabilities
 
-- **Video & Audio Transcoding**: Declare video assets with automatic multi-bitrate HLS ladder encoding, poster thumbnails, localized subtitle tracks, and alternate audio streams.
-- **Interactive Video Chapters**: Provide structured, timecoded chapters for seamless scrub-bar navigation and improved viewer engagement.
-- **Custom CDN Streaming Domains**: Stream videos directly under your branded vanity domain (`video.yourdomain.com`) with automated SSL/TLS provisioning and renewal.
-- **Content Feeds & Syndication**: Create curated video channels, mixed-media playlists, and publish rich media posts with webhook subscriber notifications.
-- **Granular IAM & Service Accounts**: Define least-privilege RBAC policies, generate scoped API keys for automation pipelines, and register OAuth2 client credentials.
-- **Real-Time Observability**: Deploy telemetry dashboards tracking audience retention heatmaps, video hot segments, bandwidth consumption, and storage metrics.
-- **Subscription & Quota Management**: Automate organization billing tiers, payment methods, and monitor quota limits.
+- **Automated Multi-Bitrate HLS Encoding**: Upload raw source MP4/MOV files and automatically receive adaptive bitrate ladders (1080p, 720p, 480p, 360p) with instant poster thumbnail generation.
+- **Accessible & Internationalized Streaming**: Add multi-language WebVTT/SRT subtitles and alternate audio dubs or director commentary tracks declaratively.
+- **Interactive Player Navigation**: Attach timecoded chapter markers for timeline scrubbing and topic-based seeking.
+- **Branded Streaming Domains**: Serve HLS manifests, video segments, and images via custom branded domains (e.g., `stream.example.com`) with automated SSL/TLS certificate lifecycle management.
+- **Content Syndication Feeds**: Group videos into structured feeds, curated playlists, and multimedia posts with audience notifications.
+- **Enterprise IAM & Security**: Define least-privilege role-based access policies (RBAC), machine-to-machine OAuth2 client credentials, and long-lived API keys.
+- **Observability & Analytics**: Deploy custom operational dashboards with timeseries charts, retention heatmaps, hot segments, and bandwidth tracking.
 
 ---
 
-## Guides & Architectural Walkthroughs
+## Official Architectural Guides
 
-Explore comprehensive tutorials and architectural patterns on the [Terraform Registry](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs):
+Read our comprehensive operational walkthroughs in the [Terraform Registry](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs):
 
-| Guide | Description | Target Keywords |
-| :--- | :--- | :--- |
-| [**Getting Started with Rixl**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/getting-started) | Installation, provider setup, credentials, and first project provisioning | `quickstart`, `authentication`, `api-keys`, `projects` |
-| [**Automated Video Streaming Pipeline**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/video-streaming-pipeline) | End-to-end HLS video transcoding, custom CDN domain, subtitles, audio tracks, and chapters | `video-streaming`, `hls-transcoding`, `adaptive-bitrate`, `vod` |
-| [**Custom CDN Streaming Domains & SSL**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/custom-domains-and-cdn) | Vanity streaming URLs, DNS verification, automated SSL/TLS certificates, and project routing | `custom-domains`, `vanity-url`, `video-cdn`, `tls-ssl` |
-| [**Content Feeds, Playlists & Media Distribution**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/content-feeds-and-distribution) | Structured channels, curated video playlists, rich posts, responsive images, and notifications | `content-feeds`, `playlists`, `media-syndication`, `posts` |
-| [**IAM, RBAC, and Security Automation**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/iam-and-security) | Least-privilege access policies, machine-to-machine OAuth2 credentials, and enterprise SSO | `iam`, `rbac`, `security`, `oauth2`, `sso` |
-| [**Observability, Telemetry, and Analytics**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/monitoring-and-analytics) | Telemetry dashboards, audience retention heatmaps, hot segments, and bandwidth metrics | `observability`, `video-analytics`, `telemetry`, `heatmaps` |
+- [**Getting Started with Rixl**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/getting-started): Initial setup, provider configuration, authentication, and provisioning your first project.
+- [**Automated Video Streaming Pipeline**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/video-streaming-pipeline): End-to-end HLS video transcoding, audio tracks, subtitles, chapters, and player integration.
+- [**Custom CDN Streaming Domains & SSL**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/custom-domains-and-cdn): Custom vanity URLs, DNS verification, automated SSL certificates, and domain auto-join.
+- [**Content Feeds, Playlists & Media Distribution**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/content-feeds-and-distribution): Structured video channels, curated playlists, rich media posts, and blog notifications.
+- [**IAM, RBAC, and Security Automation**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/iam-and-security): Principle of least privilege, machine-to-machine OAuth2 credentials, and enterprise SSO connections.
+- [**Observability, Telemetry, and Analytics**](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/guides/monitoring-and-analytics): Dashboards, viewer retention heatmaps, hot segments, and bandwidth monitoring.
 
 ---
 
-## Overview of Resources & Data Sources
-
-| Category | Resources | Data Sources |
-| :--- | :--- | :--- |
-| **Video & Media** | [`rixl_video`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/video), [`rixl_video_chapters`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/video_chapters), [`rixl_subtitle`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/subtitle), [`rixl_audio_track`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/audio_track), [`rixl_image`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/image) | `rixl_video`, `rixl_videos`, `rixl_video_stats`, `rixl_video_heatmap`, `rixl_video_hot_segments`, `rixl_top_videos`, `rixl_image`, `rixl_images`, `rixl_image_stats`, `rixl_top_images`, `rixl_chapters`, `rixl_subtitles`, `rixl_audio_tracks`, `rixl_languages` |
-| **Projects & Content** | [`rixl_project`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/project), [`rixl_feed`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/feed), [`rixl_post`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/post), [`rixl_blog_subscription`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/blog_subscription) | `rixl_project`, `rixl_projects`, `rixl_feed`, `rixl_feeds`, `rixl_feed_stats`, `rixl_top_feeds`, `rixl_post`, `rixl_posts`, `rixl_post_stats`, `rixl_top_posts`, `rixl_blog_subscription` |
-| **Custom Domains** | [`rixl_custom_domain`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/custom_domain), [`rixl_project_custom_domain`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/project_custom_domain), [`rixl_domain_auto_join`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/domain_auto_join) | `rixl_domain`, `rixl_domain_auto_join` |
-| **Identity & Access (IAM)** | [`rixl_access_policy`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/access_policy), [`rixl_policy_attachment`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/policy_attachment), [`rixl_api_key`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/api_key), [`rixl_client_credential`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/client_credential), [`rixl_auth_provider_connection`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/auth_provider_connection) | `rixl_policy`, `rixl_policies`, `rixl_policy_attachments`, `rixl_user_policies`, `rixl_api_keys`, `rixl_client_credentials`, `rixl_providers`, `rixl_passkeys`, `rixl_permission_registries` |
-| **Organizations** | [`rixl_organization`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/organization), [`rixl_organization_invitation`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/organization_invitation), [`rixl_organization_member`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/organization_member) | `rixl_organization_members`, `rixl_memberships`, `rixl_membership_applications`, `rixl_check_membership`, `rixl_internal_membership_info`, `rixl_user`, `rixl_user_info` |
-| **Observability** | [`rixl_dashboard`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/dashboard), [`rixl_dashboard_widget`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/dashboard_widget) | `rixl_dashboard`, `rixl_dashboards`, `rixl_dashboard_datasets`, `rixl_dashboard_stats`, `rixl_realtime_stats`, `rixl_storage_usage`, `rixl_storage_usage_history`, `rixl_bandwidth_usage`, `rixl_bandwidth_usage_history` |
-| **Billing & Subscriptions** | [`rixl_subscription`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/subscription), [`rixl_payment_method`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/payment_method), [`rixl_billing_address`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/billing_address) | `rixl_subscription`, `rixl_subscription_history`, `rixl_plan`, `rixl_plans`, `rixl_invoices`, `rixl_payment_methods`, `rixl_payment_method_from_payment_intent`, `rixl_payment_method_from_setup_intent`, `rixl_billing_address` |
-
----
-
-## Quickstart & Provider Configuration
-
-### API Key Authentication (Recommended)
+## Provider Installation & Quickstart
 
 ```terraform
 terraform {
@@ -132,11 +123,23 @@ terraform {
 }
 
 provider "rixl" {
+  api_key = var.rixl_api_key # or export RIXL_API_KEY
+}
+```
+
+---
+
+## Authentication Options
+
+### 1. Static API Key Authentication (Recommended for CI/CD)
+
+```terraform
+provider "rixl" {
   api_key = var.rixl_api_key # or set RIXL_API_KEY environment variable
 }
 ```
 
-### OAuth2 / Bearer Token Authentication
+### 2. OAuth2 Bearer Token Authentication (Workload Identity Federation)
 
 ```terraform
 provider "rixl" {
@@ -182,20 +185,20 @@ resource "rixl_video" "keynote" {
 
 # 3. Add localized subtitles
 resource "rixl_subtitle" "keynote_es" {
-  project_id = rixl_project.vod_prod.id
-  video_id   = rixl_video.keynote.id
-  language   = "es"
-  label      = "Español"
-  file_path  = "${path.module}/media/subtitles_es.vtt"
+  project_id    = rixl_project.vod_prod.id
+  video_id      = rixl_video.keynote.id
+  language_code = "es"
+  label         = "Español"
+  file_path     = "${path.module}/media/subtitles_es.vtt"
 }
 
 # 4. Attach an alternative commentary audio track
 resource "rixl_audio_track" "director_cut" {
-  project_id = rixl_project.vod_prod.id
-  video_id   = rixl_video.keynote.id
-  language   = "en"
-  label      = "Director Commentary"
-  file_path  = "${path.module}/media/commentary.aac"
+  project_id    = rixl_project.vod_prod.id
+  video_id      = rixl_video.keynote.id
+  language_code = "en"
+  label         = "Director Commentary"
+  file_path     = "${path.module}/media/commentary.aac"
 }
 
 # 5. Define interactive chapters for player navigation
@@ -205,20 +208,20 @@ resource "rixl_video_chapters" "keynote_chapters" {
 
   chapters = [
     {
-      title      = "Opening Remarks"
-      start_time = 0.0
+      title          = "Opening Remarks"
+      start_time_sec = 0.0
     },
     {
-      title      = "Product Announcements"
-      start_time = 75.5
+      title          = "Product Announcements"
+      start_time_sec = 75.5
     },
     {
-      title      = "Live Demonstration"
-      start_time = 180.0
+      title          = "Live Demonstration"
+      start_time_sec = 180.0
     },
     {
-      title      = "Q&A and Closing"
-      start_time = 320.0
+      title          = "Q&A and Closing"
+      start_time_sec = 320.0
     },
   ]
 }
@@ -237,15 +240,15 @@ resource "rixl_custom_domain" "cdn" {
 
 # Map domain to project
 resource "rixl_project_custom_domain" "cdn_mapping" {
-  project_id = rixl_project.vod_prod.id
-  domain_id  = rixl_custom_domain.cdn.id
+  org_id        = var.org_id
+  project_id    = rixl_project.vod_prod.id
+  custom_domain = rixl_custom_domain.cdn.domain
 }
 
 # Auto-join rule for verified corporate users
 resource "rixl_domain_auto_join" "corp_onboarding" {
-  org_id    = var.org_id
-  domain    = "example.com"
-  role_name = "Editor"
+  org_id  = var.org_id
+  enabled = true
 }
 ```
 
@@ -254,6 +257,11 @@ resource "rixl_domain_auto_join" "corp_onboarding" {
 Organize media assets into channels and publish articles with subscriber notifications:
 
 ```terraform
+variable "user_id" {
+  type        = string
+  description = "Rixl User ID"
+}
+
 # Curated video channel
 resource "rixl_feed" "tech_talks" {
   project_id   = rixl_project.vod_prod.id
@@ -265,17 +273,16 @@ resource "rixl_feed" "tech_talks" {
 
 # Multimedia post
 resource "rixl_post" "architecture_review" {
-  project_id = rixl_project.vod_prod.id
-  title      = "Deep Dive: Cloud Transcoding Architecture"
-  content    = "An overview of how multi-bitrate HLS streams are packaged and distributed via edge CDN nodes."
-  status     = "published"
+  project_id  = rixl_project.vod_prod.id
+  feed_id     = rixl_feed.tech_talks.id
+  video_id    = rixl_video.keynote.id
+  description = "Deep Dive: Cloud Transcoding Architecture - Overview of how multi-bitrate HLS streams are packaged."
 }
 
-# Webhook / email subscriber
+# Webhook / email subscriber preference
 resource "rixl_blog_subscription" "alerts" {
-  project_id = rixl_project.vod_prod.id
-  email      = "streaming-team@example.com"
-  active     = true
+  user_id    = var.user_id
+  subscribed = true
 }
 ```
 
@@ -289,46 +296,40 @@ resource "rixl_access_policy" "pipeline_policy" {
   org_id      = var.org_id
   name        = "MediaPipelineUploader"
   description = "Allows automated CI/CD runners to upload video assets and chapters"
-  rules = [
-    {
-      action   = "video:write"
-      resource = "project:${rixl_project.vod_prod.id}/*"
-      effect   = "allow"
-    },
-    {
-      action   = "chapters:write"
-      resource = "project:${rixl_project.vod_prod.id}/*"
-      effect   = "allow"
-    },
+  permissions = [
+    "video:read",
+    "video:write",
+    "subtitle:write",
+    "audio_track:write",
   ]
 }
 
 # Issue API key for CI/CD automation runner
 resource "rixl_api_key" "ci_runner" {
-  org_id      = var.org_id
-  name        = "github-actions-uploader"
-  description = "Scoped API key for media ingestion runner"
+  org_id     = var.org_id
+  project_id = rixl_project.vod_prod.id
+  name       = "github-actions-uploader"
 }
 ```
 
-### 5. Observability Dashboard & Viewer Retention Heatmaps
+### 5. Observability Dashboard & Viewer Telemetry
 
-Create custom telemetry monitoring dashboards with audience retention heatmap widgets:
+Create custom telemetry monitoring dashboards with timeseries metric widgets:
 
 ```terraform
 resource "rixl_dashboard" "streaming_ops" {
-  org_id      = var.org_id
-  title       = "Streaming Operations & Telemetry"
-  description = "Real-time bandwidth, viewer retention, and transcoding status"
+  name       = "Streaming Operations & Telemetry"
+  visibility = "org"
 }
 
-resource "rixl_dashboard_widget" "viewer_heatmap" {
+resource "rixl_dashboard_widget" "viewer_sessions" {
   dashboard_id = rixl_dashboard.streaming_ops.id
-  title        = "Audience Retention Heatmap"
-  widget_type  = "heatmap"
-  query        = "video.retention.percentile"
-  row          = 0
-  col          = 0
+  title        = "Concurrent Streaming Sessions"
+  chart_type   = "timeseries"
+  dataset      = "playback"
+  metric       = "concurrent_sessions"
+  pos_x        = 0
+  pos_y        = 0
   width        = 6
   height       = 4
 }
@@ -402,6 +403,20 @@ mise run docs-check
 
 ---
 
+## Resource & Data Source Reference
+
+| Category | Resource Types | Data Source Types |
+| :--- | :--- | :--- |
+| **Video & Media** | [`rixl_video`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/video), [`rixl_video_chapters`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/video_chapters), [`rixl_subtitle`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/subtitle), [`rixl_audio_track`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/audio_track), [`rixl_image`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/image) | `rixl_video`, `rixl_videos`, `rixl_video_stats`, `rixl_video_heatmap`, `rixl_video_hot_segments`, `rixl_top_videos`, `rixl_image`, `rixl_images`, `rixl_image_stats`, `rixl_top_images`, `rixl_chapters`, `rixl_subtitles`, `rixl_audio_tracks`, `rixl_languages` |
+| **Projects & Content** | [`rixl_project`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/project), [`rixl_feed`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/feed), [`rixl_post`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/post), [`rixl_blog_subscription`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/blog_subscription) | `rixl_project`, `rixl_projects`, `rixl_feed`, `rixl_feeds`, `rixl_feed_stats`, `rixl_top_feeds`, `rixl_post`, `rixl_posts`, `rixl_post_stats`, `rixl_top_posts`, `rixl_blog_subscription` |
+| **Custom Domains** | [`rixl_custom_domain`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/custom_domain), [`rixl_project_custom_domain`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/project_custom_domain), [`rixl_domain_auto_join`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/domain_auto_join) | `rixl_domain`, `rixl_domain_auto_join` |
+| **IAM & Security** | [`rixl_access_policy`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/access_policy), [`rixl_policy_attachment`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/policy_attachment), [`rixl_api_key`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/api_key), [`rixl_client_credential`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/client_credential), [`rixl_auth_provider_connection`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/auth_provider_connection) | `rixl_policy`, `rixl_policies`, `rixl_policy_attachments`, `rixl_user_policies`, `rixl_api_keys`, `rixl_client_credentials`, `rixl_providers`, `rixl_passkeys`, `rixl_permission_registries` |
+| **Organizations** | [`rixl_organization`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/organization), [`rixl_organization_invitation`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/organization_invitation), [`rixl_organization_member`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/organization_member) | `rixl_organization_members`, `rixl_memberships`, `rixl_membership_applications`, `rixl_check_membership`, `rixl_internal_membership_info`, `rixl_user`, `rixl_user_info` |
+| **Dashboards & Telemetry** | [`rixl_dashboard`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/dashboard), [`rixl_dashboard_widget`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/dashboard_widget) | `rixl_dashboard`, `rixl_dashboards`, `rixl_dashboard_datasets`, `rixl_dashboard_stats`, `rixl_realtime_stats`, `rixl_storage_usage`, `rixl_storage_usage_history`, `rixl_bandwidth_usage`, `rixl_bandwidth_usage_history` |
+| **Billing & Subscriptions** | [`rixl_subscription`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/subscription), [`rixl_payment_method`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/payment_method), [`rixl_billing_address`](https://registry.terraform.io/providers/rixlhq/rixl/latest/docs/resources/billing_address) | `rixl_subscription`, `rixl_subscription_history`, `rixl_plan`, `rixl_plans`, `rixl_invoices`, `rixl_payment_methods`, `rixl_payment_method_from_payment_intent`, `rixl_payment_method_from_setup_intent`, `rixl_billing_address` |
+
+---
+
 ## License
 
-This project is licensed under the [MIT License](LICENSE) &mdash; Copyright (c) 2026 Rixl Inc.
+This project is licensed under the [MIT License](LICENSE).
