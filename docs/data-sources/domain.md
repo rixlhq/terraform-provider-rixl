@@ -2,12 +2,12 @@
 subcategory: "Custom Domains"
 page_title: "rixl_domain Data Source - rixl"
 description: |-
-  Retrieves verification records, SSL status, and DNS configuration for a custom domain.
+  Retrieves the verification token, expiration, and status for an organization custom domain.
 ---
 
 # rixl_domain (Data Source)
 
-Retrieves verification records, SSL status, and DNS configuration for a custom domain.
+Retrieves the verification token, expiration, and status for an organization custom domain.
 
 
 
