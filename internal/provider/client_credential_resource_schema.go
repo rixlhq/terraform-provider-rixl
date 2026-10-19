@@ -11,6 +11,8 @@ import (
 
 func ClientCredentialResourceSchema(_ context.Context) schema.Schema {
 	return schema.Schema{
+		Description:         "Manages OAuth 2.0 client credentials (client ID and client secret) for machine-to-machine authentication.",
+		MarkdownDescription: "Manages OAuth 2.0 client credentials (client ID and client secret) for machine-to-machine authentication.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

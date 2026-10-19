@@ -162,6 +162,8 @@ func (v videoChaptersListValidator) ValidateList(ctx context.Context, req valida
 // none as computed attributes.
 func VideoChaptersResourceSchema() schema.Schema {
 	return schema.Schema{
+		Description:         "Manages navigation chapters for a Rixl video, enabling interactive timeline seek points.",
+		MarkdownDescription: "Manages navigation chapters for a Rixl video, enabling interactive timeline seek points.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

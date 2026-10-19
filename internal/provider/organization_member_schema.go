@@ -9,6 +9,8 @@ import (
 
 func OrganizationMemberResourceSchema() schema.Schema {
 	return schema.Schema{
+		Description:         "Manages member assignment and role in a Rixl organization.",
+		MarkdownDescription: "Manages member assignment and role in a Rixl organization.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

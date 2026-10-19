@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
 	"github.com/rixlhq/rixl-go/sdk/images"
@@ -236,32 +233,4 @@ func (r *imageResource) waitForImage(ctx context.Context, imageID string) (*mode
 		case <-ticker.C:
 		}
 	}
-}
-
-func ImageResourceSchema(_ context.Context) schema.Schema {
-	attrs := imageResourceAttributes()
-	attrs["file_path"] = schema.StringAttribute{
-		Required:      true,
-		PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
-	}
-	attrs["name"] = schema.StringAttribute{
-		Optional: true,
-		Computed: true,
-		PlanModifiers: []planmodifier.String{
-			stringplanmodifier.RequiresReplace(),
-		},
-	}
-	attrs["project_id"] = schema.StringAttribute{
-		Required:      true,
-		PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
-	}
-	return schema.Schema{Attributes: attrs}
-}
-
-type ImageResourceModel struct {
-	ImageDataSourceModel
-
-	ProjectId types.String `tfsdk:"project_id"`
-	Name      types.String `tfsdk:"name"`
-	FilePath  types.String `tfsdk:"file_path"`
 }

@@ -11,6 +11,8 @@ import (
 
 func ProjectCustomDomainResourceSchema(_ context.Context) schema.Schema {
 	return schema.Schema{
+		Description:         "Configures and verifies a custom CDN streaming domain for a Rixl project.",
+		MarkdownDescription: "Configures and verifies a custom CDN streaming domain for a Rixl project.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

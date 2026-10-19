@@ -30,25 +30,26 @@ func VideoResourceSchema(_ context.Context) schema.Schema {
 		Required:      true,
 		PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 	}
-	return schema.Schema{Attributes: attrs}
+	return schema.Schema{
+		Description:         "Uploads and manages video assets in Rixl, initiating automated multi-bitrate HLS transcoding and thumbnail extraction.",
+		MarkdownDescription: "Uploads and manages video assets in Rixl, initiating automated multi-bitrate HLS transcoding and thumbnail extraction.",
+		Attributes:          attrs,
+	}
 }
 
 func videoResourceAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"bitrate":   schema.Int64Attribute{Computed: true},
-		"codec":     schema.StringAttribute{Computed: true},
-		"duration":  schema.StringAttribute{Computed: true},
-		"file":      schema.SingleNestedAttribute{Computed: true, Attributes: fileResourceAttributes()},
-		"framerate": schema.StringAttribute{Computed: true},
-		"hdr":       schema.BoolAttribute{Computed: true},
-		"height":    schema.Int64Attribute{Computed: true},
-		"id":        schema.StringAttribute{Computed: true},
-		"poster":    schema.SingleNestedAttribute{Computed: true, Attributes: imageResourceAttributes()},
-		"visibility": schema.StringAttribute{
-			Optional: true,
-			Computed: true,
-		},
-		"width": schema.Int64Attribute{Computed: true},
+		"bitrate":    schema.Int64Attribute{Computed: true},
+		"codec":      schema.StringAttribute{Computed: true},
+		"duration":   schema.StringAttribute{Computed: true},
+		"file":       schema.SingleNestedAttribute{Computed: true, Attributes: fileResourceAttributes()},
+		"framerate":  schema.StringAttribute{Computed: true},
+		"hdr":        schema.BoolAttribute{Computed: true},
+		"height":     schema.Int64Attribute{Computed: true},
+		"id":         schema.StringAttribute{Computed: true},
+		"poster":     schema.SingleNestedAttribute{Computed: true, Attributes: imageResourceAttributes()},
+		"visibility": schema.StringAttribute{Optional: true, Computed: true},
+		"width":      schema.Int64Attribute{Computed: true},
 	}
 }
 

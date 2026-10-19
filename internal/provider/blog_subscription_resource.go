@@ -8,9 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/rixlhq/rixl-go/sdk"
 	"github.com/rixlhq/rixl-go/sdk/blog"
@@ -190,32 +187,4 @@ func (r *blogSubscriptionResource) readBack(ctx context.Context, data *BlogSubsc
 		}
 		data.Id = types.StringValue(id)
 	}
-}
-
-func BlogSubscriptionResourceSchema() schema.Schema {
-	return schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-			},
-			"user_id": schema.StringAttribute{
-				Optional:      true,
-				Computed:      true,
-				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
-			},
-			"subscribed": schema.BoolAttribute{
-				Required: true,
-			},
-			"subscribed_at": schema.StringAttribute{
-				Computed: true,
-			},
-		},
-	}
-}
-
-type BlogSubscriptionResourceModel struct {
-	Id           types.String `tfsdk:"id"`
-	UserId       types.String `tfsdk:"user_id"`
-	Subscribed   types.Bool   `tfsdk:"subscribed"`
-	SubscribedAt types.String `tfsdk:"subscribed_at"`
 }

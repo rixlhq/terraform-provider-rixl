@@ -13,6 +13,8 @@ import (
 
 func AuthProviderConnectionResourceSchema(_ context.Context) rschema.Schema {
 	return rschema.Schema{
+		Description:         "Connects an external OAuth identity provider for organization single sign-on (SSO).",
+		MarkdownDescription: "Connects an external OAuth identity provider for organization single sign-on (SSO).",
 		Attributes: map[string]rschema.Attribute{
 			"id": rschema.StringAttribute{
 				Required:    true,
