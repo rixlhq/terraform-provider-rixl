@@ -33,6 +33,24 @@ func TestProviderMetadataVersion(t *testing.T) {
 	}
 }
 
+func TestProviderSchema(t *testing.T) {
+	p := New("1.0.0")()
+	var resp tfprovider.SchemaResponse
+	p.Schema(context.Background(), tfprovider.SchemaRequest{}, &resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("schema error: %v", resp.Diagnostics)
+	}
+	if _, ok := resp.Schema.Attributes["api_key"]; !ok {
+		t.Fatalf("missing api_key attribute")
+	}
+	if _, ok := resp.Schema.Attributes["bearer_token"]; !ok {
+		t.Fatalf("missing bearer_token attribute")
+	}
+	if _, ok := resp.Schema.Attributes["base_url"]; !ok {
+		t.Fatalf("missing base_url attribute")
+	}
+}
+
 func TestUserAgentWithVersion(t *testing.T) {
 	client := newHTTPClient("2.0.0")
 	transport, ok := client.Transport.(*userAgentTransport)
