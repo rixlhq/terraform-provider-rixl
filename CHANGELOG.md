@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.8.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.7.0...v1.8.0) (2026-10-22)
+
+
+### Features
+
+* **docs:** add data source usage examples and clean template fallbacks ([#42](https://github.com/rixlhq/terraform-provider-rixl/issues/42)) ([8608e09](https://github.com/rixlhq/terraform-provider-rixl/commit/8608e096c8568e9fa993fe23f562f5275c3fdfd5))
+* **docs:** add registry guides, resource subcategories, and search engine optimization ([#35](https://github.com/rixlhq/terraform-provider-rixl/issues/35)) ([f31123c](https://github.com/rixlhq/terraform-provider-rixl/commit/f31123c5cad9ee3216c94c9c5b121e6da016ddff))
+* **docs:** expand guides, optimize README and enhance SEO keywords ([#39](https://github.com/rixlhq/terraform-provider-rixl/issues/39)) ([dec499f](https://github.com/rixlhq/terraform-provider-rixl/commit/dec499fdf32667693be3459e27fbf9fcc0908102))
+* **provider:** bump sdk to v0.9.0 and implement import support with drift detection ([#43](https://github.com/rixlhq/terraform-provider-rixl/issues/43)) ([4c6af41](https://github.com/rixlhq/terraform-provider-rixl/commit/4c6af4165ff41bbfb237e0db1c4be3a806987834))
+* **provider:** embed data source descriptions and expand test coverage ([#38](https://github.com/rixlhq/terraform-provider-rixl/issues/38)) ([25aae05](https://github.com/rixlhq/terraform-provider-rixl/commit/25aae05bed8d6b31c7d8298d84b7b250991c2f26))
+
+
+### Bug Fixes
+
+* add MIT license and update repository licensing ([df02d38](https://github.com/rixlhq/terraform-provider-rixl/commit/df02d388fdf8a45af99f7f8f19b6dd7ee4c934d9))
+* **ci:** coordinate goreleaser draft and release-please tag configuration ([4a045e9](https://github.com/rixlhq/terraform-provider-rixl/commit/4a045e9ec95f31177feaf3ca4da4eaf139e9d388))
+* **docs:** align custom domain documentation with API and purge CDN references ([#41](https://github.com/rixlhq/terraform-provider-rixl/issues/41)) ([0fa7bd9](https://github.com/rixlhq/terraform-provider-rixl/commit/0fa7bd9ff417fba07baeb406ffa3e4865198f035))
+* **docs:** synchronize guide code examples, resource schemas, and cross-references ([#40](https://github.com/rixlhq/terraform-provider-rixl/issues/40)) ([f30b289](https://github.com/rixlhq/terraform-provider-rixl/commit/f30b28929d98a50bf81176f19ddb3238df3c702e))
+
 ## [1.7.0](https://github.com/rixlhq/terraform-provider-rixl/compare/v1.6.0...v1.7.0) (2026-10-19)
 
 
